@@ -1,0 +1,554 @@
+/**
+ * Optimisations responsives pour mobile
+ * Mobile-first design avec breakpoints Bootstrap 5
+ */
+
+/* ===== BREAKPOINTS =====
+   xs: < 576px (smartphones)
+   sm: >= 576px (smartphones paysage)
+   md: >= 768px (tablettes)
+   lg: >= 992px (desktop)
+   xl: >= 1200px (grand écran)
+   xxl: >= 1400px (très grand écran)
+*/
+
+/* ===== MOBILE FIRST (< 576px) ===== */
+
+/* Navigation mobile */
+@media (max-width: 575.98px) {
+    /* Navbar compacte */
+    .navbar-brand {
+        font-size: 1rem;
+    }
+
+    .navbar-nav .nav-link {
+        padding: 0.5rem 1rem;
+    }
+
+    /* Dropdown menu pleine largeur */
+    .navbar-collapse {
+        margin-top: 1rem;
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+
+    .dropdown-menu {
+        width: 100%;
+        border: none;
+        box-shadow: none;
+    }
+
+    /* Masquer les labels longs sur mobile */
+    .navbar-nav .nav-link small {
+        display: none;
+    }
+
+    /* Bouton de thème plus compact */
+    #theme-toggle {
+        padding: 0.5rem;
+        font-size: 1rem;
+    }
+}
+
+/* Cartes et conteneurs */
+@media (max-width: 575.98px) {
+    .container-fluid {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+
+    .card {
+        margin-bottom: 1rem;
+        border-radius: 0.5rem;
+    }
+
+    .card-body {
+        padding: 1rem;
+    }
+
+    .card-header {
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+    }
+
+    /* Titres plus petits */
+    h1 { font-size: 1.5rem; }
+    h2 { font-size: 1.35rem; }
+    h3 { font-size: 1.2rem; }
+    h4 { font-size: 1.1rem; }
+    h5 { font-size: 1rem; }
+}
+
+/* Tableaux responsifs */
+@media (max-width: 767.98px) {
+    /* Forcer le scroll horizontal */
+    .table-responsive {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Compacter les tableaux */
+    .table {
+        font-size: 0.875rem;
+    }
+
+    .table th,
+    .table td {
+        padding: 0.5rem;
+        white-space: nowrap;
+    }
+
+    /* Badges plus petits */
+    .badge {
+        font-size: 0.75rem;
+        padding: 0.25em 0.5em;
+    }
+
+    /* Boutons d'action en colonne */
+    .btn-group-vertical {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .btn-group-vertical .btn {
+        margin-bottom: 0.25rem;
+    }
+}
+
+/* DataTables mobile */
+@media (max-width: 767.98px) {
+    /* Compacter les contrôles DataTables */
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter {
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+
+    .dataTables_wrapper .dataTables_length select {
+        margin: 0 0.5rem;
+    }
+
+    /* Pagination compacte */
+    .dataTables_wrapper .dataTables_paginate {
+        margin-top: 1rem;
+        text-align: center;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        padding: 0.25rem 0.5rem;
+        margin: 0 0.1rem;
+        font-size: 0.875rem;
+    }
+
+    /* Boutons d'export empilés */
+    .dt-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+        margin-bottom: 1rem;
+    }
+
+    .dt-buttons .btn {
+        flex: 1 1 auto;
+        min-width: 45%;
+        font-size: 0.75rem;
+        padding: 0.375rem 0.5rem;
+    }
+}
+
+/* Formulaires mobile */
+@media (max-width: 575.98px) {
+    /* Champs de formulaire pleine largeur */
+    .form-control,
+    .form-select {
+        font-size: 16px; /* Évite le zoom automatique sur iOS */
+    }
+
+    /* Boutons pleine largeur */
+    .btn-group {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .btn-group .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+        border-radius: 0.25rem !important;
+    }
+
+    /* Input groups empilés */
+    .input-group {
+        flex-wrap: wrap;
+    }
+
+    .input-group > * {
+        flex: 1 1 100%;
+    }
+
+    /* Labels empilés */
+    .row.g-3 {
+        --bs-gutter-x: 0;
+    }
+
+    .col-form-label {
+        padding-bottom: 0.25rem;
+    }
+}
+
+/* Wizard mobile */
+@media (max-width: 767.98px) {
+    .wizard-container {
+        padding: 0;
+    }
+
+    .wizard-steps {
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+    }
+
+    .wizard-steps::before {
+        display: none; /* Masquer la ligne de connexion */
+    }
+
+    .wizard-step {
+        flex: 0 0 20%;
+        margin-bottom: 1rem;
+    }
+
+    .wizard-step-circle {
+        width: 30px;
+        height: 30px;
+        font-size: 0.75rem;
+    }
+
+    .wizard-step-label {
+        font-size: 0.7rem;
+        display: block;
+        max-width: 60px;
+        margin: 0 auto;
+        line-height: 1.2;
+    }
+
+    .wizard-actions {
+        flex-direction: column-reverse;
+        gap: 0.5rem;
+    }
+
+    .wizard-actions > div {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .wizard-actions .btn {
+        width: 100%;
+    }
+
+    .auto-save-indicator {
+        top: 60px;
+        right: 10px;
+        left: 10px;
+        text-align: center;
+        font-size: 0.875rem;
+    }
+}
+
+/* Dashboard mobile */
+@media (max-width: 767.98px) {
+    /* Cartes dashboard empilées */
+    .dashboard-cards .col-md-3,
+    .dashboard-cards .col-md-4,
+    .dashboard-cards .col-md-6 {
+        flex: 0 0 100%;
+        max-width: 100%;
+        margin-bottom: 1rem;
+    }
+
+    /* Statistiques compactes */
+    .stat-card {
+        padding: 1rem;
+    }
+
+    .stat-card h3 {
+        font-size: 1.5rem;
+    }
+
+    .stat-card p {
+        font-size: 0.875rem;
+    }
+
+    /* Actions rapides en grille */
+    .actions-rapides {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+
+    .actions-rapides .btn {
+        font-size: 0.875rem;
+        padding: 0.75rem 0.5rem;
+    }
+}
+
+/* Carte interactive mobile */
+@media (max-width: 767.98px) {
+    .leaflet-container {
+        height: 300px !important;
+    }
+
+    .leaflet-popup-content {
+        font-size: 0.875rem;
+    }
+
+    .leaflet-control-zoom {
+        margin-top: 60px !important;
+    }
+}
+
+/* Modales mobile */
+@media (max-width: 575.98px) {
+    .modal-dialog {
+        margin: 0.5rem;
+        max-width: calc(100% - 1rem);
+    }
+
+    .modal-header,
+    .modal-footer {
+        padding: 0.75rem;
+    }
+
+    .modal-title {
+        font-size: 1.1rem;
+    }
+
+    .modal-footer .btn {
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+    }
+}
+
+/* Alertes et notifications mobile */
+@media (max-width: 575.98px) {
+    .alert {
+        padding: 0.75rem;
+        font-size: 0.875rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .alert .btn-close {
+        padding: 0.5rem;
+    }
+
+    /* Badge de notification dans navbar */
+    .navbar-nav .badge {
+        font-size: 0.65rem;
+        padding: 0.2em 0.4em;
+    }
+}
+
+/* Footer mobile */
+@media (max-width: 767.98px) {
+    footer {
+        padding: 1rem 0 !important;
+        font-size: 0.875rem;
+    }
+
+    footer .row > div {
+        text-align: center !important;
+        margin-bottom: 0.5rem;
+    }
+
+    footer .col-md-6:last-child {
+        margin-bottom: 0;
+    }
+}
+
+/* Upload de fichiers mobile */
+@media (max-width: 575.98px) {
+    .file-upload-zone {
+        padding: 1.5rem 1rem;
+    }
+
+    .file-list-item {
+        padding: 0.75rem;
+        font-size: 0.875rem;
+    }
+
+    .file-preview {
+        max-width: 60px;
+        max-height: 60px;
+    }
+}
+
+/* Breadcrumb mobile */
+@media (max-width: 575.98px) {
+    .breadcrumb {
+        font-size: 0.875rem;
+        padding: 0.5rem 0.75rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .breadcrumb-item {
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+/* Amélioration du touch sur mobile */
+@media (hover: none) and (pointer: coarse) {
+    /* Augmenter la zone de touch */
+    .btn,
+    .nav-link,
+    .dropdown-item,
+    .page-link {
+        min-height: 44px; /* Recommandation Apple & Google */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Désactiver le hover sur touch */
+    .btn:hover,
+    .nav-link:hover {
+        opacity: 1;
+    }
+
+    /* Feedback tactile visuel */
+    .btn:active,
+    .nav-link:active {
+        transform: scale(0.98);
+        transition: transform 0.1s;
+    }
+}
+
+/* Mode paysage mobile */
+@media (max-width: 767.98px) and (orientation: landscape) {
+    .navbar-collapse {
+        max-height: 50vh;
+    }
+
+    .wizard-content {
+        min-height: 300px;
+    }
+
+    .modal-dialog {
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+}
+
+/* Tablettes (768px - 991px) */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .container-fluid {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+
+    /* Navigation en 2 lignes sur tablette */
+    .navbar-nav {
+        flex-wrap: wrap;
+    }
+
+    /* Cartes en 2 colonnes */
+    .dashboard-cards .col-md-3 {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+
+    /* Tableaux lisibles */
+    .table {
+        font-size: 0.9rem;
+    }
+}
+
+/* Print styles */
+@media print {
+    /* Masquer les éléments non imprimables */
+    .navbar,
+    .btn,
+    .wizard-actions,
+    .wizard-steps,
+    .dt-buttons,
+    .dataTables_filter,
+    .dataTables_length,
+    .dataTables_paginate,
+    footer {
+        display: none !important;
+    }
+
+    /* Forcer le thème clair pour l'impression */
+    body {
+        background: white !important;
+        color: black !important;
+    }
+
+    .card {
+        border: 1px solid #ddd !important;
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+
+    .table {
+        border: 1px solid #ddd !important;
+    }
+
+    .table th,
+    .table td {
+        border: 1px solid #ddd !important;
+    }
+
+    /* Une page par dossier */
+    .card,
+    .wizard-panel {
+        page-break-after: always;
+    }
+
+    /* URLs visibles pour les liens */
+    a[href]:after {
+        content: " (" attr(href) ")";
+        font-size: 0.8em;
+        font-style: italic;
+    }
+}
+
+/* Accessibilité - réduction de mouvement */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Amélioration contraste pour malvoyants */
+@media (prefers-contrast: high) {
+    .btn {
+        border-width: 2px;
+    }
+
+    .card {
+        border-width: 2px;
+    }
+
+    .form-control:focus {
+        border-width: 3px;
+    }
+}
+
+/* Mode économie d'énergie (dark mode auto) */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --bg-primary: #1a1d20;
+        --bg-secondary: #2b3035;
+        --text-primary: #e9ecef;
+    }
+}

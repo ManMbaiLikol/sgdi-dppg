@@ -1,0 +1,72 @@
+# Fichiers système
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environnement local
+*.env
+.env.local
+.env.production
+
+# Configuration locale
+config/database.local.php
+
+# Fichiers uploadés par les utilisateurs
+uploads/*
+!uploads/.gitkeep
+
+# Logs
+logs/*
+!logs/.gitkeep
+*.log
+
+# Cache
+cache/*
+!cache/.gitkeep
+
+# Fichiers temporaires
+tmp/*
+temp/*
+*.tmp
+
+# Fichiers de développement/test
+test_*.php
+debug_*.php
+check_*.php
+create_*.php
+update_*.php
+reset_*.php
+apply_*.php
+add_*.php
+setup_*.php
+fix_*.php
+show_*.php
+list_*.php
+verifier_*.php
+generate_*.php
+integrer_*.php
+install_*.php
+*.txt
+!Comptes de Démonstration.txt
+
+# Scripts batch
+*.bat
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Composer (si ajouté plus tard)
+/vendor/
+
+# Node modules (si ajouté plus tard)
+node_modules/
+
+# Fichiers de sauvegarde
+*.bak
+*.backup
+*.sql.gz
+*.sql.zip

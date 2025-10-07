@@ -1,0 +1,370 @@
+/**
+ * Système de thèmes sombre/clair pour SGDI
+ * Utilise CSS Variables pour un changement dynamique
+ */
+
+:root {
+    /* Thème clair (par défaut) */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --bg-tertiary: #e9ecef;
+    --text-primary: #212529;
+    --text-secondary: #6c757d;
+    --text-muted: #adb5bd;
+    --border-color: #dee2e6;
+    --card-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    --navbar-bg: #0d6efd;
+    --navbar-text: #ffffff;
+    --sidebar-bg: #f8f9fa;
+    --sidebar-text: #212529;
+    --link-color: #0d6efd;
+    --link-hover: #0a58ca;
+    --input-bg: #ffffff;
+    --input-border: #ced4da;
+    --table-stripe: #f8f9fa;
+    --table-hover: #f5f5f5;
+}
+
+[data-theme="dark"] {
+    /* Thème sombre */
+    --bg-primary: #1a1d20;
+    --bg-secondary: #2b3035;
+    --bg-tertiary: #3a3f47;
+    --text-primary: #e9ecef;
+    --text-secondary: #adb5bd;
+    --text-muted: #6c757d;
+    --border-color: #495057;
+    --card-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
+    --navbar-bg: #0d6efd;
+    --navbar-text: #ffffff;
+    --sidebar-bg: #2b3035;
+    --sidebar-text: #e9ecef;
+    --link-color: #4d9eff;
+    --link-hover: #82b7ff;
+    --input-bg: #2b3035;
+    --input-border: #495057;
+    --table-stripe: #2b3035;
+    --table-hover: #3a3f47;
+}
+
+/* Application des variables CSS */
+body {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.bg-white,
+.card {
+    background-color: var(--bg-primary) !important;
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+.card {
+    box-shadow: var(--card-shadow);
+}
+
+.bg-light {
+    background-color: var(--bg-secondary) !important;
+}
+
+.text-dark {
+    color: var(--text-primary) !important;
+}
+
+.text-muted {
+    color: var(--text-secondary) !important;
+}
+
+.border,
+.card,
+.table,
+.form-control,
+.form-select,
+.input-group-text {
+    border-color: var(--border-color) !important;
+}
+
+/* Liens */
+a:not(.btn):not(.nav-link):not(.dropdown-item) {
+    color: var(--link-color);
+}
+
+a:not(.btn):not(.nav-link):not(.dropdown-item):hover {
+    color: var(--link-hover);
+}
+
+/* Formulaires */
+.form-control,
+.form-select {
+    background-color: var(--input-bg);
+    color: var(--text-primary);
+    border-color: var(--input-border);
+}
+
+.form-control:focus,
+.form-select:focus {
+    background-color: var(--input-bg);
+    color: var(--text-primary);
+    border-color: var(--link-color);
+}
+
+.form-control::placeholder {
+    color: var(--text-muted);
+}
+
+.input-group-text {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+/* Tableaux */
+.table {
+    color: var(--text-primary);
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) > * {
+    background-color: var(--table-stripe);
+}
+
+.table-hover > tbody > tr:hover > * {
+    background-color: var(--table-hover);
+}
+
+.table th {
+    border-color: var(--border-color);
+    background-color: var(--bg-tertiary);
+}
+
+/* DataTables */
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_processing,
+.dataTables_wrapper .dataTables_paginate {
+    color: var(--text-primary);
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    color: var(--text-primary) !important;
+}
+
+/* Dropdowns */
+.dropdown-menu {
+    background-color: var(--bg-primary);
+    border-color: var(--border-color);
+}
+
+.dropdown-item {
+    color: var(--text-primary);
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+    background-color: var(--table-hover);
+    color: var(--text-primary);
+}
+
+.dropdown-divider {
+    border-color: var(--border-color);
+}
+
+/* Modals */
+.modal-content {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.modal-header,
+.modal-footer {
+    border-color: var(--border-color);
+}
+
+/* Alerts - conserver les couleurs Bootstrap mais ajuster l'opacité */
+[data-theme="dark"] .alert-success {
+    background-color: rgba(25, 135, 84, 0.2);
+    border-color: rgba(25, 135, 84, 0.3);
+    color: #75b798;
+}
+
+[data-theme="dark"] .alert-danger {
+    background-color: rgba(220, 53, 69, 0.2);
+    border-color: rgba(220, 53, 69, 0.3);
+    color: #ea868f;
+}
+
+[data-theme="dark"] .alert-warning {
+    background-color: rgba(255, 193, 7, 0.2);
+    border-color: rgba(255, 193, 7, 0.3);
+    color: #ffda6a;
+}
+
+[data-theme="dark"] .alert-info {
+    background-color: rgba(13, 202, 240, 0.2);
+    border-color: rgba(13, 202, 240, 0.3);
+    color: #6edff6;
+}
+
+/* Badges - ajuster pour thème sombre */
+[data-theme="dark"] .badge {
+    opacity: 0.9;
+}
+
+/* Bouton de changement de thème */
+.theme-toggle {
+    position: relative;
+    width: 50px;
+    height: 26px;
+    background-color: var(--bg-tertiary);
+    border-radius: 13px;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    transition: background-color 0.3s ease;
+}
+
+.theme-toggle-slider {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background-color: var(--navbar-bg);
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+}
+
+[data-theme="dark"] .theme-toggle-slider {
+    transform: translateX(24px);
+}
+
+.theme-toggle-icon {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.theme-toggle-icon.sun {
+    left: 6px;
+}
+
+.theme-toggle-icon.moon {
+    right: 6px;
+}
+
+/* Navbar - conserver le style Bootstrap mais améliorer le contraste */
+.navbar-dark {
+    background-color: var(--navbar-bg) !important;
+}
+
+/* Breadcrumb */
+.breadcrumb {
+    background-color: var(--bg-secondary);
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    color: var(--text-muted);
+}
+
+/* Pagination */
+.page-link {
+    background-color: var(--bg-primary);
+    color: var(--link-color);
+    border-color: var(--border-color);
+}
+
+.page-link:hover {
+    background-color: var(--table-hover);
+    color: var(--link-hover);
+}
+
+.page-item.active .page-link {
+    background-color: var(--navbar-bg);
+    border-color: var(--navbar-bg);
+}
+
+/* Leaflet Maps */
+[data-theme="dark"] .leaflet-container {
+    background-color: var(--bg-secondary);
+}
+
+[data-theme="dark"] .leaflet-popup-content-wrapper {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .leaflet-popup-tip {
+    background-color: var(--bg-primary);
+}
+
+/* Progress bars */
+.progress {
+    background-color: var(--bg-tertiary);
+}
+
+/* List groups */
+.list-group-item {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+.list-group-item:hover {
+    background-color: var(--table-hover);
+}
+
+/* Code blocks */
+code,
+pre {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+/* Scrollbar pour thème sombre */
+[data-theme="dark"] ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+    background: var(--bg-tertiary);
+    border-radius: 5px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* Transitions fluides */
+* {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Exceptions aux transitions (pour éviter les effets indésirables) */
+.btn,
+.navbar,
+.modal,
+.dropdown-menu,
+.theme-toggle-slider {
+    transition: none;
+}
+
+/* Accessibilité - focus visible */
+:focus-visible {
+    outline: 2px solid var(--link-color);
+    outline-offset: 2px;
+}
+
+/* Amélioration du contraste pour les éléments disabled */
+.form-control:disabled,
+.form-select:disabled {
+    background-color: var(--bg-tertiary);
+    opacity: 0.6;
+}

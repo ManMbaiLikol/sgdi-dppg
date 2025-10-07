@@ -1,0 +1,389 @@
+/**
+ * Mode Sombre - SGDI
+ * Variables CSS pour thème sombre/clair
+ */
+
+:root {
+    /* Mode Clair (défaut) */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --bg-tertiary: #e9ecef;
+    --text-primary: #212529;
+    --text-secondary: #6c757d;
+    --text-tertiary: #495057;
+    --border-color: #dee2e6;
+    --shadow: rgba(0, 0, 0, 0.1);
+    --shadow-hover: rgba(0, 0, 0, 0.15);
+
+    /* Couleurs principales (restent identiques) */
+    --color-primary: #1e3a8a;
+    --color-primary-hover: #1e40af;
+    --color-success: #059669;
+    --color-danger: #dc2626;
+    --color-warning: #f59e0b;
+    --color-info: #0ea5e9;
+
+    /* Transitions */
+    --transition-speed: 0.3s;
+}
+
+/* Mode Sombre */
+[data-theme="dark"] {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2d2d2d;
+    --bg-tertiary: #3a3a3a;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-tertiary: #94a3b8;
+    --border-color: #4a4a4a;
+    --shadow: rgba(0, 0, 0, 0.3);
+    --shadow-hover: rgba(0, 0, 0, 0.5);
+
+    /* Ajuster couleurs principales pour meilleur contraste */
+    --color-primary: #3b82f6;
+    --color-primary-hover: #60a5fa;
+}
+
+/* Application du thème */
+body {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    transition: background-color var(--transition-speed), color var(--transition-speed);
+}
+
+/* Cartes et conteneurs */
+.card,
+.stat-card,
+.search-card,
+.result-card,
+.detail-card {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+    box-shadow: 0 2px 8px var(--shadow);
+    transition: all var(--transition-speed);
+}
+
+.card:hover,
+.stat-card:hover,
+.result-card:hover {
+    box-shadow: 0 4px 12px var(--shadow-hover);
+}
+
+/* Formulaires */
+.form-control,
+.form-select,
+.form-control:focus,
+.form-select:focus {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+.form-control:focus,
+.form-select:focus {
+    box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25);
+}
+
+/* Tableaux */
+.table {
+    color: var(--text-primary);
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: var(--bg-tertiary);
+}
+
+.table-hover tbody tr:hover {
+    background-color: var(--bg-tertiary);
+}
+
+thead th {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+/* Navigation */
+.sidebar,
+.navbar {
+    background-color: var(--bg-primary);
+    border-color: var(--border-color);
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.nav-link {
+    color: var(--text-secondary);
+}
+
+.nav-link:hover,
+.nav-link.active {
+    color: var(--color-primary);
+}
+
+/* Modales */
+.modal-content {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.modal-header,
+.modal-footer {
+    border-color: var(--border-color);
+}
+
+/* Alertes */
+.alert {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
+/* Badges */
+.badge {
+    /* Les badges gardent leurs couleurs vives */
+}
+
+/* Boutons */
+.btn-outline-primary {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+/* Dropdown */
+.dropdown-menu {
+    background-color: var(--bg-primary);
+    border-color: var(--border-color);
+}
+
+.dropdown-item {
+    color: var(--text-primary);
+}
+
+.dropdown-item:hover {
+    background-color: var(--bg-tertiary);
+}
+
+/* Pagination */
+.pagination .page-link {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+.pagination .page-link:hover {
+    background-color: var(--bg-tertiary);
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+/* Breadcrumb */
+.breadcrumb {
+    background-color: var(--bg-secondary);
+}
+
+.breadcrumb-item a {
+    color: var(--color-primary);
+}
+
+/* Séparateurs */
+hr {
+    border-color: var(--border-color);
+    opacity: 0.3;
+}
+
+/* Texte */
+.text-muted {
+    color: var(--text-secondary) !important;
+}
+
+/* Liste */
+.list-group-item {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+/* Progress bar */
+.progress {
+    background-color: var(--bg-tertiary);
+}
+
+/* Toggle Button pour mode sombre */
+.theme-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    border: 3px solid var(--bg-primary);
+    box-shadow: 0 4px 12px var(--shadow);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-speed);
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px var(--shadow-hover);
+}
+
+.theme-toggle i {
+    font-size: 1.5rem;
+    color: white;
+}
+
+/* Animation rotation pour le toggle */
+.theme-toggle.rotating {
+    animation: rotate 0.5s ease-in-out;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Header toggle (alternative) */
+.theme-toggle-header {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all var(--transition-speed);
+}
+
+.theme-toggle-header:hover {
+    background-color: var(--bg-tertiary);
+}
+
+.theme-toggle-header i {
+    margin-right: 0.5rem;
+}
+
+/* Ajustements spécifiques mode sombre */
+[data-theme="dark"] .bg-light {
+    background-color: var(--bg-tertiary) !important;
+}
+
+[data-theme="dark"] .bg-white {
+    background-color: var(--bg-primary) !important;
+}
+
+[data-theme="dark"] .text-dark {
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] img {
+    opacity: 0.9;
+}
+
+/* Scrollbar en mode sombre */
+[data-theme="dark"] ::-webkit-scrollbar {
+    width: 12px;
+    background-color: var(--bg-secondary);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+    background-color: var(--bg-tertiary);
+    border-radius: 6px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+    background-color: #555;
+}
+
+/* Charts en mode sombre */
+[data-theme="dark"] canvas {
+    filter: brightness(0.9);
+}
+
+/* DataTables en mode sombre */
+[data-theme="dark"] .dataTables_wrapper {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .dataTables_filter input,
+[data-theme="dark"] .dataTables_length select {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+/* Code blocks */
+[data-theme="dark"] code,
+[data-theme="dark"] pre {
+    background-color: var(--bg-tertiary);
+    color: #f8f8f2;
+}
+
+/* Tooltips */
+.tooltip-inner {
+    background-color: var(--text-primary);
+    color: var(--bg-primary);
+}
+
+/* Print mode - toujours clair */
+@media print {
+    body {
+        background-color: white;
+        color: black;
+    }
+
+    .theme-toggle,
+    .theme-toggle-header {
+        display: none !important;
+    }
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.fade-in {
+    animation: fadeIn var(--transition-speed);
+}
+
+/* Accessibilité - Focus visible en mode sombre */
+[data-theme="dark"] *:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+/* Préférence système (auto-detect) */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) {
+        --bg-primary: #1a1a1a;
+        --bg-secondary: #2d2d2d;
+        --bg-tertiary: #3a3a3a;
+        --text-primary: #f1f5f9;
+        --text-secondary: #cbd5e1;
+        --text-tertiary: #94a3b8;
+        --border-color: #4a4a4a;
+        --shadow: rgba(0, 0, 0, 0.3);
+        --shadow-hover: rgba(0, 0, 0, 0.5);
+    }
+}

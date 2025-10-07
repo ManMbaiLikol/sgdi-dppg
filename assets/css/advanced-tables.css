@@ -1,0 +1,381 @@
+/**
+ * CSS pour les tableaux avancés
+ * Styles pour la personnalisation des colonnes, filtres inline, etc.
+ */
+
+/* ============================================================================
+   PANNEAU DE GESTION DES COLONNES
+   ============================================================================ */
+
+.column-toggle-panel {
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: 0.375rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.column-toggle-panel .card-header {
+    background-color: var(--bg-secondary, #f8f9fa);
+    border-bottom: 1px solid var(--border-color, #dee2e6);
+    padding: 0.75rem 1rem;
+}
+
+.column-toggle-panel .card-header h6 {
+    color: var(--text-primary, #212529);
+    margin: 0;
+}
+
+.column-toggle-panel .collapse-toggle {
+    color: var(--text-muted, #6c757d);
+    text-decoration: none;
+    padding: 0.25rem 0.5rem;
+    transition: color 0.15s ease-in-out;
+}
+
+.column-toggle-panel .collapse-toggle:hover {
+    color: var(--primary, #0d6efd);
+}
+
+.column-toggle-panel .collapse-content {
+    padding: 1rem;
+}
+
+.column-toggle-panel .form-check {
+    padding-left: 1.75rem;
+}
+
+.column-toggle-panel .form-check-input {
+    width: 1.25em;
+    height: 1.25em;
+    margin-top: 0.15em;
+    cursor: pointer;
+}
+
+.column-toggle-panel .form-check-label {
+    cursor: pointer;
+    color: var(--text-primary, #212529);
+    user-select: none;
+}
+
+.column-toggle-panel .form-check-input:focus {
+    border-color: var(--primary, #0d6efd);
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* ============================================================================
+   BOUTONS DATATABLES
+   ============================================================================ */
+
+.dt-buttons {
+    margin-bottom: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.dt-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--text-primary, #212529);
+    background-color: var(--bg-primary, #fff);
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+    min-height: 38px;
+}
+
+.dt-button:hover {
+    color: var(--text-primary, #212529);
+    background-color: var(--bg-hover, #e9ecef);
+    border-color: var(--border-hover, #adb5bd);
+}
+
+.dt-button:focus {
+    outline: 3px solid var(--primary, #0d6efd);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.dt-button.btn-success {
+    color: #fff;
+    background-color: #198754;
+    border-color: #198754;
+}
+
+.dt-button.btn-success:hover {
+    background-color: #157347;
+    border-color: #146c43;
+}
+
+.dt-button.btn-danger {
+    color: #fff;
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.dt-button.btn-danger:hover {
+    background-color: #bb2d3b;
+    border-color: #b02a37;
+}
+
+.dt-button.btn-info {
+    color: #fff;
+    background-color: #0dcaf0;
+    border-color: #0dcaf0;
+}
+
+.dt-button.btn-info:hover {
+    background-color: #31d2f2;
+    border-color: #25cff2;
+}
+
+.dt-button.btn-warning {
+    color: #000;
+    background-color: #ffc107;
+    border-color: #ffc107;
+}
+
+.dt-button.btn-warning:hover {
+    background-color: #ffca2c;
+    border-color: #ffc720;
+}
+
+/* ============================================================================
+   FILTRES INLINE
+   ============================================================================ */
+
+.filters th {
+    padding: 0.5rem;
+    background-color: var(--bg-secondary, #f8f9fa);
+    border-bottom: 2px solid var(--border-color, #dee2e6);
+}
+
+.filters input {
+    width: 100%;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    border: 1px solid var(--border-color, #ced4da);
+    border-radius: 0.25rem;
+    background-color: var(--input-bg, #fff);
+    color: var(--text-primary, #212529);
+}
+
+.filters input:focus {
+    border-color: var(--primary, #0d6efd);
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* ============================================================================
+   TABLEAU RESPONSIVE
+   ============================================================================ */
+
+.dataTables_wrapper {
+    position: relative;
+}
+
+.dataTables_wrapper .table {
+    margin-bottom: 1rem;
+}
+
+/* Amélioration de la pagination */
+.dataTables_paginate {
+    margin-top: 1rem;
+}
+
+.dataTables_paginate .pagination {
+    justify-content: center;
+}
+
+.dataTables_paginate .paginate_button {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Amélioration du sélecteur de longueur */
+.dataTables_length select {
+    min-height: 38px;
+    padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+    border: 1px solid var(--border-color, #ced4da);
+    border-radius: 0.25rem;
+    background-color: var(--input-bg, #fff);
+    color: var(--text-primary, #212529);
+}
+
+/* Amélioration de la recherche */
+.dataTables_filter input {
+    min-height: 38px;
+    padding: 0.375rem 0.75rem;
+    border: 1px solid var(--border-color, #ced4da);
+    border-radius: 0.25rem;
+    background-color: var(--input-bg, #fff);
+    color: var(--text-primary, #212529);
+}
+
+.dataTables_filter input:focus {
+    border-color: var(--primary, #0d6efd);
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* ============================================================================
+   ANIMATIONS
+   ============================================================================ */
+
+.column-toggle-panel .collapse-content {
+    transition: all 0.3s ease-in-out;
+}
+
+.dt-button {
+    position: relative;
+    overflow: hidden;
+}
+
+.dt-button::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.dt-button:active::after {
+    width: 300px;
+    height: 300px;
+}
+
+/* ============================================================================
+   MODE SOMBRE
+   ============================================================================ */
+
+[data-theme="dark"] .column-toggle-panel {
+    border-color: var(--border-color, #495057);
+    background-color: var(--bg-secondary, #2d2d2d);
+}
+
+[data-theme="dark"] .column-toggle-panel .card-header {
+    background-color: var(--bg-tertiary, #3a3a3a);
+    border-bottom-color: var(--border-color, #495057);
+}
+
+[data-theme="dark"] .dt-button {
+    color: var(--text-primary, #f1f5f9);
+    background-color: var(--bg-secondary, #2d2d2d);
+    border-color: var(--border-color, #495057);
+}
+
+[data-theme="dark"] .dt-button:hover {
+    background-color: var(--bg-tertiary, #3a3a3a);
+    border-color: var(--border-hover, #6c757d);
+}
+
+[data-theme="dark"] .filters th {
+    background-color: var(--bg-tertiary, #3a3a3a);
+    border-bottom-color: var(--border-color, #495057);
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+    .dt-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .dt-button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .column-toggle-panel #column-toggles > div {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter {
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+
+    .dataTables_wrapper .dataTables_info,
+    .dataTables_wrapper .dataTables_paginate {
+        text-align: center;
+    }
+}
+
+/* ============================================================================
+   ACCESSIBILITÉ
+   ============================================================================ */
+
+/* Amélioration du focus pour navigation clavier */
+.dt-button:focus-visible,
+.column-toggle-panel .form-check-input:focus-visible,
+.filters input:focus-visible {
+    outline: 3px solid var(--primary, #0d6efd);
+    outline-offset: 2px;
+}
+
+/* Labels pour lecteurs d'écran */
+.dataTables_length label,
+.dataTables_filter label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Indicateurs visuels de tri */
+.dataTable thead th.sorting::before,
+.dataTable thead th.sorting::after,
+.dataTable thead th.sorting_asc::before,
+.dataTable thead th.sorting_asc::after,
+.dataTable thead th.sorting_desc::before,
+.dataTable thead th.sorting_desc::after {
+    opacity: 0.5;
+}
+
+/* ============================================================================
+   IMPRESSION
+   ============================================================================ */
+
+@media print {
+    .column-toggle-panel,
+    .dt-buttons,
+    .dataTables_length,
+    .dataTables_filter,
+    .dataTables_paginate {
+        display: none !important;
+    }
+
+    .filters {
+        display: none !important;
+    }
+
+    .table {
+        border: 1px solid #000 !important;
+    }
+
+    .table th,
+    .table td {
+        border: 1px solid #000 !important;
+        padding: 0.5rem !important;
+    }
+}
