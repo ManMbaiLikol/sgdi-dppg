@@ -1,14 +1,12 @@
 <?php
-// Détail d'une infrastructure publique
+// Détail d'une infrastructure publique - DÉSACTIVÉ pour des raisons de confidentialité
+// Les détails des dossiers ne sont plus accessibles publiquement
+
 require_once '../../config/database.php';
 require_once '../../includes/functions.php';
-require_once '../../modules/dossiers/functions.php';
 
-$numero = sanitize($_GET['numero'] ?? '');
-
-if (empty($numero)) {
-    redirect('index.php');
-}
+// Rediriger vers le registre public
+redirect('index.php', 'Les détails des dossiers ne sont plus accessibles publiquement.', 'info');
 
 // Récupérer le dossier
 $sql = "SELECT d.*, dec.decision, dec.date_decision, dec.reference_decision, dec.motif,

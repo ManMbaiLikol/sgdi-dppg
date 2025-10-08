@@ -13,6 +13,8 @@ $region = sanitize($_GET['region'] ?? '');
 $ville = sanitize($_GET['ville'] ?? '');
 $statut = sanitize($_GET['statut'] ?? 'autorise'); // Par défaut, uniquement autorisées
 $annee = sanitize($_GET['annee'] ?? '');
+$page = max(1, intval($_GET['page'] ?? 1)); // Pagination
+$par_page = 20; // 20 résultats par page
 
 // Construction de la requête
 $sql = "SELECT d.*,
@@ -26,6 +28,15 @@ $sql = "SELECT d.*,
         WHERE 1=1";
 
 $params = [];
+
+// IMPORTANT : Limiter aux statuts publics uniquement
+if ($statut && $statut !== 'tous') {
+    $sql .= " AND d.statut = :statut";
+    $params['statut'] = $statut;
+} else {
+    // "Tous les statuts" = uniquement les statuts publics (pas les brouillons, en_cours, etc.)
+    $sql .= " AND d.statut IN ('autorise', 'refuse', 'ferme')";
+}
 
 if ($search) {
     $sql .= " AND (d.numero LIKE :search
@@ -50,20 +61,29 @@ if ($ville) {
     $params['ville'] = $ville;
 }
 
-if ($statut) {
-    $sql .= " AND d.statut = :statut";
-    $params['statut'] = $statut;
-}
-
 if ($annee) {
     $sql .= " AND YEAR(d.date_creation) = :annee";
     $params['annee'] = $annee;
 }
 
-$sql .= " ORDER BY d.date_creation DESC, d.numero DESC";
+// Compter le total pour la pagination
+$count_sql = "SELECT COUNT(*) " . substr($sql, strpos($sql, 'FROM'));
+$count_stmt = $pdo->prepare($count_sql);
+$count_stmt->execute($params);
+$total_resultats = $count_stmt->fetchColumn();
+$total_pages = ceil($total_resultats / $par_page);
+
+// Ajouter la pagination
+$offset = ($page - 1) * $par_page;
+$sql .= " ORDER BY d.date_creation DESC, d.numero DESC LIMIT :limit OFFSET :offset";
 
 $stmt = $pdo->prepare($sql);
-$stmt->execute($params);
+foreach ($params as $key => $value) {
+    $stmt->bindValue(":$key", $value);
+}
+$stmt->bindValue(':limit', $par_page, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+$stmt->execute();
 $dossiers = $stmt->fetchAll();
 
 // Récupérer les options de filtres
@@ -275,7 +295,7 @@ $stats = $pdo->query($stats_sql)->fetch();
                             <option value="autorise" <?php echo $statut === 'autorise' ? 'selected' : ''; ?>>Autorisées</option>
                             <option value="refuse" <?php echo $statut === 'refuse' ? 'selected' : ''; ?>>Refusées</option>
                             <option value="ferme" <?php echo $statut === 'ferme' ? 'selected' : ''; ?>>Fermées</option>
-                            <option value="">Tous les statuts</option>
+                            <option value="tous" <?php echo $statut === 'tous' ? 'selected' : ''; ?>>Tous (Autorisées + Refusées + Fermées)</option>
                         </select>
                     </div>
                     <div class="col-md-3 mb-3">
@@ -304,7 +324,12 @@ $stats = $pdo->query($stats_sql)->fetch();
 
         <!-- Résultats -->
         <div class="mb-3 d-flex justify-content-between align-items-center">
-            <h4><?php echo count($dossiers); ?> résultat(s) trouvé(s)</h4>
+            <h4>
+                <?php echo $total_resultats; ?> résultat(s) trouvé(s)
+                <?php if ($total_pages > 1): ?>
+                    <small class="text-muted">(Page <?php echo $page; ?> sur <?php echo $total_pages; ?>)</small>
+                <?php endif; ?>
+            </h4>
             <a href="export.php?<?php echo http_build_query($_GET); ?>" class="btn btn-success">
                 <i class="fas fa-file-excel"></i> Exporter Excel
             </a>
@@ -376,15 +401,64 @@ $stats = $pdo->query($stats_sql)->fetch();
                                     <strong>Réf:</strong> <?php echo htmlspecialchars($dossier['reference_decision']); ?>
                                 </p>
                             <?php endif; ?>
-
-                            <a href="detail.php?numero=<?php echo urlencode($dossier['numero']); ?>"
-                               class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-eye"></i> Voir détails
-                            </a>
                         </div>
                     </div>
                 </div>
             <?php endforeach; ?>
+
+            <!-- Pagination -->
+            <?php if ($total_pages > 1): ?>
+                <nav aria-label="Navigation des pages" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        <!-- Page précédente -->
+                        <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
+                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page - 1])); ?>">
+                                <i class="fas fa-chevron-left"></i> Précédent
+                            </a>
+                        </li>
+
+                        <?php
+                        // Afficher les numéros de pages
+                        $start = max(1, $page - 2);
+                        $end = min($total_pages, $page + 2);
+
+                        if ($start > 1): ?>
+                            <li class="page-item">
+                                <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => 1])); ?>">1</a>
+                            </li>
+                            <?php if ($start > 2): ?>
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                            <?php endif; ?>
+                        <?php endif; ?>
+
+                        <?php for ($i = $start; $i <= $end; $i++): ?>
+                            <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
+                                <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>">
+                                    <?php echo $i; ?>
+                                </a>
+                            </li>
+                        <?php endfor; ?>
+
+                        <?php if ($end < $total_pages): ?>
+                            <?php if ($end < $total_pages - 1): ?>
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                            <?php endif; ?>
+                            <li class="page-item">
+                                <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $total_pages])); ?>">
+                                    <?php echo $total_pages; ?>
+                                </a>
+                            </li>
+                        <?php endif; ?>
+
+                        <!-- Page suivante -->
+                        <li class="page-item <?php echo $page >= $total_pages ? 'disabled' : ''; ?>">
+                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page + 1])); ?>">
+                                Suivant <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            <?php endif; ?>
         <?php endif; ?>
     </div>
 
