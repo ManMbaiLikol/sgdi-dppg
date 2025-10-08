@@ -1,181 +1,216 @@
-<?php
-// Page de connexion - SGDI MVP
-require_once 'includes/auth.php';
-require_once 'config/google_oauth.php';
-
-// Rediriger si déjà connecté
-if (isLoggedIn()) {
-    redirect(url('dashboard.php'));
-}
-
-// URL de connexion Google
-$googleLoginUrl = getGoogleLoginUrl();
-
-$error = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
-        $error = 'Token de sécurité invalide';
-    } else {
-        $username = sanitize($_POST['username'] ?? '');
-        $password = $_POST['password'] ?? '';
-
-        if (empty($username) || empty($password)) {
-            $error = 'Nom d\'utilisateur et mot de passe requis';
-        } else {
-            if (loginUser($username, $password)) {
-                // Vérifier si l'utilisateur doit changer son mot de passe
-                require_once 'modules/users/functions.php';
-                if (mustChangePassword($_SESSION['user_id'])) {
-                    redirect(url('modules/users/change_password.php'), 'Vous devez changer votre mot de passe avant de continuer', 'warning');
-                } else {
-                    redirect(url('dashboard.php'), 'Connexion réussie', 'success');
-                }
-            } else {
-                $error = 'Nom d\'utilisateur ou mot de passe incorrect';
-            }
-        }
-    }
-}
-
-$page_title = 'Connexion';
-?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $page_title; ?> - SGDI</title>
+    <title>SGDI - Système de Gestion des Dossiers d'Implantation | MINEE/DPPG</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
     <style>
+        :root {
+            --primary-color: #1e3a8a;
+            --secondary-color: #059669;
+            --accent-color: #d97706;
+        }
+
         body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
+            justify-content: center;
         }
-        .login-card {
+
+        .landing-container {
+            max-width: 1200px;
+            padding: 2rem;
+        }
+
+        .hero-card {
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-            padding: 40px;
-            max-width: 400px;
-            width: 100%;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
         }
-        .logo {
+
+        .hero-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #1e40af 100%);
+            color: white;
+            padding: 3rem 2rem;
             text-align: center;
-            margin-bottom: 30px;
         }
-        .logo i {
+
+        .hero-header h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        .hero-header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .hero-body {
+            padding: 3rem 2rem;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            height: 100%;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+
+        .feature-icon {
             font-size: 3rem;
-            color: #667eea;
+            margin-bottom: 1rem;
         }
-        .btn-login {
+
+        .feature-icon.primary { color: var(--primary-color); }
+        .feature-icon.success { color: var(--secondary-color); }
+        .feature-icon.warning { color: var(--accent-color); }
+
+        .cta-section {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            padding: 12px;
-            font-weight: 500;
+            color: white;
+            padding: 3rem 2rem;
+            border-radius: 15px;
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .btn-large {
+            padding: 1rem 3rem;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            font-weight: bold;
+            margin: 0.5rem;
+            transition: transform 0.2s;
+        }
+
+        .btn-large:hover {
+            transform: scale(1.05);
+        }
+
+        .footer-landing {
+            text-align: center;
+            color: white;
+            margin-top: 2rem;
+            opacity: 0.9;
+        }
+
+        .stats-badge {
+            background: white;
+            color: var(--primary-color);
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            display: inline-block;
+            margin: 0.5rem;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-4">
-            <div class="login-card">
-                <div class="logo">
-                    <i class="fas fa-building"></i>
-                    <h3 class="mt-3 text-primary">SGDI</h3>
-                    <p class="text-muted small">Système de Gestion des Dossiers d'Implantation</p>
-                    <p class="text-muted small"><strong>MINEE - DPPG</strong></p>
+    <div class="landing-container">
+        <div class="hero-card">
+            <!-- Header -->
+            <div class="hero-header">
+                <div class="mb-3">
+                    <i class="fas fa-oil-can fa-3x"></i>
                 </div>
+                <h1>SGDI</h1>
+                <h2 class="h4">Système de Gestion des Dossiers d'Implantation</h2>
+                <p class="mt-3">Ministère de l'Eau et de l'Énergie<br>Direction du Pétrole, du Produit Pétrolier et du Gaz (DPPG)</p>
+            </div>
 
-                <?php if ($error): ?>
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <?php echo sanitize($error); ?>
-                </div>
-                <?php endif; ?>
-
-                <form method="POST">
-                    <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
-
-                    <div class="mb-3">
-                        <label for="username" class="form-label">
-                            <i class="fas fa-user"></i> Nom d'utilisateur
-                        </label>
-                        <input type="text" class="form-control" id="username" name="username"
-                               value="<?php echo sanitize($_POST['username'] ?? ''); ?>" required>
+            <!-- Body -->
+            <div class="hero-body">
+                <!-- Features -->
+                <div class="row mb-4">
+                    <div class="col-md-4 mb-3">
+                        <div class="feature-card">
+                            <div class="feature-icon primary">
+                                <i class="fas fa-map-marked-alt"></i>
+                            </div>
+                            <h5>Carte Interactive</h5>
+                            <p class="text-muted">Visualisez toutes les infrastructures pétrolières autorisées sur une carte interactive du Cameroun</p>
+                        </div>
                     </div>
-
-                    <div class="mb-4">
-                        <label for="password" class="form-label">
-                            <i class="fas fa-lock"></i> Mot de passe
-                        </label>
-                        <input type="password" class="form-control" id="password" name="password" required>
+                    <div class="col-md-4 mb-3">
+                        <div class="feature-card">
+                            <div class="feature-icon success">
+                                <i class="fas fa-search"></i>
+                            </div>
+                            <h5>Recherche Avancée</h5>
+                            <p class="text-muted">Recherchez des infrastructures par type, région, ville, opérateur ou numéro de dossier</p>
+                        </div>
                     </div>
-
-                    <button type="submit" class="btn btn-login btn-primary w-100">
-                        <i class="fas fa-sign-in-alt"></i> Se connecter
-                    </button>
-                </form>
-
-                <div class="text-center my-3">
-                    <span class="text-muted">ou</span>
+                    <div class="col-md-4 mb-3">
+                        <div class="feature-card">
+                            <div class="feature-icon warning">
+                                <i class="fas fa-chart-bar"></i>
+                            </div>
+                            <h5>Statistiques</h5>
+                            <p class="text-muted">Consultez les statistiques détaillées par type d'infrastructure et par région</p>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Bouton Google OAuth -->
-                <a href="<?php echo htmlspecialchars($googleLoginUrl); ?>"
-                   class="btn btn-outline-danger w-100 mb-3">
-                    <i class="fab fa-google"></i> Se connecter avec Google
-                    <small class="d-block text-muted" style="font-size: 0.75rem;">Accès Lecteur Public</small>
-                </a>
-
-                <div class="mt-3 text-center">
-                    <small class="text-muted">
-                        Pour obtenir un compte interne, contactez l'administrateur système
-                    </small>
+                <!-- Types d'infrastructures -->
+                <div class="text-center mb-4">
+                    <h4 class="mb-3">Types d'Infrastructures</h4>
+                    <div>
+                        <span class="stats-badge"><i class="fas fa-gas-pump"></i> Stations-service</span>
+                        <span class="stats-badge"><i class="fas fa-industry"></i> Points consommateurs</span>
+                        <span class="stats-badge"><i class="fas fa-warehouse"></i> Dépôts GPL</span>
+                        <span class="stats-badge"><i class="fas fa-fire"></i> Centres emplisseurs</span>
+                    </div>
                 </div>
 
-                <div class="mt-4 border-top pt-3">
-                    <p class="text-center text-muted small mb-0">
-                        <strong>Comptes de démonstration:</strong>
-                    </p>
-                    <div class="row mt-2">
-                        <div class="col-4">
-                            <small class="text-muted">
-                                <strong>admin</strong> / admin123<br>
-                                <strong>chef</strong> / chef123<br>
-                                <strong>cadre</strong> / cadre123<br>
-                                <strong>billeteur</strong> / bill123
-                            </small>
-                        </div>
-                        <div class="col-4">
-                            <small class="text-muted">
-                                <strong class="text-primary">sousdirecteur</strong> / sousdir123<br>
-                                <strong class="text-primary">directeur</strong> / dir123<br>
-                                <strong class="text-primary">ministre</strong> / ministre123<br>
-                                <strong>lecteur</strong> / lecteur123
-                            </small>
-                        </div>
-                        <div class="col-4">
-                            <small class="text-muted">
-                                <em>Circuit visa:</em><br>
-                                1. Chef Service<br>
-                                2. <span class="text-primary">Sous-Dir ✨</span><br>
-                                3. <span class="text-primary">Directeur ✨</span><br>
-                                4. <span class="text-primary">Ministre ✨</span>
-                            </small>
-                        </div>
+                <!-- CTA Section -->
+                <div class="cta-section">
+                    <h3 class="mb-3">Accédez au Registre Public</h3>
+                    <p class="mb-4">Consultez les infrastructures pétrolières autorisées au Cameroun</p>
+                    <div>
+                        <a href="modules/registre_public/index.php" class="btn btn-light btn-large">
+                            <i class="fas fa-list"></i> Voir le Registre
+                        </a>
+                        <a href="modules/registre_public/carte.php" class="btn btn-outline-light btn-large">
+                            <i class="fas fa-map-marked-alt"></i> Voir la Carte
+                        </a>
+                    </div>
+                    <div class="mt-4">
+                        <a href="modules/auth/login.php" class="btn btn-link text-white">
+                            <i class="fas fa-sign-in-alt"></i> Connexion Personnel DPPG
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <!-- Footer -->
+        <div class="footer-landing">
+            <p class="mb-1">
+                <strong>République du Cameroun</strong><br>
+                Paix - Travail - Patrie
+            </p>
+            <p class="mb-0 small">
+                © <?php echo date('Y'); ?> MINEE/DPPG - Tous droits réservés
+            </p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

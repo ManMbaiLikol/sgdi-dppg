@@ -111,7 +111,7 @@ $sql = "INSERT INTO logs_activite (user_id, action, details, ip_address, date_ac
         VALUES (?, 'connexion', 'Connexion via Google OAuth', ?, NOW())";
 $pdo->prepare($sql)->execute([$user['id'], $_SERVER['REMOTE_ADDR']]);
 
-// Rediriger vers le dashboard lecteur
+// Rediriger vers le registre public
 $_SESSION['success'] = "Bienvenue " . $prenom . " ! Vous êtes connecté avec Google.";
-redirect(url('modules/lecteur/dashboard.php'));
+redirect(url('modules/registre_public/index.php'));
 ?>

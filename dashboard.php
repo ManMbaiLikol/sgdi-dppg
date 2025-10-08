@@ -116,8 +116,8 @@ switch ($_SESSION['user_role']) {
         break;
 
     case 'lecteur':
-        // Rediriger vers le registre public
-        redirect(url('modules/lecteur/dashboard.php'));
+        // Le rôle lecteur n'existe plus, rediriger vers le registre public
+        redirect(url('modules/registre_public/index.php'));
         break;
 
     case 'admin':

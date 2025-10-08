@@ -16,7 +16,7 @@ This is the **Système de Gestion des Dossiers d'Implantation (SGDI)** - a compr
 
 ## Architecture Overview
 
-### User Role System (10 Roles)
+### User Role System (9 Roles)
 1. **Chef de Service SDTD** - Central role managing all dossiers, commissions, and first-level visa
 2. **Billeteur DPPG** - Payment recording and receipt generation
 3. **Chef de Commission** - Coordinates visits and validates inspection reports
@@ -26,7 +26,8 @@ This is the **Système de Gestion des Dossiers d'Implantation (SGDI)** - a compr
 7. **Directeur DPPG** - Third-level visa and ministerial transmission
 8. **Cabinet/Secrétariat Ministre** - Final decision authority
 9. **Admin Système** - Complete user and system management
-10. **Lecteur Public** - Public registry consultation only
+
+**Note**: Le registre public est accessible sans authentification (pas de rôle "Lecteur" nécessaire)
 
 ### Infrastructure Types (6 Types)
 1. **Implantation station-service** → Opérateur propriétaire
