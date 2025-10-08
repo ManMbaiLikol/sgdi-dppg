@@ -2,6 +2,7 @@
 // Registre Public - Interface de consultation publique sans authentification
 require_once '../../config/database.php';
 require_once '../../includes/functions.php';
+require_once '../../modules/dossiers/functions.php';
 
 $page_title = 'Registre Public des Infrastructures Pétrolières';
 
@@ -320,7 +321,7 @@ $stats = $pdo->query($stats_sql)->fetch();
                                 <div class="flex-grow-1">
                                     <h5 class="mb-2">
                                         <span class="badge badge-infrastructure bg-primary">
-                                            <?php echo formatTypeInfrastructure($dossier['type_infrastructure']); ?>
+                                            <?php echo getTypeInfrastructureLabel($dossier['type_infrastructure']); ?>
                                         </span>
                                         <?php if ($dossier['sous_type']): ?>
                                             <span class="badge bg-secondary"><?php echo ucfirst($dossier['sous_type']); ?></span>
