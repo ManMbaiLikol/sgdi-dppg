@@ -107,6 +107,26 @@
             color: var(--primary-color);
         }
 
+        .access-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .login-badge {
+            display: inline-block;
+            background: #e0e7ff;
+            color: var(--primary-color);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
         .btn-large {
             padding: 1rem 3rem;
             font-size: 1.2rem;
@@ -201,8 +221,15 @@
                         <!-- Accès Public -->
                         <div class="col-md-6 mb-3">
                             <div class="access-card">
-                                <h3 class="mb-3">Accès Public</h3>
-                                <p class="mb-4">Consultez les infrastructures pétrolières autorisées au Cameroun</p>
+                                <div class="mb-3">
+                                    <i class="fas fa-globe fa-3x"></i>
+                                </div>
+                                <span class="access-badge"><i class="fas fa-unlock"></i> Accès libre</span>
+                                <h3 class="mb-3"><i class="fas fa-users"></i> Consultation Publique</h3>
+                                <p class="mb-4">
+                                    <strong>Aucune connexion requise</strong><br>
+                                    Consultez librement les infrastructures pétrolières autorisées au Cameroun
+                                </p>
                                 <div>
                                     <a href="modules/registre_public/index.php" class="btn btn-light btn-large w-100 mb-3">
                                         <i class="fas fa-list"></i> Voir le Registre
@@ -217,8 +244,15 @@
                         <!-- Connexion Personnel DPPG -->
                         <div class="col-md-6 mb-3">
                             <div class="login-card">
-                                <h3 class="mb-3 text-center"><i class="fas fa-user-lock"></i> Personnel DPPG</h3>
-                                <p class="text-muted text-center mb-4">Connectez-vous pour accéder au système de gestion</p>
+                                <div class="mb-3">
+                                    <i class="fas fa-building fa-3x text-primary"></i>
+                                </div>
+                                <span class="login-badge"><i class="fas fa-lock"></i> Connexion requise</span>
+                                <h3 class="mb-3 text-center"><i class="fas fa-briefcase"></i> Espace de Travail</h3>
+                                <p class="text-muted text-center mb-4">
+                                    <strong>Réservé au Personnel DPPG</strong><br>
+                                    Connectez-vous pour accéder à votre espace de gestion des dossiers
+                                </p>
 
                                 <form action="login.php" method="POST">
                                     <div class="mb-3">
