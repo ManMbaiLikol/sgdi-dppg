@@ -20,9 +20,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Connexion réussie
         $user = getCurrentUser();
 
-        // Logger l'activité
-        logActivity('Connexion réussie', 'Utilisateur: ' . $username);
-
         // Rediriger vers le dashboard
         redirect(url('dashboard.php'), 'Bienvenue ' . $user['prenom'] . ' !', 'success');
     } else {
