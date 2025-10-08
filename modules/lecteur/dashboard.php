@@ -118,6 +118,9 @@ require_once '../../includes/header.php';
                             <a href="<?php echo url('modules/lecteur/recherche.php'); ?>" class="btn btn-light">
                                 <i class="fas fa-search"></i> Recherche Avancée
                             </a>
+                            <a href="<?php echo url('modules/registre_public/carte.php'); ?>" class="btn btn-light ms-2">
+                                <i class="fas fa-map-marked-alt"></i> Voir la carte
+                            </a>
                         </div>
                     </div>
                 </div>
