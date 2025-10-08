@@ -11,17 +11,25 @@ global $pdo;
 $numero = sanitize($_GET['numero'] ?? '');
 $type = sanitize($_GET['type_infrastructure'] ?? '');
 $region = sanitize($_GET['region'] ?? '');
-$operateur = sanitize($_GET['operateur'] ?? '');
+$demandeur = sanitize($_GET['demandeur'] ?? '');
 $statut = sanitize($_GET['statut'] ?? '');
 $date_debut = sanitize($_GET['date_debut'] ?? '');
 $date_fin = sanitize($_GET['date_fin'] ?? '');
 
-// Construction de la requête
+// Vérifier si au moins un critère est renseigné
+$has_criteria = !empty($numero) || !empty($type) || !empty($region) || !empty($demandeur) || !empty($statut) || !empty($date_debut) || !empty($date_fin);
+
+if (!$has_criteria) {
+    redirect(url('modules/lecteur/recherche.php'), 'Veuillez saisir au moins un critère de recherche avant d\'exporter.', 'error');
+    exit;
+}
+
+// Construction de la requête - inclure TOUS les statuts
 $sql = "SELECT d.*,
-        DATE_FORMAT(d.date_modification, '%d/%m/%Y') as date_decision_format,
-        d.statut as decision
+        DATE_FORMAT(d.date_modification, '%d/%m/%Y') as date_format,
+        DATE_FORMAT(d.date_creation, '%d/%m/%Y') as date_creation_format
         FROM dossiers d
-        WHERE d.statut IN ('autorise', 'rejete', 'decide')";
+        WHERE 1=1";
 
 $params = [];
 
@@ -40,9 +48,10 @@ if (!empty($region)) {
     $params[] = "%$region%";
 }
 
-if (!empty($operateur)) {
-    $sql .= " AND d.nom_operateur LIKE ?";
-    $params[] = "%$operateur%";
+if (!empty($demandeur)) {
+    $sql .= " AND (d.nom_demandeur LIKE ? OR d.operateur_proprietaire LIKE ?)";
+    $params[] = "%$demandeur%";
+    $params[] = "%$demandeur%";
 }
 
 if (!empty($statut)) {
@@ -51,16 +60,16 @@ if (!empty($statut)) {
 }
 
 if (!empty($date_debut)) {
-    $sql .= " AND d.date_modification >= ?";
+    $sql .= " AND d.date_creation >= ?";
     $params[] = $date_debut;
 }
 
 if (!empty($date_fin)) {
-    $sql .= " AND d.date_modification <= ?";
+    $sql .= " AND d.date_creation <= ?";
     $params[] = $date_fin;
 }
 
-$sql .= " ORDER BY d.date_modification DESC";
+$sql .= " ORDER BY d.date_creation DESC";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
@@ -78,14 +87,14 @@ fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
 
 // En-têtes du CSV
 fputcsv($output, [
-    'Statut',
     'N° Dossier',
     'Type Infrastructure',
-    'Opérateur',
+    'Demandeur/Opérateur',
     'Localisation',
     'Région',
     'Département',
-    'Date Modification',
+    'Statut Actuel',
+    'Date Création',
     'Latitude',
     'Longitude'
 ], ';');
@@ -98,14 +107,14 @@ foreach ($resultats as $row) {
     $longitude = isset($coords[1]) ? trim($coords[1]) : '';
 
     fputcsv($output, [
-        $row['statut'] === 'autorise' ? 'Autorisé' : 'Rejeté',
         $row['numero'],
         getTypeInfrastructureLabel($row['type_infrastructure']),
         $row['operateur_proprietaire'] ?? $row['nom_demandeur'],
         $row['lieu_dit'] ?? ($row['quartier'] . ', ' . $row['ville']),
         $row['region'],
         $row['departement'],
-        $row['date_decision_format'],
+        getStatutLabel($row['statut']),
+        $row['date_creation_format'],
         $latitude,
         $longitude
     ], ';');
