@@ -15,13 +15,15 @@ $statut = sanitize($_GET['statut'] ?? 'autorise'); // Par défaut, uniquement au
 $annee = sanitize($_GET['annee'] ?? '');
 
 // Construction de la requête
-$sql = "SELECT d.*, dec.decision, dec.date_decision, dec.reference_decision,
+$sql = "SELECT d.*,
         d.numero, d.type_infrastructure, d.sous_type, d.region, d.ville,
         d.nom_demandeur, d.operateur_proprietaire, d.entreprise_beneficiaire,
-        DATE_FORMAT(dec.date_decision, '%d/%m/%Y') as date_decision_format
+        DATE_FORMAT(d.date_creation, '%d/%m/%Y') as date_decision_format,
+        NULL as decision,
+        d.date_creation as date_decision,
+        d.numero as reference_decision
         FROM dossiers d
-        LEFT JOIN decisions dec ON d.id = dec.dossier_id
-        WHERE d.statut IN ('autorise', 'refuse', 'ferme')";
+        WHERE 1=1";
 
 $params = [];
 
@@ -54,11 +56,11 @@ if ($statut) {
 }
 
 if ($annee) {
-    $sql .= " AND YEAR(dec.date_decision) = :annee";
+    $sql .= " AND YEAR(d.date_creation) = :annee";
     $params['annee'] = $annee;
 }
 
-$sql .= " ORDER BY dec.date_decision DESC, d.numero DESC";
+$sql .= " ORDER BY d.date_creation DESC, d.numero DESC";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
@@ -67,7 +69,7 @@ $dossiers = $stmt->fetchAll();
 // Récupérer les options de filtres
 $regions = $pdo->query("SELECT DISTINCT region FROM dossiers WHERE region IS NOT NULL AND region != '' ORDER BY region")->fetchAll(PDO::FETCH_COLUMN);
 $villes = $pdo->query("SELECT DISTINCT ville FROM dossiers WHERE ville IS NOT NULL AND ville != '' ORDER BY ville")->fetchAll(PDO::FETCH_COLUMN);
-$annees = $pdo->query("SELECT DISTINCT YEAR(date_decision) as annee FROM decisions WHERE date_decision IS NOT NULL ORDER BY annee DESC")->fetchAll(PDO::FETCH_COLUMN);
+$annees = $pdo->query("SELECT DISTINCT YEAR(date_creation) as annee FROM dossiers WHERE date_creation IS NOT NULL ORDER BY annee DESC")->fetchAll(PDO::FETCH_COLUMN);
 
 // Statistiques publiques
 $stats_sql = "SELECT
