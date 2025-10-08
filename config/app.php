@@ -2,7 +2,14 @@
 // Configuration de l'application - SGDI MVP
 
 // URL de base de l'application
-define('BASE_URL', '/dppg-implantation');
+// Détection automatique : Railway (racine) vs Local (sous-dossier)
+if (isset($_SERVER['RAILWAY_ENVIRONMENT']) || isset($_ENV['RAILWAY_ENVIRONMENT'])) {
+    // Environnement Railway : racine
+    define('BASE_URL', '');
+} else {
+    // Environnement local WAMP : sous-dossier
+    define('BASE_URL', '/dppg-implantation');
+}
 
 // Fonction pour générer les URLs correctes
 function url($path = '') {
