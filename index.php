@@ -220,12 +220,12 @@
                                 <h3 class="mb-3 text-center"><i class="fas fa-user-lock"></i> Personnel DPPG</h3>
                                 <p class="text-muted text-center mb-4">Connectez-vous pour accéder au système de gestion</p>
 
-                                <form action="auth/login.php" method="POST">
+                                <form action="login.php" method="POST">
                                     <div class="mb-3">
-                                        <label class="form-label">Email</label>
+                                        <label class="form-label">Nom d'utilisateur</label>
                                         <div class="input-group">
-                                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                                            <input type="email" class="form-control" name="email" placeholder="votre.email@minee.cm" required>
+                                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                            <input type="text" class="form-control" name="username" placeholder="Votre nom d'utilisateur" required autofocus>
                                         </div>
                                     </div>
 
@@ -237,20 +237,9 @@
                                         </div>
                                     </div>
 
-                                    <div class="mb-3 form-check">
-                                        <input type="checkbox" class="form-check-input" id="remember" name="remember">
-                                        <label class="form-check-label" for="remember">Se souvenir de moi</label>
-                                    </div>
-
                                     <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">
                                         <i class="fas fa-sign-in-alt"></i> Se connecter
                                     </button>
-
-                                    <div class="text-center">
-                                        <a href="auth/forgot_password.php" class="text-muted small">
-                                            <i class="fas fa-question-circle"></i> Mot de passe oublié ?
-                                        </a>
-                                    </div>
                                 </form>
                             </div>
                         </div>
