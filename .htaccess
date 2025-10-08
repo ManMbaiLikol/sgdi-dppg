@@ -1,19 +1,9 @@
 # Protection contre l'accès direct aux fichiers sensibles
 <FilesMatch "\.(env|sql|md|txt|log)$">
-    Order allow,deny
-    Deny from all
+    Require all denied
 </FilesMatch>
 
-# Réglages PHP
-php_flag display_errors Off
-php_value upload_max_filesize 10M
-php_value post_max_size 10M
-php_value max_execution_time 300
-
-# Protection des répertoires sensibles
-RedirectMatch 403 ^/config/
-RedirectMatch 403 ^/database/
-RedirectMatch 403 ^/logs/
+# Note: Réglages PHP déplacés dans Dockerfile pour compatibilité Railway
 
 # Activation de la compression
 <IfModule mod_deflate.c>
