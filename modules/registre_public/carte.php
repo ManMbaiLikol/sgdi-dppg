@@ -233,8 +233,12 @@ $stats = [
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script>
+        // Debug: Vérifier que Leaflet est chargé
+        console.log('Leaflet chargé:', typeof L !== 'undefined');
+
         // Initialiser la carte centrée sur le Cameroun
         const map = L.map('map').setView([5.5, 11.5], 7);
+        console.log('Carte initialisée:', map);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors',
@@ -250,6 +254,8 @@ $stats = [
 
         // Données des infrastructures
         const infrastructures = <?php echo json_encode($infrastructures); ?>;
+        console.log('Nombre d\'infrastructures:', infrastructures.length);
+        console.log('Infrastructures:', infrastructures);
 
         // Fonction pour obtenir la couleur du marqueur
         function getMarkerColor(type) {
@@ -274,11 +280,16 @@ $stats = [
         }
 
         // Ajouter les marqueurs
+        console.log('Début ajout des marqueurs...');
+        let markersAdded = 0;
         infrastructures.forEach(infra => {
+            console.log('Traitement infrastructure:', infra.numero, 'Lat:', infra.latitude, 'Lng:', infra.longitude);
             if (infra.latitude && infra.longitude) {
                 const marker = L.marker([infra.latitude, infra.longitude], {
                     icon: createCustomIcon(infra.type_infrastructure)
                 });
+                console.log('Marqueur créé pour:', infra.numero);
+                markersAdded++;
 
                 const popupContent = `
                     <div style="min-width: 200px;">
@@ -295,10 +306,13 @@ $stats = [
 
                 marker.bindPopup(popupContent);
                 markerCluster.addLayer(marker);
+                console.log('Marqueur ajouté au cluster');
             }
         });
+        console.log('Total marqueurs ajoutés:', markersAdded);
 
         map.addLayer(markerCluster);
+        console.log('Cluster ajouté à la carte');
 
         // Fonction de formatage du type
         function formatTypeInfra(type) {
