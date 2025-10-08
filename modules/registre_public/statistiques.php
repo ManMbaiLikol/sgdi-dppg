@@ -2,6 +2,7 @@
 // Statistiques publiques
 require_once '../../config/database.php';
 require_once '../../includes/functions.php';
+require_once '../../modules/dossiers/functions.php';
 
 $page_title = 'Statistiques Publiques - Infrastructures Pétrolières';
 
@@ -275,7 +276,7 @@ $top_operateurs = $pdo->query("
                             <tbody>
                                 <?php foreach($stats_types as $type): ?>
                                     <tr>
-                                        <td><?php echo formatTypeInfrastructure($type['type_infrastructure']); ?></td>
+                                        <td><?php echo getTypeInfrastructureLabel($type['type_infrastructure']); ?></td>
                                         <td><span class="badge bg-secondary"><?php echo ucfirst($type['sous_type']); ?></span></td>
                                         <td class="text-end"><strong><?php echo number_format($type['total']); ?></strong></td>
                                     </tr>

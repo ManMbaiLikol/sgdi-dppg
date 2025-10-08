@@ -2,6 +2,7 @@
 // Détail d'une infrastructure publique
 require_once '../../config/database.php';
 require_once '../../includes/functions.php';
+require_once '../../modules/dossiers/functions.php';
 
 $numero = sanitize($_GET['numero'] ?? '');
 
@@ -110,7 +111,7 @@ $page_title = 'Détail Infrastructure - ' . $dossier['numero'];
                     <h2 class="mb-3"><?php echo htmlspecialchars($dossier['nom_demandeur']); ?></h2>
                     <div class="mb-2">
                         <span class="badge bg-primary fs-6">
-                            <?php echo formatTypeInfrastructure($dossier['type_infrastructure']); ?>
+                            <?php echo getTypeInfrastructureLabel($dossier['type_infrastructure']); ?>
                         </span>
                         <span class="badge bg-secondary fs-6">
                             <?php echo ucfirst($dossier['sous_type']); ?>
@@ -272,7 +273,7 @@ $page_title = 'Détail Infrastructure - ' . $dossier['numero'];
             const marker = L.marker([<?php echo $dossier['latitude']; ?>, <?php echo $dossier['longitude']; ?>]).addTo(map);
             marker.bindPopup(`
                 <strong><?php echo htmlspecialchars($dossier['nom_demandeur']); ?></strong><br>
-                <?php echo formatTypeInfrastructure($dossier['type_infrastructure']); ?><br>
+                <?php echo getTypeInfrastructureLabel($dossier['type_infrastructure']); ?><br>
                 <?php echo htmlspecialchars($dossier['ville']); ?>
             `).openPopup();
         </script>

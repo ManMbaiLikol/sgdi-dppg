@@ -2,6 +2,7 @@
 // Export Excel du registre public
 require_once '../../config/database.php';
 require_once '../../includes/functions.php';
+require_once '../../modules/dossiers/functions.php';
 
 // Récupérer les filtres de la requête
 $search = sanitize($_GET['search'] ?? '');
@@ -95,7 +96,7 @@ fputcsv($output, $headers, ';');
 foreach ($dossiers as $d) {
     $row = [
         $d['numero'],
-        formatTypeInfrastructure($d['type_infrastructure']),
+        getTypeInfrastructureLabel($d['type_infrastructure']),
         ucfirst($d['sous_type']),
         $d['nom_demandeur'],
         $d['region'] ?? '-',
