@@ -145,7 +145,7 @@ if (isLoggedIn() && file_exists(__DIR__ . '/../includes/huitaine_functions.php')
 
                 <?php if (hasRole('directeur')): ?>
                 <li class="nav-item">
-                    <a class="nav-link" href="<?php echo url('modules/dossiers/list.php?statut=validation_chef_commission'); ?>">
+                    <a class="nav-link" href="<?php echo url('modules/dossiers/list.php?statut=validation_commission'); ?>">
                         <i class="fas fa-check-circle"></i> Validations
                     </a>
                 </li>

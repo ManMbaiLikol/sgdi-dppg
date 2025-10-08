@@ -145,7 +145,7 @@ require_once '../../includes/header.php';
         </div>
 
         <!-- Analyse DAJ -->
-        <?php if (in_array($dossier['statut'], ['analyse_daj', 'inspecte', 'validation_chef_commission', 'valide', 'decide'])): ?>
+        <?php if (in_array($dossier['statut'], ['analyse_daj', 'inspecte', 'validation_commission', 'valide', 'decide'])): ?>
         <div class="card mb-4">
             <div class="card-header">
                 <h6 class="card-title mb-0">

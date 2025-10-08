@@ -29,12 +29,14 @@ function genererNumeroDossier($type_infrastructure) {
 function getStatutLabel($statut) {
     $labels = [
         'brouillon' => 'Brouillon',
-        'cree' => 'Créé', // Alias pour brouillon (rétrocompatibilité)
+        'cree' => 'Créé',
         'en_cours' => 'En cours',
+        'note_transmise' => 'Note transmise',
         'paye' => 'Payé',
-        'analyse_daj' => 'Analysé DAJ',
+        'en_huitaine' => 'En huitaine',
+        'analyse_daj' => 'Analysé',
         'inspecte' => 'Inspecté',
-        'validation_chef_commission' => 'Validation Chef Commission',
+        'validation_commission' => 'Validé par la commission',
         'visa_chef_service' => 'Visa Chef Service',
         'visa_sous_directeur' => 'Visa Sous-Directeur',
         'visa_directeur' => 'Visa Directeur',
@@ -43,8 +45,7 @@ function getStatutLabel($statut) {
         'autorise' => 'Autorisé',
         'rejete' => 'Rejeté',
         'ferme' => 'Fermé',
-        'suspendu' => 'Suspendu',
-        'en_huitaine' => 'En huitaine'
+        'suspendu' => 'Suspendu'
     ];
 
     return $labels[$statut] ?? $statut;
@@ -54,12 +55,14 @@ function getStatutLabel($statut) {
 function getStatutClass($statut) {
     $classes = [
         'brouillon' => 'secondary',
-        'cree' => 'secondary', // Alias pour brouillon
+        'cree' => 'info',
         'en_cours' => 'warning',
-        'paye' => 'info',
+        'note_transmise' => 'info',
+        'paye' => 'primary',
+        'en_huitaine' => 'danger',
         'analyse_daj' => 'info',
         'inspecte' => 'primary',
-        'validation_chef_commission' => 'warning',
+        'validation_commission' => 'success',
         'visa_chef_service' => 'info',
         'visa_sous_directeur' => 'info',
         'visa_directeur' => 'info',
@@ -68,8 +71,7 @@ function getStatutClass($statut) {
         'autorise' => 'success',
         'rejete' => 'danger',
         'ferme' => 'secondary',
-        'suspendu' => 'warning',
-        'en_huitaine' => 'danger'
+        'suspendu' => 'warning'
     ];
 
     return $classes[$statut] ?? 'secondary';

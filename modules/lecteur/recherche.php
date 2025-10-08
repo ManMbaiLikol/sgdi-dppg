@@ -217,7 +217,7 @@ require_once '../../includes/header.php';
                                     <option value="paye" <?php echo $statut === 'paye' ? 'selected' : ''; ?>>Payé</option>
                                     <option value="analyse_daj" <?php echo $statut === 'analyse_daj' ? 'selected' : ''; ?>>Analysé DAJ</option>
                                     <option value="inspecte" <?php echo $statut === 'inspecte' ? 'selected' : ''; ?>>Inspecté</option>
-                                    <option value="validation_chef_commission" <?php echo $statut === 'validation_chef_commission' ? 'selected' : ''; ?>>Validation Chef Commission</option>
+                                    <option value="validation_commission" <?php echo $statut === 'validation_commission' ? 'selected' : ''; ?>>Validation Chef Commission</option>
                                     <option value="visa_chef_service" <?php echo $statut === 'visa_chef_service' ? 'selected' : ''; ?>>Visa Chef Service</option>
                                     <option value="visa_sous_directeur" <?php echo $statut === 'visa_sous_directeur' ? 'selected' : ''; ?>>Visa Sous-Directeur</option>
                                     <option value="visa_directeur" <?php echo $statut === 'visa_directeur' ? 'selected' : ''; ?>>Visa Directeur</option>

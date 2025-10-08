@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $nouveau_statut = 'rejete';
                     $description = 'Dossier rejeté par le Sous-Directeur';
                 } else {
-                    $nouveau_statut = 'validation_chef_commission';
+                    $nouveau_statut = 'validation_commission';
                     $description = 'Demande de modification par le Sous-Directeur';
                 }
 

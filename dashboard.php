@@ -221,7 +221,7 @@ require_once 'includes/header.php';
         case 'directeur':
             $all_stats = [
                 'total' => ['icon' => 'fas fa-folder', 'color' => 'primary', 'label' => 'Dossiers à valider', 'value' => $stats['total'] ?? 0],
-                'validation_chef_commission' => ['icon' => 'fas fa-eye', 'color' => 'warning', 'label' => 'À valider', 'value' => $stats['par_statut']['validation_chef_commission'] ?? 0],
+                'validation_commission' => ['icon' => 'fas fa-eye', 'color' => 'warning', 'label' => 'À valider', 'value' => $stats['par_statut']['validation_commission'] ?? 0],
                 'valide' => ['icon' => 'fas fa-gavel', 'color' => 'info', 'label' => 'À décider', 'value' => $stats['par_statut']['valide'] ?? 0]
             ];
             break;

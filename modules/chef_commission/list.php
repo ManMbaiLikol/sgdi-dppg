@@ -69,7 +69,7 @@ require_once '../../includes/header.php';
                         <option value="paye" <?php echo $statut_filtre === 'paye' ? 'selected' : ''; ?>>Payé</option>
                         <option value="analyse_daj" <?php echo $statut_filtre === 'analyse_daj' ? 'selected' : ''; ?>>Analysé DAJ</option>
                         <option value="inspecte" <?php echo $statut_filtre === 'inspecte' ? 'selected' : ''; ?>>Inspecté</option>
-                        <option value="validation_chef_commission" <?php echo $statut_filtre === 'validation_chef_commission' ? 'selected' : ''; ?>>Validation chef commission</option>
+                        <option value="validation_commission" <?php echo $statut_filtre === 'validation_commission' ? 'selected' : ''; ?>>Validation chef commission</option>
                         <option value="valide" <?php echo $statut_filtre === 'valide' ? 'selected' : ''; ?>>Validé</option>
                         <option value="decide" <?php echo $statut_filtre === 'decide' ? 'selected' : ''; ?>>Décidé</option>
                         <option value="autorise" <?php echo $statut_filtre === 'autorise' ? 'selected' : ''; ?>>Autorisé</option>
@@ -156,7 +156,7 @@ require_once '../../includes/header.php';
                             </small>
                         </td>
                         <td>
-                            <?php if ($dossier['statut'] === 'analyse_daj' || in_array($dossier['statut'], ['inspecte', 'validation_chef_commission', 'valide', 'decide'])): ?>
+                            <?php if ($dossier['statut'] === 'analyse_daj' || in_array($dossier['statut'], ['inspecte', 'validation_commission', 'valide', 'decide'])): ?>
                             <span class="badge bg-success">
                                 <i class="fas fa-check"></i> Fait
                             </span>

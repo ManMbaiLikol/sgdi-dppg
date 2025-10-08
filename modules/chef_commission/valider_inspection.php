@@ -90,12 +90,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Changer le statut du dossier
                     $sql = "UPDATE dossiers SET statut = ? WHERE id = ?";
                     $stmt = $pdo->prepare($sql);
-                    $stmt->execute(['validation_chef_commission', $dossier_id]);
+                    $stmt->execute(['validation_commission', $dossier_id]);
 
                     // Ajouter à l'historique
                     addHistoriqueDossier($dossier_id, $user_id, 'validation_inspection_chef_commission',
                                        'Inspection validée par le Chef de Commission',
-                                       'inspecte', 'validation_chef_commission');
+                                       'inspecte', 'validation_commission');
 
                     // Créer notification pour le directeur
                     $sql = "INSERT INTO notifications (user_id, type, titre, message, dossier_id)
@@ -193,7 +193,7 @@ require_once '../../includes/header.php';
                 </div>
 
                 <!-- Analyse DAJ -->
-                <?php if (in_array($dossier['statut'], ['analyse_daj', 'inspecte', 'validation_chef_commission', 'valide', 'decide'])): ?>
+                <?php if (in_array($dossier['statut'], ['analyse_daj', 'inspecte', 'validation_commission', 'valide', 'decide'])): ?>
                 <div class="mb-4">
                     <h6 class="text-primary">
                         <i class="fas fa-gavel"></i> Analyse juridique (Cadre DAJ)

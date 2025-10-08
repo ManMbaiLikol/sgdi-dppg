@@ -14,7 +14,7 @@ $stats = [
     'total_dossiers' => $pdo->query("SELECT COUNT(*) FROM dossiers")->fetchColumn(),
     'en_cours' => $pdo->query("SELECT COUNT(*) FROM dossiers WHERE statut NOT IN ('autorise', 'rejete')")->fetchColumn(),
     'ce_mois' => $pdo->query("SELECT COUNT(*) FROM dossiers WHERE MONTH(date_creation) = MONTH(CURRENT_DATE()) AND YEAR(date_creation) = YEAR(CURRENT_DATE())")->fetchColumn(),
-    'a_viser' => $pdo->query("SELECT COUNT(*) FROM dossiers WHERE statut = 'validation_chef_commission'")->fetchColumn()
+    'a_viser' => $pdo->query("SELECT COUNT(*) FROM dossiers WHERE statut = 'validation_commission'")->fetchColumn()
 ];
 
 // 2. Répartition par statut (graphique donut)
@@ -25,7 +25,7 @@ while ($row = $stmt->fetch()) {
     $colors = [
         'brouillon' => '#95a5a6', 'en_cours' => '#3498db', 'paye' => '#9b59b6',
         'analyse_daj' => '#e67e22', 'inspecte' => '#f39c12',
-        'validation_chef_commission' => '#16a085', 'visa_chef_service' => '#27ae60',
+        'validation_commission' => '#16a085', 'visa_chef_service' => '#27ae60',
         'visa_sous_directeur' => '#2ecc71', 'visa_directeur' => '#1abc9c',
         'autorise' => '#2ecc71', 'rejete' => '#e74c3c', 'en_huitaine' => '#e67e22'
     ];
