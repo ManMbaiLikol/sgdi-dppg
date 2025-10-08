@@ -1,11 +1,17 @@
 <?php
 // Configuration de la base de données - SGDI MVP
 // Support des variables d'environnement pour Railway.app
-define('DB_HOST', getenv('MYSQL_HOST') ?: getenv('DB_HOST') ?: 'localhost');
-define('DB_NAME', getenv('MYSQL_DATABASE') ?: getenv('DB_NAME') ?: 'sgdi_mvp');
-define('DB_USER', getenv('MYSQL_USER') ?: getenv('DB_USER') ?: 'root');
-define('DB_PASS', getenv('MYSQL_PASSWORD') ?: getenv('DB_PASS') ?: '');
-define('DB_PORT', getenv('MYSQL_PORT') ?: getenv('DB_PORT') ?: '3306');
+
+// Helper pour récupérer les variables d'environnement (compatible Railway)
+function getEnvVar($key, $default = '') {
+    return $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key) ?: $default;
+}
+
+define('DB_HOST', getEnvVar('MYSQL_HOST', getEnvVar('DB_HOST', 'localhost')));
+define('DB_NAME', getEnvVar('MYSQL_DATABASE', getEnvVar('DB_NAME', 'sgdi_mvp')));
+define('DB_USER', getEnvVar('MYSQL_USER', getEnvVar('DB_USER', 'root')));
+define('DB_PASS', getEnvVar('MYSQL_PASSWORD', getEnvVar('DB_PASS', '')));
+define('DB_PORT', getEnvVar('MYSQL_PORT', getEnvVar('DB_PORT', '3306')));
 define('DB_CHARSET', 'utf8mb4');
 
 try {
