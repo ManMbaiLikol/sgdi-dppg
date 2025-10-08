@@ -7,6 +7,9 @@ RUN docker-php-ext-install pdo pdo_mysql mysqli
 # Activation des modules Apache
 RUN a2enmod rewrite
 
+# Configuration PHP pour variables d'environnement
+RUN echo "variables_order = \"EGPCS\"" >> /usr/local/etc/php/conf.d/railway.ini
+
 # Copie des fichiers de l'application
 COPY . /var/www/html/
 
