@@ -82,12 +82,29 @@
         .feature-icon.warning { color: var(--accent-color); }
 
         .cta-section {
+            padding: 0;
+            margin-top: 2rem;
+        }
+
+        .access-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 3rem 2rem;
             border-radius: 15px;
             text-align: center;
-            margin-top: 2rem;
+            height: 100%;
+        }
+
+        .login-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            padding: 3rem 2rem;
+            border-radius: 15px;
+            height: 100%;
+        }
+
+        .login-card h3 {
+            color: var(--primary-color);
         }
 
         .btn-large {
@@ -180,20 +197,63 @@
 
                 <!-- CTA Section -->
                 <div class="cta-section">
-                    <h3 class="mb-3">Accédez au Registre Public</h3>
-                    <p class="mb-4">Consultez les infrastructures pétrolières autorisées au Cameroun</p>
-                    <div>
-                        <a href="modules/registre_public/index.php" class="btn btn-light btn-large">
-                            <i class="fas fa-list"></i> Voir le Registre
-                        </a>
-                        <a href="modules/registre_public/carte.php" class="btn btn-outline-light btn-large">
-                            <i class="fas fa-map-marked-alt"></i> Voir la Carte
-                        </a>
-                    </div>
-                    <div class="mt-4">
-                        <a href="modules/auth/login.php" class="btn btn-link text-white">
-                            <i class="fas fa-sign-in-alt"></i> Connexion Personnel DPPG
-                        </a>
+                    <div class="row">
+                        <!-- Accès Public -->
+                        <div class="col-md-6 mb-3">
+                            <div class="access-card">
+                                <h3 class="mb-3">Accès Public</h3>
+                                <p class="mb-4">Consultez les infrastructures pétrolières autorisées au Cameroun</p>
+                                <div>
+                                    <a href="modules/registre_public/index.php" class="btn btn-light btn-large w-100 mb-3">
+                                        <i class="fas fa-list"></i> Voir le Registre
+                                    </a>
+                                    <a href="modules/registre_public/carte.php" class="btn btn-outline-light btn-large w-100">
+                                        <i class="fas fa-map-marked-alt"></i> Voir la Carte
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Connexion Personnel DPPG -->
+                        <div class="col-md-6 mb-3">
+                            <div class="login-card">
+                                <h3 class="mb-3 text-center"><i class="fas fa-user-lock"></i> Personnel DPPG</h3>
+                                <p class="text-muted text-center mb-4">Connectez-vous pour accéder au système de gestion</p>
+
+                                <form action="auth/login.php" method="POST">
+                                    <div class="mb-3">
+                                        <label class="form-label">Email</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                            <input type="email" class="form-control" name="email" placeholder="votre.email@minee.cm" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Mot de passe</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                            <input type="password" class="form-control" name="password" placeholder="••••••••" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 form-check">
+                                        <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                                        <label class="form-check-label" for="remember">Se souvenir de moi</label>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">
+                                        <i class="fas fa-sign-in-alt"></i> Se connecter
+                                    </button>
+
+                                    <div class="text-center">
+                                        <a href="auth/forgot_password.php" class="text-muted small">
+                                            <i class="fas fa-question-circle"></i> Mot de passe oublié ?
+                                        </a>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
