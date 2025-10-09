@@ -121,6 +121,8 @@ switch ($_SESSION['user_role']) {
             ['url' => url('modules/users/list.php'), 'icon' => 'fas fa-users', 'label' => 'Gérer utilisateurs', 'class' => 'secondary'],
             ['url' => url('modules/dossiers/list.php'), 'icon' => 'fas fa-folder', 'label' => 'Tous les dossiers', 'class' => 'info'],
             ['url' => url('modules/carte/index.php'), 'icon' => 'fas fa-map-marked-alt', 'label' => 'Carte des infrastructures', 'class' => 'success'],
+            ['url' => url('modules/admin/test_email.php'), 'icon' => 'fas fa-paper-plane', 'label' => 'Test envoi email', 'class' => 'info'],
+            ['url' => url('modules/admin/email_logs.php'), 'icon' => 'fas fa-envelope-open-text', 'label' => 'Logs d\'emails', 'class' => 'secondary'],
             ['url' => url('modules/users/reset_password.php'), 'icon' => 'fas fa-key', 'label' => 'Réinitialiser mots de passe', 'class' => 'warning']
         ];
         $dossiers_recents = getDossiers([], 10);
