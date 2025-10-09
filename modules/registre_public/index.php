@@ -119,14 +119,14 @@ $stats = $pdo->query($stats_sql)->fetch();
             <div class="row align-items-center">
                 <div class="col-md-8">
                     <h1 class="mb-2"><i class="fas fa-oil-can"></i> Registre Public des Infrastructures Pétrolières</h1>
-                    <p class="mb-0">Ministère de l'Eau et de l'Énergie - Direction du Pétrole, du Produit Pétrolier et du Gaz (DPPG)</p>
+                    <p class="mb-0">Ministère de l'Eau et de l'Énergie - Direction des Produits Pétroliers et du Gaz (DPPG)</p>
                 </div>
                 <div class="col-md-4 text-end">
-                    <a href="suivi.php" class="btn btn-light btn-lg me-2">
-                        <i class="fas fa-search-location"></i> Suivi de dossier
-                    </a>
-                    <a href="carte.php" class="btn btn-light btn-lg">
+                    <a href="carte.php" class="btn btn-success btn-lg me-2">
                         <i class="fas fa-map-marked-alt"></i> Voir la carte
+                    </a>
+                    <a href="suivi.php" class="btn btn-warning btn-lg">
+                        <i class="fas fa-search-location"></i> Suivi de dossier
                     </a>
                 </div>
             </div>
