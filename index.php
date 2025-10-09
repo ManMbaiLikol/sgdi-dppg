@@ -168,7 +168,7 @@
                 </div>
                 <h1>SGDI</h1>
                 <h2 class="h4">Système de Gestion des Dossiers d'Implantation</h2>
-                <p class="mt-3">Ministère de l'Eau et de l'Énergie<br>Direction du Pétrole, du Produit Pétrolier et du Gaz (DPPG)</p>
+                <p class="mt-3">Ministère de l'Eau et de l'Énergie<br>Direction des Produits Pétroliers et du Gaz (DPPG)</p>
             </div>
 
             <!-- Body -->
@@ -234,12 +234,18 @@
                                     <a href="modules/registre_public/index.php" class="btn btn-light btn-large w-100 mb-3">
                                         <i class="fas fa-list"></i> Voir le Registre
                                     </a>
-                                    <a href="modules/registre_public/carte.php" class="btn btn-outline-light btn-large w-100 mb-3">
-                                        <i class="fas fa-map-marked-alt"></i> Voir la Carte
-                                    </a>
-                                    <a href="modules/registre_public/suivi.php" class="btn btn-outline-light btn-large w-100">
-                                        <i class="fas fa-search-location"></i> Suivi de Dossier
-                                    </a>
+                                    <div class="row">
+                                        <div class="col-6 pe-1">
+                                            <a href="modules/registre_public/carte.php" class="btn btn-success btn-large w-100">
+                                                <i class="fas fa-map-marked-alt"></i> Voir la Carte
+                                            </a>
+                                        </div>
+                                        <div class="col-6 ps-1">
+                                            <a href="modules/registre_public/suivi.php" class="btn btn-warning btn-large w-100">
+                                                <i class="fas fa-search-location"></i> Suivi de Dossier
+                                            </a>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
