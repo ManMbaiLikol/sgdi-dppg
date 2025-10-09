@@ -1,0 +1,234 @@
+/* Identité visuelle du registre public - SGDI */
+
+:root {
+    --primary-color: #1e3a8a;      /* Bleu marine DPPG */
+    --primary-light: #1e40af;
+    --secondary-color: #059669;     /* Vert */
+    --accent-color: #d97706;        /* Orange */
+    --success-color: #059669;
+    --danger-color: #dc2626;
+    --warning-color: #d97706;
+    --info-color: #0284c7;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e5e7eb 100%);
+    min-height: 100vh;
+}
+
+/* Header public */
+.public-header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+    color: white;
+    padding: 2rem 0;
+    box-shadow: 0 4px 12px rgba(30, 58, 138, 0.2);
+}
+
+.public-header h1 {
+    color: white;
+}
+
+/* Boutons */
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-light);
+    border-color: var(--primary-light);
+}
+
+.btn-success {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+}
+
+.btn-success:hover {
+    background-color: #047857;
+    border-color: #047857;
+}
+
+.btn-warning {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+    color: white;
+}
+
+.btn-warning:hover {
+    background-color: #c2760c;
+    border-color: #c2760c;
+}
+
+/* Badges */
+.badge.bg-primary {
+    background-color: var(--primary-color) !important;
+}
+
+.badge.bg-success {
+    background-color: var(--secondary-color) !important;
+}
+
+.badge.bg-warning {
+    background-color: var(--accent-color) !important;
+}
+
+.badge.bg-info {
+    background-color: var(--info-color) !important;
+}
+
+.badge.bg-danger {
+    background-color: var(--danger-color) !important;
+}
+
+/* Cartes */
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    border: 1px solid #e5e7eb;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(30, 58, 138, 0.15);
+}
+
+.stat-icon {
+    font-size: 2.5rem;
+    opacity: 0.85;
+}
+
+.stat-icon.text-primary {
+    color: var(--primary-color) !important;
+}
+
+.stat-icon.text-success {
+    color: var(--secondary-color) !important;
+}
+
+.stat-icon.text-warning {
+    color: var(--accent-color) !important;
+}
+
+.stat-icon.text-info {
+    color: var(--info-color) !important;
+}
+
+/* Search card */
+.search-card {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 4px 12px rgba(30, 58, 138, 0.1);
+    margin-bottom: 2rem;
+    border: 1px solid #e5e7eb;
+}
+
+.search-card h3 {
+    color: var(--primary-color);
+}
+
+/* Result cards */
+.result-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    border-left: 4px solid var(--primary-color);
+}
+
+.result-card:hover {
+    box-shadow: 0 6px 16px rgba(30, 58, 138, 0.15);
+    transform: translateX(5px);
+}
+
+.badge-infrastructure {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    background-color: var(--primary-color) !important;
+}
+
+/* Footer */
+.footer-public {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+    color: white;
+    padding: 2rem 0;
+    margin-top: 3rem;
+}
+
+.footer-public a {
+    color: white;
+    text-decoration: none;
+    transition: opacity 0.3s;
+}
+
+.footer-public a:hover {
+    opacity: 0.8;
+}
+
+/* Pagination */
+.pagination .page-link {
+    color: var(--primary-color);
+    border-color: #e5e7eb;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.pagination .page-link:hover {
+    color: var(--primary-light);
+    background-color: #f3f4f6;
+}
+
+/* Alerts */
+.alert-info {
+    background-color: #dbeafe;
+    border-color: var(--info-color);
+    color: #1e3a8a;
+}
+
+.alert-warning {
+    background-color: #fef3c7;
+    border-color: var(--accent-color);
+    color: #92400e;
+}
+
+.alert-success {
+    background-color: #d1fae5;
+    border-color: var(--secondary-color);
+    color: #064e3b;
+}
+
+/* Forms */
+.form-select:focus,
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(30, 58, 138, 0.25);
+}
+
+/* Timeline (pour suivi.php) */
+.timeline-icon.bg-primary {
+    background-color: var(--primary-color) !important;
+}
+
+.timeline-icon.bg-success {
+    background-color: var(--secondary-color) !important;
+}
+
+.timeline-icon.bg-warning {
+    background-color: var(--accent-color) !important;
+}
+
+.current-status {
+    border: 3px solid var(--secondary-color) !important;
+    box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.2) !important;
+}

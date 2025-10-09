@@ -39,12 +39,13 @@ $stats = [
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <link href="../../assets/css/registre_public.css" rel="stylesheet">
 
     <style>
         body {
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: white !important;
         }
 
         #map {
@@ -56,10 +57,7 @@ $stats = [
         }
 
         .public-header {
-            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
-            color: white;
             padding: 1rem 0;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             position: relative;
             z-index: 1000;
         }
