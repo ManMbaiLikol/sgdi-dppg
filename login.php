@@ -16,14 +16,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect(url('index.php'), 'Veuillez remplir tous les champs', 'error');
     }
 
-    if (loginUser($username, $password)) {
+    $login_result = loginUser($username, $password);
+
+    // Debug: Log pour Railway
+    error_log("Login attempt - Username: $username, Result: " . ($login_result ? 'SUCCESS' : 'FAIL'));
+
+    if ($login_result) {
         // Connexion réussie
         $user = getCurrentUser();
+        error_log("Redirecting to dashboard for user: " . $user['prenom']);
 
         // Rediriger vers le dashboard
         redirect(url('dashboard.php'), 'Bienvenue ' . $user['prenom'] . ' !', 'success');
     } else {
         // Échec de connexion
+        error_log("Login failed - redirecting to index.php");
         redirect(url('index.php'), 'Nom d\'utilisateur ou mot de passe incorrect', 'error');
     }
 }

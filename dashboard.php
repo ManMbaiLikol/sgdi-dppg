@@ -115,11 +115,6 @@ switch ($_SESSION['user_role']) {
         redirect(url('modules/ministre/dashboard.php'));
         break;
 
-    case 'lecteur':
-        // Le rôle lecteur n'existe plus, rediriger vers le registre public
-        redirect(url('modules/registre_public/index.php'));
-        break;
-
     case 'admin':
         $actions_rapides = [
             ['url' => url('modules/admin/dashboard_avance.php'), 'icon' => 'fas fa-chart-line', 'label' => 'Dashboard Avancé', 'class' => 'primary'],
