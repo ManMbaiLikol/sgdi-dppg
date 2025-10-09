@@ -260,6 +260,11 @@ require_once '../../includes/header.php';
                                                         title="<?php echo $user['actif'] ? 'Désactiver' : 'Activer'; ?>">
                                                     <i class="fas fa-<?php echo $user['actif'] ? 'user-times' : 'user-check'; ?>"></i>
                                                 </button>
+                                                <button type="button" class="btn btn-outline-danger btn-sm"
+                                                        onclick="deleteUser(<?php echo $user['id']; ?>, '<?php echo addslashes(sanitize($user['nom'] . ' ' . $user['prenom'])); ?>')"
+                                                        title="Supprimer définitivement">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
                                             <?php endif; ?>
                                         </div>
                                     </td>
@@ -355,6 +360,37 @@ function toggleUserStatus(userId) {
             console.error('Error:', error);
             alert('Une erreur est survenue');
         });
+    }
+}
+
+function deleteUser(userId, userName) {
+    if (confirm('⚠️ ATTENTION : Êtes-vous absolument sûr de vouloir SUPPRIMER DÉFINITIVEMENT l\'utilisateur "' + userName + '" ?\n\nCette action est IRRÉVERSIBLE et supprimera :\n- Le compte utilisateur\n- Son historique de connexion\n- Toutes ses données associées\n\nRecommandation : Utilisez plutôt la fonction "Désactiver" pour conserver l\'historique.')) {
+        if (confirm('Confirmation finale : Supprimer définitivement "' + userName + '" ?')) {
+            fetch('<?php echo url("modules/users/ajax/delete.php"); ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    user_id: userId,
+                    csrf_token: '<?php echo generateCSRFToken(); ?>'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Utilisateur supprimé avec succès');
+                    location.reload();
+                } else {
+                    alert('❌ Erreur: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Une erreur est survenue lors de la suppression');
+            });
+        }
     }
 }
 </script>

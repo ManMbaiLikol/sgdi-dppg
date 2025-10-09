@@ -289,17 +289,51 @@ function updateLastLogin($user_id) {
     }
 }
 
-// Supprimer un utilisateur (soft delete - désactivation)
+// Supprimer définitivement un utilisateur (hard delete)
 function deleteUser($user_id) {
     global $pdo;
 
     try {
-        // On ne supprime pas vraiment, on désactive
+        // Suppression DÉFINITIVE de l'utilisateur et de ses données associées
+        $pdo->beginTransaction();
+
+        // Supprimer les notifications de l'utilisateur
+        $sql = "DELETE FROM notifications WHERE user_id = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$user_id]);
+
+        // Supprimer les logs d'activité de l'utilisateur
+        $sql = "DELETE FROM logs_activite WHERE user_id = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$user_id]);
+
+        // Note: On ne supprime PAS les dossiers créés par l'utilisateur pour préserver l'historique
+        // Les dossiers restent avec leur user_id pour traçabilité
+
+        // Supprimer l'utilisateur lui-même
+        $sql = "DELETE FROM users WHERE id = ?";
+        $stmt = $pdo->prepare($sql);
+        $result = $stmt->execute([$user_id]);
+
+        $pdo->commit();
+        return $result;
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        error_log("Erreur suppression définitive utilisateur: " . $e->getMessage());
+        throw $e;
+    }
+}
+
+// Désactiver un utilisateur (soft delete - alternative recommandée)
+function deactivateUser($user_id) {
+    global $pdo;
+
+    try {
         $sql = "UPDATE users SET actif = 0 WHERE id = ?";
         $stmt = $pdo->prepare($sql);
         return $stmt->execute([$user_id]);
     } catch (Exception $e) {
-        error_log("Erreur suppression utilisateur: " . $e->getMessage());
+        error_log("Erreur désactivation utilisateur: " . $e->getMessage());
         return false;
     }
 }
