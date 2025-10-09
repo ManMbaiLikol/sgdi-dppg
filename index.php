@@ -234,18 +234,12 @@
                                     <a href="modules/registre_public/index.php" class="btn btn-light btn-large w-100 mb-3">
                                         <i class="fas fa-list"></i> Voir le Registre
                                     </a>
-                                    <div class="row">
-                                        <div class="col-6 pe-1">
-                                            <a href="modules/registre_public/carte.php" class="btn btn-success btn-large w-100">
-                                                <i class="fas fa-map-marked-alt"></i> Voir la Carte
-                                            </a>
-                                        </div>
-                                        <div class="col-6 ps-1">
-                                            <a href="modules/registre_public/suivi.php" class="btn btn-warning btn-large w-100">
-                                                <i class="fas fa-search-location"></i> Suivi de Dossier
-                                            </a>
-                                        </div>
-                                    </div>
+                                    <a href="modules/registre_public/carte.php" class="btn btn-outline-light btn-large w-100 mb-3">
+                                        <i class="fas fa-map-marked-alt"></i> Voir la Carte
+                                    </a>
+                                    <a href="modules/registre_public/suivi.php" class="btn btn-outline-light btn-large w-100">
+                                        <i class="fas fa-search-location"></i> Suivi de Dossier
+                                    </a>
                                 </div>
                             </div>
                         </div>
