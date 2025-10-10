@@ -388,7 +388,7 @@ function getDossierById($id) {
 
     $sql = "SELECT d.*, u.nom as createur_nom, u.prenom as createur_prenom
             FROM dossiers d
-            JOIN users u ON d.user_id = u.id
+            LEFT JOIN users u ON d.user_id = u.id
             WHERE d.id = ?";
 
     $stmt = $pdo->prepare($sql);
@@ -498,7 +498,7 @@ function getDossiers($filters = [], $limit = 20, $offset = 0) {
 
     $sql = "SELECT d.*, u.nom as createur_nom, u.prenom as createur_prenom
             FROM dossiers d
-            JOIN users u ON d.user_id = u.id
+            LEFT JOIN users u ON d.user_id = u.id
             $where_sql
             ORDER BY d.date_creation DESC
             LIMIT ? OFFSET ?";
@@ -643,7 +643,7 @@ function getHistoriqueDossier($dossier_id) {
 
     $sql = "SELECT h.*, u.nom, u.prenom, u.role
             FROM historique h
-            JOIN users u ON h.user_id = u.id
+            LEFT JOIN users u ON h.user_id = u.id
             WHERE h.dossier_id = ?
             ORDER BY h.date_action DESC";
 
