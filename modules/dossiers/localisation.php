@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $latitude = trim($_POST['latitude'] ?? '');
         $longitude = trim($_POST['longitude'] ?? '');
-        $adresse_precise = sanitize($_POST['adresse_precise'] ?? '');
+        $adresse_precise = cleanInput($_POST['adresse_precise'] ?? '');
 
         // Validation
         if (empty($latitude) || empty($longitude)) {

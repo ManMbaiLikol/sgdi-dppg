@@ -1,12 +1,36 @@
 <?php
 // Fonctions utilitaires - SGDI MVP
 
-// Sécuriser les données d'entrée
+/**
+ * Nettoyer les entrées utilisateur (pour traitement/stockage)
+ * À utiliser AVANT insertion en base de données
+ * NE PAS utiliser pour l'affichage
+ */
+function cleanInput($data) {
+    if ($data === null) {
+        return '';
+    }
+    // Seulement trim - pas de htmlspecialchars car les prepared statements gèrent la sécurité SQL
+    return trim($data);
+}
+
+/**
+ * Sécuriser les données pour l'affichage HTML
+ * À utiliser UNIQUEMENT pour l'affichage
+ * NE PAS utiliser avant insertion en base
+ */
 function sanitize($data) {
     if ($data === null) {
         return '';
     }
     return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
+}
+
+/**
+ * Alias de cleanInput pour la compatibilité
+ */
+function escape($data) {
+    return htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
 }
 
 // Générer un numéro de dossier unique

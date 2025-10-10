@@ -1,5 +1,10 @@
 <?php
 // Système d'authentification - SGDI MVP
+
+// Forcer l'encodage UTF-8 dès le début
+ini_set('default_charset', 'UTF-8');
+mb_internal_encoding('UTF-8');
+
 session_start();
 
 require_once __DIR__ . '/../config/database.php';

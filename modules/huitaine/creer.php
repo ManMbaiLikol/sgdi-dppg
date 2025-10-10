@@ -31,8 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
         $errors[] = 'Token de sécurité invalide';
     } else {
-        $type_irregularite = sanitize($_POST['type_irregularite'] ?? '');
-        $description = sanitize($_POST['description'] ?? '');
+        $type_irregularite = cleanInput($_POST['type_irregularite'] ?? '');
+        $description = cleanInput($_POST['description'] ?? '');
 
         // Validation
         if (empty($type_irregularite)) {

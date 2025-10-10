@@ -25,12 +25,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Token de sécurité invalide';
     } else {
         $data = [
-            'username' => sanitize($_POST['username'] ?? ''),
-            'email' => sanitize($_POST['email'] ?? ''),
-            'nom' => sanitize($_POST['nom'] ?? ''),
-            'prenom' => sanitize($_POST['prenom'] ?? ''),
-            'telephone' => sanitize($_POST['telephone'] ?? ''),
-            'role' => sanitize($_POST['role'] ?? ''),
+            'username' => cleanInput($_POST['username'] ?? ''),
+            'email' => cleanInput($_POST['email'] ?? ''),
+            'nom' => cleanInput($_POST['nom'] ?? ''),
+            'prenom' => cleanInput($_POST['prenom'] ?? ''),
+            'telephone' => cleanInput($_POST['telephone'] ?? ''),
+            'role' => cleanInput($_POST['role'] ?? ''),
             'actif' => intval($_POST['actif'] ?? 1)
         ];
 

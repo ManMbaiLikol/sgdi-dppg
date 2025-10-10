@@ -12,8 +12,8 @@ $page_title = 'Test d\'envoi d\'email';
 $result = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
     if (verifyCSRFToken($_POST['csrf_token'])) {
-        $email_test = sanitize($_POST['email_test']);
-        $type_test = sanitize($_POST['type_test']);
+        $email_test = cleanInput($_POST['email_test']);
+        $type_test = cleanInput($_POST['type_test']);
 
         if (!filter_var($email_test, FILTER_VALIDATE_EMAIL)) {
             $result = ['success' => false, 'message' => 'Adresse email invalide'];

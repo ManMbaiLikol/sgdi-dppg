@@ -28,6 +28,18 @@ $total_pages = ceil($total_users / $limit);
 // Statistiques rapides
 $stats = getUserStats();
 
+// Debug temporaire
+if (empty($stats) || !isset($stats['total'])) {
+    error_log("ERREUR: getUserStats() retourne: " . print_r($stats, true));
+    // Valeurs par défaut pour éviter les erreurs d'affichage
+    $stats = [
+        'total' => 0,
+        'actifs' => 0,
+        'inactifs' => 0,
+        'admins' => 0
+    ];
+}
+
 require_once '../../includes/header.php';
 ?>
 

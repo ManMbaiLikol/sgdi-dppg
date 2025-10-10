@@ -66,26 +66,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (empty($errors)) {
             $data = [
-                'type_infrastructure' => sanitize($_POST['type_infrastructure']),
-                'sous_type' => sanitize($_POST['sous_type']),
-                'nom_demandeur' => sanitize($_POST['nom_demandeur']),
-                'contact_demandeur' => sanitize($_POST['contact_demandeur'] ?? ''),
-                'telephone_demandeur' => sanitize($_POST['telephone_demandeur'] ?? ''),
-                'email_demandeur' => sanitize($_POST['email_demandeur'] ?? ''),
-                'adresse_precise' => sanitize($_POST['adresse_precise'] ?? ''),
-                'region' => sanitize($_POST['region']),
-                'ville' => sanitize($_POST['ville']),
-                'arrondissement' => sanitize($_POST['arrondissement'] ?? ''),
-                'quartier' => sanitize($_POST['quartier'] ?? ''),
-                'lieu_dit' => sanitize($_POST['lieu_dit'] ?? ''),
-                'coordonnees_gps' => sanitize($_POST['coordonnees_gps'] ?? ''),
-                'operateur_proprietaire' => sanitize($_POST['operateur_proprietaire'] ?? ''),
-                'entreprise_beneficiaire' => sanitize($_POST['entreprise_beneficiaire'] ?? ''),
-                'entreprise_installatrice' => sanitize($_POST['entreprise_installatrice'] ?? ''),
-                'contrat_livraison' => sanitize($_POST['contrat_livraison'] ?? ''),
-                'operateur_gaz' => sanitize($_POST['operateur_gaz'] ?? ''),
-                'entreprise_constructrice' => sanitize($_POST['entreprise_constructrice'] ?? ''),
-                'capacite_enfutage' => sanitize($_POST['capacite_enfutage'] ?? '')
+                'type_infrastructure' => cleanInput($_POST['type_infrastructure']),
+                'sous_type' => cleanInput($_POST['sous_type']),
+                'nom_demandeur' => cleanInput($_POST['nom_demandeur']),
+                'contact_demandeur' => cleanInput($_POST['contact_demandeur'] ?? ''),
+                'telephone_demandeur' => cleanInput($_POST['telephone_demandeur'] ?? ''),
+                'email_demandeur' => cleanInput($_POST['email_demandeur'] ?? ''),
+                'adresse_precise' => cleanInput($_POST['adresse_precise'] ?? ''),
+                'region' => cleanInput($_POST['region']),
+                'ville' => cleanInput($_POST['ville']),
+                'arrondissement' => cleanInput($_POST['arrondissement'] ?? ''),
+                'quartier' => cleanInput($_POST['quartier'] ?? ''),
+                'lieu_dit' => cleanInput($_POST['lieu_dit'] ?? ''),
+                'coordonnees_gps' => cleanInput($_POST['coordonnees_gps'] ?? ''),
+                'operateur_proprietaire' => cleanInput($_POST['operateur_proprietaire'] ?? ''),
+                'entreprise_beneficiaire' => cleanInput($_POST['entreprise_beneficiaire'] ?? ''),
+                'entreprise_installatrice' => cleanInput($_POST['entreprise_installatrice'] ?? ''),
+                'contrat_livraison' => cleanInput($_POST['contrat_livraison'] ?? ''),
+                'operateur_gaz' => cleanInput($_POST['operateur_gaz'] ?? ''),
+                'entreprise_constructrice' => cleanInput($_POST['entreprise_constructrice'] ?? ''),
+                'capacite_enfutage' => cleanInput($_POST['capacite_enfutage'] ?? '')
             ];
 
             if (modifierDossier($dossier_id, $data)) {

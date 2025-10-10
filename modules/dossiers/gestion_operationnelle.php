@@ -35,8 +35,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect(url('modules/dossiers/view.php?id=' . $dossier_id), 'Token CSRF invalide', 'error');
     }
 
-    $nouveau_statut = sanitize($_POST['nouveau_statut'] ?? '');
-    $motif = sanitize($_POST['motif'] ?? '');
+    $nouveau_statut = cleanInput($_POST['nouveau_statut'] ?? '');
+    $motif = cleanInput($_POST['motif'] ?? '');
     $date_fermeture = !empty($_POST['date_fermeture']) ? $_POST['date_fermeture'] : null;
     $date_reouverture = !empty($_POST['date_reouverture']) ? $_POST['date_reouverture'] : null;
 

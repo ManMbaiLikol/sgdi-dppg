@@ -90,21 +90,32 @@ function getUserStats() {
         'admins' => 0
     ];
 
-    // Total
-    $stmt = $pdo->query("SELECT COUNT(*) FROM users");
-    $stats['total'] = $stmt->fetchColumn();
+    // Vérifier que $pdo existe
+    if (!isset($pdo)) {
+        error_log("ERREUR getUserStats(): \$pdo n'est pas défini!");
+        return $stats;
+    }
 
-    // Actifs
-    $stmt = $pdo->query("SELECT COUNT(*) FROM users WHERE actif = 1");
-    $stats['actifs'] = $stmt->fetchColumn();
+    try {
+        // Total
+        $stmt = $pdo->query("SELECT COUNT(*) FROM users");
+        $stats['total'] = (int)$stmt->fetchColumn();
 
-    // Inactifs
-    $stmt = $pdo->query("SELECT COUNT(*) FROM users WHERE actif = 0");
-    $stats['inactifs'] = $stmt->fetchColumn();
+        // Actifs
+        $stmt = $pdo->query("SELECT COUNT(*) FROM users WHERE actif = 1");
+        $stats['actifs'] = (int)$stmt->fetchColumn();
 
-    // Administrateurs
-    $stmt = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'admin'");
-    $stats['admins'] = $stmt->fetchColumn();
+        // Inactifs
+        $stmt = $pdo->query("SELECT COUNT(*) FROM users WHERE actif = 0");
+        $stats['inactifs'] = (int)$stmt->fetchColumn();
+
+        // Administrateurs
+        $stmt = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'admin'");
+        $stats['admins'] = (int)$stmt->fetchColumn();
+
+    } catch (PDOException $e) {
+        error_log("ERREUR getUserStats(): " . $e->getMessage());
+    }
 
     return $stats;
 }

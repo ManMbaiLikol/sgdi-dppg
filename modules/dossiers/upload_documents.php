@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_document'])) {
     if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
         $errors[] = 'Token CSRF invalide';
     } else {
-        $type_document = sanitize($_POST['type_document'] ?? '');
+        $type_document = cleanInput($_POST['type_document'] ?? '');
 
         if (empty($type_document)) {
             $errors[] = 'Le type de document est requis';

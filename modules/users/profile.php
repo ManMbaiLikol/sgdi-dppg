@@ -24,10 +24,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
         $errors[] = 'Token de sécurité invalide';
     } else {
-        $nom = sanitize($_POST['nom'] ?? '');
-        $prenom = sanitize($_POST['prenom'] ?? '');
-        $email = sanitize($_POST['email'] ?? '');
-        $telephone = sanitize($_POST['telephone'] ?? '');
+        $nom = cleanInput($_POST['nom'] ?? '');
+        $prenom = cleanInput($_POST['prenom'] ?? '');
+        $email = cleanInput($_POST['email'] ?? '');
+        $telephone = cleanInput($_POST['telephone'] ?? '');
 
         // Validation
         if (empty($nom) || empty($prenom) || empty($email)) {

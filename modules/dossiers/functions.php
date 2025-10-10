@@ -420,15 +420,21 @@ function getDossiers($filters = [], $limit = 20, $offset = 0) {
     }
 
     if (!empty($filters['search'])) {
-        $where_conditions[] = "(d.numero LIKE ? OR d.nom_demandeur LIKE ? OR d.region LIKE ? OR d.arrondissement LIKE ? OR d.ville LIKE ? OR d.quartier LIKE ? OR d.lieu_dit LIKE ?)";
+        $where_conditions[] = "(d.numero LIKE ? OR d.nom_demandeur LIKE ? OR d.contact_demandeur LIKE ? OR d.region LIKE ? OR d.arrondissement LIKE ? OR d.ville LIKE ? OR d.quartier LIKE ? OR d.lieu_dit LIKE ? OR d.operateur_proprietaire LIKE ? OR d.entreprise_beneficiaire LIKE ? OR d.entreprise_installatrice LIKE ? OR d.operateur_gaz LIKE ? OR d.entreprise_constructrice LIKE ?)";
         $search = '%' . $filters['search'] . '%';
         $params[] = $search; // numero
         $params[] = $search; // nom_demandeur
+        $params[] = $search; // contact_demandeur
         $params[] = $search; // region
         $params[] = $search; // arrondissement
         $params[] = $search; // ville
         $params[] = $search; // quartier
         $params[] = $search; // lieu_dit
+        $params[] = $search; // operateur_proprietaire
+        $params[] = $search; // entreprise_beneficiaire
+        $params[] = $search; // entreprise_installatrice
+        $params[] = $search; // operateur_gaz
+        $params[] = $search; // entreprise_constructrice
     }
 
     // Permissions selon le rôle
@@ -535,15 +541,21 @@ function countDossiers($filters = []) {
     }
 
     if (!empty($filters['search'])) {
-        $where_conditions[] = "(d.numero LIKE ? OR d.nom_demandeur LIKE ? OR d.region LIKE ? OR d.arrondissement LIKE ? OR d.ville LIKE ? OR d.quartier LIKE ? OR d.lieu_dit LIKE ?)";
+        $where_conditions[] = "(d.numero LIKE ? OR d.nom_demandeur LIKE ? OR d.contact_demandeur LIKE ? OR d.region LIKE ? OR d.arrondissement LIKE ? OR d.ville LIKE ? OR d.quartier LIKE ? OR d.lieu_dit LIKE ? OR d.operateur_proprietaire LIKE ? OR d.entreprise_beneficiaire LIKE ? OR d.entreprise_installatrice LIKE ? OR d.operateur_gaz LIKE ? OR d.entreprise_constructrice LIKE ?)";
         $search = '%' . $filters['search'] . '%';
         $params[] = $search; // numero
         $params[] = $search; // nom_demandeur
+        $params[] = $search; // contact_demandeur
         $params[] = $search; // region
         $params[] = $search; // arrondissement
         $params[] = $search; // ville
         $params[] = $search; // quartier
         $params[] = $search; // lieu_dit
+        $params[] = $search; // operateur_proprietaire
+        $params[] = $search; // entreprise_beneficiaire
+        $params[] = $search; // entreprise_installatrice
+        $params[] = $search; // operateur_gaz
+        $params[] = $search; // entreprise_constructrice
     }
 
     // Permissions selon le rôle

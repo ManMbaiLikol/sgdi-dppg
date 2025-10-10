@@ -12,6 +12,11 @@
 function jsonResponse($data, $code = 200) {
     http_response_code($code);
 
+    // Forcer l'encodage UTF-8 pour les réponses JSON
+    if (!headers_sent()) {
+        header('Content-Type: application/json; charset=UTF-8');
+    }
+
     $response = [
         'success' => $code >= 200 && $code < 300,
         'data' => $data,

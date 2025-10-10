@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
         $errors[] = 'Token de sécurité invalide';
     } else {
-        $commentaire = sanitize($_POST['commentaire'] ?? '');
+        $commentaire = cleanInput($_POST['commentaire'] ?? '');
 
         // Validation
         if (empty($commentaire)) {

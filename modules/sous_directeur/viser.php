@@ -40,8 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
         $error = 'Token de sécurité invalide';
     } else {
-        $action = sanitize($_POST['action'] ?? '');
-        $observations = sanitize($_POST['observations'] ?? '');
+        $action = cleanInput($_POST['action'] ?? '');
+        $observations = cleanInput($_POST['observations'] ?? '');
 
         if (empty($action)) {
             $error = 'Veuillez sélectionner une action';

@@ -34,9 +34,12 @@ if ($stmt_check->fetch()) {
 // Récupérer les membres disponibles
 $cadres_dppg = getUsersByRole('cadre_dppg');
 $cadres_daj = getUsersByRole('cadre_daj');
+
+// Chef de commission peut être : Chef de Commission, Chef Service ou Sous-Directeur
 $chefs_directeurs = array_merge(
+    getUsersByRole('chef_commission'),
     getUsersByRole('chef_service'),
-    getUsersByRole('directeur')
+    getUsersByRole('sous_directeur')
 );
 
 // Le chef de service actuel peut aussi être chef de commission
@@ -49,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Token de sécurité invalide';
     } else {
         $chef_commission_id = intval($_POST['chef_commission_id'] ?? 0);
-        $chef_commission_role = sanitize($_POST['chef_commission_role'] ?? '');
+        $chef_commission_role = cleanInput($_POST['chef_commission_role'] ?? '');
         $cadre_dppg_id = intval($_POST['cadre_dppg_id'] ?? 0);
         $cadre_daj_id = intval($_POST['cadre_daj_id'] ?? 0);
 
@@ -143,7 +146,7 @@ require_once '../../includes/header.php';
                         La commission doit comprendre <strong>3 membres obligatoires</strong>:
                     </p>
                     <ul class="mb-0 mt-2">
-                        <li>Un Chef de commission (Chef de Service OU Directeur) - <strong>Président</strong></li>
+                        <li>Un Chef de commission (Chef de Commission, Chef de Service OU Sous-Directeur) - <strong>Président</strong></li>
                         <li>Un Cadre DPPG - <strong>Inspecteur technique</strong></li>
                         <li>Un Cadre DAJ - <strong>Analyse juridique et réglementaire</strong></li>
                     </ul>
@@ -171,11 +174,19 @@ require_once '../../includes/header.php';
                             <?php else: ?>
                             <select class="form-select" id="chef_commission_id" name="chef_commission_id" required onchange="updateChefRole()">
                                 <option value="">Choisir un chef de commission</option>
-                                <?php foreach ($chefs_directeurs as $chef): ?>
+                                <?php foreach ($chefs_directeurs as $chef):
+                                    // Déterminer le libellé du rôle
+                                    $role_label = 'Chef de Commission';
+                                    if ($chef['role'] === 'chef_service') {
+                                        $role_label = 'Chef Service SDTD';
+                                    } elseif ($chef['role'] === 'sous_directeur') {
+                                        $role_label = 'Sous-Directeur SDTD';
+                                    }
+                                ?>
                                 <option value="<?php echo $chef['id']; ?>" data-role="<?php echo $chef['role']; ?>"
                                         <?php echo (intval($_POST['chef_commission_id'] ?? 0) === intval($chef['id'])) ? 'selected' : ''; ?>>
                                     <?php echo sanitize($chef['prenom'] . ' ' . $chef['nom']); ?>
-                                    (<?php echo $chef['role'] === 'chef_service' ? 'Chef Service SDTD' : 'Directeur DPPG'; ?>)
+                                    (<?php echo $role_label; ?>)
                                 </option>
                                 <?php endforeach; ?>
                             </select>
@@ -275,7 +286,8 @@ function updateChefRole() {
     if (select.value) {
         const selectedOption = select.options[select.selectedIndex];
         const role = selectedOption.getAttribute('data-role');
-        roleInput.value = role === 'chef_service' ? 'chef_service' : 'directeur';
+        // Garder le rôle exact de l'utilisateur sélectionné
+        roleInput.value = role;
     } else {
         roleInput.value = '';
     }

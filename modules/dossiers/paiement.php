@@ -46,11 +46,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Token de sécurité invalide';
     } else {
         $montant = floatval($_POST['montant'] ?? 0);
-        $devise = sanitize($_POST['devise'] ?? 'FCFA');
-        $mode_paiement = sanitize($_POST['mode_paiement'] ?? '');
-        $reference_paiement = sanitize($_POST['reference_paiement'] ?? '');
-        $date_paiement = sanitize($_POST['date_paiement'] ?? '');
-        $observations = sanitize($_POST['observations'] ?? '');
+        $devise = cleanInput($_POST['devise'] ?? 'FCFA');
+        $mode_paiement = cleanInput($_POST['mode_paiement'] ?? '');
+        $reference_paiement = cleanInput($_POST['reference_paiement'] ?? '');
+        $date_paiement = cleanInput($_POST['date_paiement'] ?? '');
+        $observations = cleanInput($_POST['observations'] ?? '');
 
         // Validations
         if ($montant <= 0) {

@@ -46,12 +46,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
         $errors[] = 'Token de sécurité invalide';
     } else {
-        $action = sanitize($_POST['action'] ?? '');
+        $action = cleanInput($_POST['action'] ?? '');
 
         if ($action === 'valider_rapport') {
             // Validation du rapport d'inspection
-            $decision_validation = sanitize($_POST['decision_validation'] ?? '');
-            $observations_directeur = sanitize($_POST['observations_directeur'] ?? '');
+            $decision_validation = cleanInput($_POST['decision_validation'] ?? '');
+            $observations_directeur = cleanInput($_POST['observations_directeur'] ?? '');
 
             if (empty($decision_validation)) {
                 $errors[] = 'Décision de validation requise';
@@ -98,8 +98,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         } elseif ($action === 'decision_finale') {
             // Décision finale sur le dossier
-            $decision_finale = sanitize($_POST['decision_finale'] ?? '');
-            $motif_decision = sanitize($_POST['motif_decision'] ?? '');
+            $decision_finale = cleanInput($_POST['decision_finale'] ?? '');
+            $motif_decision = cleanInput($_POST['motif_decision'] ?? '');
 
             if (empty($decision_finale)) {
                 $errors[] = 'Décision finale requise';

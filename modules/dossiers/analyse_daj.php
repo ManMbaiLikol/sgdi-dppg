@@ -45,10 +45,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
         $errors[] = 'Token de sécurité invalide';
     } else {
-        $statut_analyse = sanitize($_POST['statut_analyse'] ?? '');
-        $observations = sanitize($_POST['observations'] ?? '');
-        $documents_manquants = sanitize($_POST['documents_manquants'] ?? '');
-        $recommandations = sanitize($_POST['recommandations'] ?? '');
+        $statut_analyse = cleanInput($_POST['statut_analyse'] ?? '');
+        $observations = cleanInput($_POST['observations'] ?? '');
+        $documents_manquants = cleanInput($_POST['documents_manquants'] ?? '');
+        $recommandations = cleanInput($_POST['recommandations'] ?? '');
 
         // Validation
         if (empty($statut_analyse)) {

@@ -41,9 +41,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
         $error = 'Token de sécurité invalide';
     } else {
-        $decision = sanitize($_POST['decision'] ?? '');
-        $reference = sanitize($_POST['reference'] ?? '');
-        $observations = sanitize($_POST['observations'] ?? '');
+        $decision = cleanInput($_POST['decision'] ?? '');
+        $reference = cleanInput($_POST['reference'] ?? '');
+        $observations = cleanInput($_POST['observations'] ?? '');
 
         if (empty($decision) || empty($reference)) {
             $error = 'La décision et la référence sont obligatoires';

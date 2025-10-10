@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect(url('modules/dossiers/view.php?id=' . $dossier_id), 'Token CSRF invalide', 'error');
     }
 
-    $commentaire = sanitize($_POST['commentaire'] ?? '');
+    $commentaire = cleanInput($_POST['commentaire'] ?? '');
 
     try {
         // Changer le statut vers "autorise"

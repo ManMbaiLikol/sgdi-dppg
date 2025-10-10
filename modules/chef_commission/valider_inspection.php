@@ -64,8 +64,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
         $errors[] = 'Token de sécurité invalide';
     } else {
-        $decision = sanitize($_POST['decision'] ?? '');
-        $observations = sanitize($_POST['observations'] ?? '');
+        $decision = cleanInput($_POST['decision'] ?? '');
+        $observations = cleanInput($_POST['observations'] ?? '');
 
         if (!in_array($decision, ['valider', 'rejeter'])) {
             $errors[] = 'Décision invalide';

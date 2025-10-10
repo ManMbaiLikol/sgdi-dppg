@@ -143,7 +143,91 @@ thead th {
     /* Les badges gardent leurs couleurs vives */
 }
 
+/* Cartes colorées (statistiques) - Forcer le texte blanc pour contraste */
+.card.bg-primary,
+.card.bg-success,
+.card.bg-danger,
+.card.bg-warning,
+.card.bg-info,
+.card.bg-secondary,
+.card.bg-dark {
+    color: #ffffff !important;
+}
+
+.card.bg-primary *,
+.card.bg-success *,
+.card.bg-danger *,
+.card.bg-warning *,
+.card.bg-info *,
+.card.bg-secondary *,
+.card.bg-dark * {
+    color: #ffffff !important;
+}
+
+/* S'assurer que les fonds colorés restent visibles */
+.card.bg-primary {
+    background-color: #0d6efd !important;
+}
+
+.card.bg-success {
+    background-color: #198754 !important;
+}
+
+.card.bg-warning {
+    background-color: #ffc107 !important;
+    color: #000000 !important;
+}
+
+.card.bg-warning * {
+    color: #000000 !important;
+}
+
+.card.bg-info {
+    background-color: #0dcaf0 !important;
+    color: #000000 !important;
+}
+
+.card.bg-info * {
+    color: #000000 !important;
+}
+
+.card.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+.card.bg-secondary {
+    background-color: #6c757d !important;
+}
+
+.card.bg-dark {
+    background-color: #212529 !important;
+}
+
 /* Boutons */
+.btn-light {
+    background-color: #198754 !important;
+    border-color: #198754 !important;
+    color: #ffffff !important;
+}
+
+.btn-light:hover {
+    background-color: #157347 !important;
+    border-color: #146c43 !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .btn-light {
+    background-color: var(--bg-tertiary);
+    border-color: var(--border-color);
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .btn-light:hover {
+    background-color: #4a4a4a;
+    border-color: #555;
+    color: var(--text-primary) !important;
+}
+
 .btn-outline-primary {
     color: var(--color-primary);
     border-color: var(--color-primary);

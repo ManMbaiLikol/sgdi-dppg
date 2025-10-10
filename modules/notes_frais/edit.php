@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Modification du statut (pour billeteur)
         if ($_SESSION['user_role'] === 'billeteur' && isset($_POST['statut'])) {
-            $statut = sanitize($_POST['statut'] ?? '');
+            $statut = cleanInput($_POST['statut'] ?? '');
             if (in_array($statut, ['payee'])) {
                 $data['statut'] = $statut;
             }
@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Modification des détails (pour chef service/admin)
         if (hasAnyRole(['chef_service', 'admin']) && $note['statut'] !== 'payee') {
             if (isset($_POST['description'])) {
-                $description = sanitize($_POST['description'] ?? '');
+                $description = cleanInput($_POST['description'] ?? '');
                 if (!empty($description)) {
                     $data['description'] = $description;
                 } else {
@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (isset($_POST['statut_modification'])) {
-                $statut = sanitize($_POST['statut_modification'] ?? '');
+                $statut = cleanInput($_POST['statut_modification'] ?? '');
                 if (in_array($statut, ['en_attente', 'validee', 'annulee'])) {
                     $data['statut'] = $statut;
                 }

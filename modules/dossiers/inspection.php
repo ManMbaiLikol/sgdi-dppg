@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
         $errors[] = 'Token de sécurité invalide';
     } else {
-        $action = sanitize($_POST['action'] ?? '');
+        $action = cleanInput($_POST['action'] ?? '');
 
         if ($action === 'upload_documents') {
             // Upload des documents
@@ -150,10 +150,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!empty($documents_manquants)) {
                 $errors[] = "Tous les documents doivent être uploadés avant de finaliser l'inspection";
             } else {
-                $date_inspection = sanitize($_POST['date_inspection'] ?? '');
-                $conforme = sanitize($_POST['conforme'] ?? '');
-                $recommandations = sanitize($_POST['recommandations'] ?? '');
-                $observations = sanitize($_POST['observations'] ?? '');
+                $date_inspection = cleanInput($_POST['date_inspection'] ?? '');
+                $conforme = cleanInput($_POST['conforme'] ?? '');
+                $recommandations = cleanInput($_POST['recommandations'] ?? '');
+                $observations = cleanInput($_POST['observations'] ?? '');
 
                 if (empty($date_inspection)) {
                     $errors[] = 'Date d\'inspection requise';

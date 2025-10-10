@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Token de sécurité invalide';
     } else {
         $dossier_id = intval($_POST['dossier_id'] ?? 0);
-        $description = sanitize($_POST['description'] ?? '');
+        $description = cleanInput($_POST['description'] ?? '');
         $montant_base = floatval($_POST['montant_base'] ?? 0);
 
         // Validation
