@@ -36,6 +36,7 @@ check_*.php
 create_*.php
 update_*.php
 reset_*.php
+!modules/users/reset_password.php
 apply_*.php
 add_*.php
 setup_*.php
