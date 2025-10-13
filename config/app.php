@@ -1,6 +1,29 @@
 <?php
 // Configuration de l'application - SGDI MVP
 
+// Charger le fichier .env si il existe
+$envFile = __DIR__ . '/../.env';
+if (file_exists($envFile)) {
+    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        // Ignorer les commentaires
+        if (strpos(trim($line), '#') === 0) continue;
+
+        // Parser la ligne KEY=VALUE
+        if (strpos($line, '=') !== false) {
+            list($key, $value) = explode('=', $line, 2);
+            $key = trim($key);
+            $value = trim($value);
+
+            // Définir la variable d'environnement
+            if (!empty($key) && !isset($_ENV[$key])) {
+                $_ENV[$key] = $value;
+                putenv("$key=$value");
+            }
+        }
+    }
+}
+
 // Forcer l'encodage UTF-8 pour PHP
 ini_set('default_charset', 'UTF-8');
 mb_internal_encoding('UTF-8');

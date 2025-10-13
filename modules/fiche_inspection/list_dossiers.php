@@ -26,7 +26,7 @@ $sql = "SELECT
             u.prenom as createur_prenom
         FROM dossiers d
         LEFT JOIN fiches_inspection fi ON d.id = fi.dossier_id
-        LEFT JOIN users u ON d.createur_id = u.id
+        LEFT JOIN users u ON d.user_id = u.id
         WHERE fi.id IS NULL
         AND d.statut IN ('en_cours', 'en_attente_inspection', 'commission_constituee', 'paye')
         ORDER BY d.date_creation DESC";
