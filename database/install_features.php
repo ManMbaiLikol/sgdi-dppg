@@ -264,7 +264,7 @@ if (isset($_GET['install']) && $_GET['install'] === 'start'):
     try {
         // Liste des fichiers SQL à exécuter
         $sql_files = [
-            __DIR__ . '/add_contraintes_distance.sql',
+            __DIR__ . '/add_contraintes_distance_compatible.sql',  // Version compatible MySQL 5.7+
             __DIR__ . '/add_fiche_inspection.sql'
         ];
 
