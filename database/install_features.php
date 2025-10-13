@@ -262,20 +262,112 @@ if (isset($_GET['install']) && $_GET['install'] === 'start'):
     echo "<h2 style='color: #007bff; margin-top: 30px;'>🔧 Installation en cours...</h2>";
 
     try {
-        // Liste des fichiers SQL à exécuter
-        $sql_files = [
-            __DIR__ . '/add_contraintes_distance_compatible.sql',  // Version compatible MySQL 5.7+
-            __DIR__ . '/add_fiche_inspection.sql'
+        // 1. Exécuter le fichier SQL principal pour les tables
+        echo "<h3 style='color: #007bff;'>📦 Étape 1 : Création des tables</h3>";
+        $result1 = executeSQLFile($pdo, __DIR__ . '/add_contraintes_distance_simple.sql');
+
+        // 2. Ajouter les colonnes à la table dossiers en PHP
+        echo "<h3 style='color: #007bff;'>📦 Étape 2 : Ajout des colonnes à la table dossiers</h3>";
+        $columns_to_add = [
+            ['name' => 'zone_type', 'definition' => "ENUM('urbaine', 'rurale') DEFAULT 'urbaine' AFTER coordonnees_gps"],
+            ['name' => 'validation_geospatiale_faite', 'definition' => "TINYINT DEFAULT 0 AFTER zone_type"],
+            ['name' => 'conformite_geospatiale', 'definition' => "ENUM('conforme', 'non_conforme', 'en_attente') DEFAULT 'en_attente' AFTER validation_geospatiale_faite"]
         ];
 
-        $all_success = true;
-
-        foreach ($sql_files as $file) {
-            $result = executeSQLFile($pdo, $file);
-            if (!$result) {
-                $all_success = false;
+        foreach ($columns_to_add as $col) {
+            try {
+                // Vérifier si la colonne existe
+                $check = $pdo->query("SHOW COLUMNS FROM dossiers LIKE '{$col['name']}'")->fetch();
+                if (!$check) {
+                    $pdo->exec("ALTER TABLE dossiers ADD COLUMN {$col['name']} {$col['definition']}");
+                    echo "<p style='color: green;'>✅ Colonne '{$col['name']}' ajoutée</p>";
+                } else {
+                    echo "<p style='color: orange;'>⚠️ Colonne '{$col['name']}' existe déjà</p>";
+                }
+            } catch (PDOException $e) {
+                echo "<p style='color: red;'>❌ Erreur pour '{$col['name']}': " . htmlspecialchars($e->getMessage()) . "</p>";
             }
         }
+
+        // 3. Créer les vues
+        echo "<h3 style='color: #007bff;'>📦 Étape 3 : Création des vues</h3>";
+        try {
+            $pdo->exec("DROP VIEW IF EXISTS vue_statistiques_conformite");
+            $pdo->exec("CREATE VIEW vue_statistiques_conformite AS
+                SELECT
+                    d.region,
+                    d.ville,
+                    d.type_infrastructure,
+                    d.zone_type,
+                    COUNT(*) as total_dossiers,
+                    SUM(CASE WHEN d.conformite_geospatiale = 'conforme' THEN 1 ELSE 0 END) as conformes,
+                    SUM(CASE WHEN d.conformite_geospatiale = 'non_conforme' THEN 1 ELSE 0 END) as non_conformes,
+                    SUM(CASE WHEN d.conformite_geospatiale = 'en_attente' THEN 1 ELSE 0 END) as en_attente,
+                    ROUND(SUM(CASE WHEN d.conformite_geospatiale = 'conforme' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as taux_conformite
+                FROM dossiers d
+                WHERE d.coordonnees_gps IS NOT NULL AND d.coordonnees_gps != ''
+                GROUP BY d.region, d.ville, d.type_infrastructure, d.zone_type");
+            echo "<p style='color: green;'>✅ Vue 'vue_statistiques_conformite' créée</p>";
+        } catch (PDOException $e) {
+            echo "<p style='color: red;'>❌ Erreur vue_statistiques_conformite: " . htmlspecialchars($e->getMessage()) . "</p>";
+        }
+
+        try {
+            $pdo->exec("DROP VIEW IF EXISTS vue_violations_critiques");
+            $pdo->exec("CREATE VIEW vue_violations_critiques AS
+                SELECT
+                    v.id,
+                    v.dossier_id,
+                    d.numero as numero_dossier,
+                    d.nom_demandeur,
+                    d.ville,
+                    v.type_violation,
+                    v.nom_etablissement,
+                    v.categorie_etablissement,
+                    v.distance_mesuree,
+                    v.distance_requise,
+                    v.ecart,
+                    v.severite,
+                    v.date_detection,
+                    d.statut as statut_dossier
+                FROM violations_contraintes v
+                JOIN dossiers d ON v.dossier_id = d.id
+                WHERE v.severite IN ('critique', 'majeure')
+                AND d.statut NOT IN ('rejete', 'abandonne')
+                ORDER BY v.severite DESC, v.ecart DESC");
+            echo "<p style='color: green;'>✅ Vue 'vue_violations_critiques' créée</p>";
+        } catch (PDOException $e) {
+            echo "<p style='color: red;'>❌ Erreur vue_violations_critiques: " . htmlspecialchars($e->getMessage()) . "</p>";
+        }
+
+        // 4. Créer les index
+        echo "<h3 style='color: #007bff;'>📦 Étape 4 : Création des index</h3>";
+        $indexes = [
+            ['table' => 'dossiers', 'name' => 'idx_dossiers_coords', 'columns' => '(coordonnees_gps)'],
+            ['table' => 'dossiers', 'name' => 'idx_dossiers_zone_type', 'columns' => '(zone_type)'],
+            ['table' => 'dossiers', 'name' => 'idx_dossiers_conformite', 'columns' => '(conformite_geospatiale)']
+        ];
+
+        foreach ($indexes as $idx) {
+            try {
+                // Vérifier si l'index existe
+                $check = $pdo->query("SHOW INDEX FROM {$idx['table']} WHERE Key_name = '{$idx['name']}'")->fetch();
+                if (!$check) {
+                    $pdo->exec("CREATE INDEX {$idx['name']} ON {$idx['table']} {$idx['columns']}");
+                    echo "<p style='color: green;'>✅ Index '{$idx['name']}' créé</p>";
+                } else {
+                    echo "<p style='color: orange;'>⚠️ Index '{$idx['name']}' existe déjà</p>";
+                }
+            } catch (PDOException $e) {
+                echo "<p style='color: red;'>❌ Erreur pour '{$idx['name']}': " . htmlspecialchars($e->getMessage()) . "</p>";
+            }
+        }
+
+        // 5. Exécuter le fichier des fiches d'inspection
+        echo "<h3 style='color: #007bff;'>📦 Étape 5 : Tables des fiches d'inspection</h3>";
+        $result2 = executeSQLFile($pdo, __DIR__ . '/add_fiche_inspection.sql');
+
+        $all_success = $result1 && $result2;
 
         if ($all_success) {
             echo "<div class='alert alert-success'>";
