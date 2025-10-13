@@ -6,9 +6,9 @@ require_once '../../includes/contraintes_distance_functions.php';
 
 requireLogin();
 
-// Vérifier les permissions (admin uniquement)
-if ($_SESSION['user_role'] !== 'admin') {
-    redirect(url('dashboard.php'), 'Accès réservé à l\'administrateur uniquement', 'error');
+// Vérifier les permissions (admin et chef de service)
+if (!in_array($_SESSION['user_role'], ['admin', 'chef_service'])) {
+    redirect(url('dashboard.php'), 'Accès réservé aux administrateurs et chefs de service', 'error');
 }
 
 // Filtres
@@ -71,6 +71,9 @@ require_once '../../includes/header.php';
             </p>
         </div>
         <div class="col-auto">
+            <a href="<?php echo url('modules/poi/import_google.php'); ?>" class="btn btn-success me-2">
+                <i class="fas fa-cloud-download-alt"></i> Import Google Places
+            </a>
             <a href="<?php echo url('modules/poi/create.php'); ?>" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Ajouter un POI
             </a>
