@@ -4,6 +4,7 @@ require_once '../../includes/auth.php';
 require_once 'functions.php';
 require_once '../daj/functions.php';
 require_once '../../includes/huitaine_functions.php';
+require_once '../fiche_inspection/functions.php';
 
 requireLogin();
 
@@ -27,6 +28,9 @@ $historique = getHistoriqueDossier($dossier_id);
 $paiement = getPaiementDossier($dossier_id);
 $inspections = getInspectionsDossier($dossier_id);
 $analyse_daj = getAnalyseDAJ($dossier_id);
+
+// Récupérer la fiche d'inspection si elle existe
+$fiche_inspection = getFicheInspectionByDossier($dossier_id);
 
 // Vérifier s'il y a une huitaine active
 $huitaine_active = null;
@@ -99,6 +103,16 @@ require_once '../../includes/header.php';
                             <a class="dropdown-item" href="<?php echo url('modules/dossiers/localisation.php?id=' . $dossier_id); ?>">
                                 <i class="fas fa-map-marker-alt"></i> Localisation GPS
                             </a>
+                            <?php if ($dossier['coordonnees_gps'] && in_array($dossier['type_infrastructure'], ['station_service', 'reprise_station_service'])): ?>
+                            <a class="dropdown-item" href="<?php echo url('modules/dossiers/validation_geospatiale.php?id=' . $dossier_id); ?>">
+                                <i class="fas fa-ruler-combined"></i> Validation géospatiale
+                                <?php if ($dossier['conformite_geospatiale'] === 'non_conforme'): ?>
+                                    <span class="badge badge-sm bg-danger">Non conforme</span>
+                                <?php elseif ($dossier['conformite_geospatiale'] === 'conforme'): ?>
+                                    <span class="badge badge-sm bg-success">Conforme</span>
+                                <?php endif; ?>
+                            </a>
+                            <?php endif; ?>
                             <div class="dropdown-divider"></div>
                             <?php endif; ?>
 
@@ -243,6 +257,22 @@ require_once '../../includes/header.php';
                                                 <?php echo htmlspecialchars($dossier['createur_prenom'] . ' ' . $dossier['createur_nom']); ?>
                                             </td>
                                         </tr>
+                                        <?php if ($dossier['validation_geospatiale_faite'] && $dossier['conformite_geospatiale']): ?>
+                                        <tr>
+                                            <td><strong>Conformité géospatiale :</strong></td>
+                                            <td>
+                                                <span class="badge badge-<?php echo $dossier['conformite_geospatiale'] === 'conforme' ? 'success' : 'danger'; ?>">
+                                                    <i class="fas fa-<?php echo $dossier['conformite_geospatiale'] === 'conforme' ? 'check-circle' : 'exclamation-triangle'; ?>"></i>
+                                                    <?php echo strtoupper($dossier['conformite_geospatiale']); ?>
+                                                </span>
+                                                <br>
+                                                <a href="<?php echo url('modules/dossiers/validation_geospatiale.php?id=' . $dossier_id); ?>"
+                                                   class="btn btn-sm btn-outline-primary mt-2">
+                                                    <i class="fas fa-eye"></i> Voir les détails
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        <?php endif; ?>
                                     </table>
                                 </div>
                                 <div class="col-md-6">
@@ -915,6 +945,100 @@ require_once '../../includes/header.php';
                                     <?php endif; ?>
                                 </div>
                             <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Fiche d'inspection -->
+                    <?php if (in_array($_SESSION['user_role'], ['cadre_dppg', 'admin', 'chef_service', 'chef_commission'])): ?>
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="card-title mb-0">
+                                <i class="fas fa-clipboard-list"></i>
+                                Fiche d'inspection
+                            </h6>
+                            <?php if ($fiche_inspection): ?>
+                                <span class="badge badge-<?php
+                                    echo $fiche_inspection['statut'] === 'validee' ? 'success' :
+                                        ($fiche_inspection['statut'] === 'signee' ? 'primary' : 'secondary');
+                                ?>">
+                                    <?php
+                                        switch($fiche_inspection['statut']) {
+                                            case 'brouillon': echo 'Brouillon'; break;
+                                            case 'validee': echo 'Validée'; break;
+                                            case 'signee': echo 'Signée'; break;
+                                            default: echo ucfirst($fiche_inspection['statut']);
+                                        }
+                                    ?>
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="card-body">
+                            <?php if ($fiche_inspection): ?>
+                                <p class="mb-2">
+                                    <strong>Créée le :</strong><br>
+                                    <?php echo date('d/m/Y H:i', strtotime($fiche_inspection['date_creation'])); ?>
+                                </p>
+                                <?php if ($fiche_inspection['date_etablissement']): ?>
+                                <p class="mb-2">
+                                    <strong>Établie le :</strong><br>
+                                    <?php echo date('d/m/Y', strtotime($fiche_inspection['date_etablissement'])); ?>
+                                    <?php if ($fiche_inspection['lieu_etablissement']): ?>
+                                        à <?php echo htmlspecialchars($fiche_inspection['lieu_etablissement']); ?>
+                                    <?php endif; ?>
+                                </p>
+                                <?php endif; ?>
+                                <?php if ($fiche_inspection['inspecteur_nom'] || $fiche_inspection['inspecteur_prenom']): ?>
+                                <p class="mb-3">
+                                    <strong>Inspecteur :</strong><br>
+                                    <small class="text-muted">
+                                        <?php echo htmlspecialchars($fiche_inspection['inspecteur_prenom'] . ' ' . $fiche_inspection['inspecteur_nom']); ?>
+                                    </small>
+                                </p>
+                                <?php endif; ?>
+
+                                <div class="d-grid gap-2">
+                                    <?php if (in_array($_SESSION['user_role'], ['cadre_dppg', 'admin']) && $fiche_inspection['statut'] === 'brouillon'): ?>
+                                    <a href="<?php echo url('modules/fiche_inspection/edit.php?dossier_id=' . $dossier_id); ?>"
+                                       class="btn btn-sm btn-primary">
+                                        <i class="fas fa-edit"></i> Modifier la fiche
+                                    </a>
+                                    <?php else: ?>
+                                    <a href="<?php echo url('modules/fiche_inspection/edit.php?dossier_id=' . $dossier_id); ?>"
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i> Voir la fiche
+                                    </a>
+                                    <?php endif; ?>
+
+                                    <a href="<?php echo url('modules/fiche_inspection/print_filled.php?dossier_id=' . $dossier_id); ?>"
+                                       class="btn btn-sm btn-outline-success" target="_blank">
+                                        <i class="fas fa-print"></i> Imprimer (remplie)
+                                    </a>
+
+                                    <a href="<?php echo url('modules/fiche_inspection/print_blank.php'); ?>"
+                                       class="btn btn-sm btn-outline-secondary" target="_blank">
+                                        <i class="fas fa-file-alt"></i> Imprimer (vierge)
+                                    </a>
+                                </div>
+                            <?php else: ?>
+                                <div class="alert alert-info mb-3">
+                                    <i class="fas fa-info-circle"></i>
+                                    Aucune fiche d'inspection créée pour ce dossier
+                                </div>
+                                <?php if (in_array($_SESSION['user_role'], ['cadre_dppg', 'admin'])): ?>
+                                <div class="d-grid gap-2">
+                                    <a href="<?php echo url('modules/fiche_inspection/edit.php?dossier_id=' . $dossier_id); ?>"
+                                       class="btn btn-sm btn-primary">
+                                        <i class="fas fa-plus"></i> Créer une fiche
+                                    </a>
+
+                                    <a href="<?php echo url('modules/fiche_inspection/print_blank.php'); ?>"
+                                       class="btn btn-sm btn-outline-secondary" target="_blank">
+                                        <i class="fas fa-file-alt"></i> Imprimer formulaire vierge
+                                    </a>
+                                </div>
+                                <?php endif; ?>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <?php endif; ?>

@@ -2,6 +2,7 @@
 // Carte interactive des infrastructures - SGDI
 require_once '../../includes/auth.php';
 require_once '../../includes/map_functions.php';
+require_once '../../includes/contraintes_distance_functions.php';
 require_once '../dossiers/functions.php';
 
 requireLogin();
@@ -17,6 +18,12 @@ $filters = [
 
 // Récupérer toutes les infrastructures avec coordonnées
 $infrastructures = getAllInfrastructuresForMap($filters);
+
+// Récupérer les POI (Points d'intérêt stratégiques)
+$pois = getAllPOIsForMap();
+
+// Récupérer les catégories de POI
+$categories = getCategoriesPOI();
 
 // Récupérer les régions pour le filtre
 $sql = "SELECT DISTINCT region FROM dossiers WHERE region IS NOT NULL AND region != '' ORDER BY region";
@@ -129,6 +136,19 @@ require_once '../../includes/header.php';
                 <i class="fas fa-map-marked-alt"></i> Carte des infrastructures pétrolières
             </h1>
             <p class="text-muted">Visualisation géographique des infrastructures du Cameroun</p>
+        </div>
+        <div class="col-auto">
+            <?php if ($_SESSION['user_role'] === 'admin'): ?>
+            <a href="<?php echo url('modules/poi/index.php'); ?>" class="btn btn-outline-primary">
+                <i class="fas fa-map-pin"></i> Gérer les POI
+            </a>
+            <?php endif; ?>
+            <button class="btn btn-outline-info" id="togglePOI">
+                <i class="fas fa-landmark"></i> Afficher les POI (<?php echo count($pois); ?>)
+            </button>
+            <button class="btn btn-outline-warning" id="toggleZones">
+                <i class="fas fa-circle-notch"></i> Afficher les zones de contrainte
+            </button>
         </div>
     </div>
 
@@ -466,6 +486,157 @@ function getStatutLabel(statut) {
     };
     return labels[statut] || statut;
 }
+
+// ========== Gestion des POI et zones de contrainte ==========
+
+// Données des POI
+const pois = <?php echo json_encode($pois); ?>;
+
+// Groupes de layers pour les POI et zones
+const poiMarkersGroup = L.layerGroup();
+const zonesGroup = L.layerGroup();
+
+let poiVisible = false;
+let zonesVisible = false;
+
+// Ajouter les POI à la carte
+pois.forEach(function(poi) {
+    const color = poi.couleur_marqueur || '#dc3545';
+    const icon = poi.icone || 'landmark';
+
+    // Créer un marqueur pour le POI
+    const poiMarker = L.marker([poi.latitude, poi.longitude], {
+        icon: L.divIcon({
+            html: `<div style="background: ${color}; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">
+                    <i class="fas fa-${icon}" style="font-size: 12px;"></i>
+                   </div>`,
+            className: 'poi-marker',
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
+        })
+    });
+
+    // Tooltip
+    const tooltipContent = `<strong>${poi.nom}</strong><br><small>${poi.categorie_nom}</small>`;
+    poiMarker.bindTooltip(tooltipContent, {
+        permanent: false,
+        direction: 'top',
+        offset: [0, -15]
+    });
+
+    // Popup détaillé
+    const popupContent = `
+        <div style="min-width: 220px;">
+            <div style="border-bottom: 2px solid ${color}; padding-bottom: 8px; margin-bottom: 10px;">
+                <h6 class="mb-1"><strong>${poi.nom}</strong></h6>
+                <small class="text-muted">${poi.categorie_nom}</small>
+            </div>
+            <table style="width: 100%; font-size: 13px; margin-bottom: 10px;">
+                <tr>
+                    <td style="padding: 4px 0;"><i class="fas fa-map-marker-alt" style="width: 20px;"></i></td>
+                    <td>${poi.ville || 'Non spécifié'}${poi.region ? ', ' + poi.region : ''}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 4px 0;"><i class="fas fa-ruler" style="width: 20px;"></i></td>
+                    <td>
+                        <strong style="color: ${color};">${poi.distance_min_metres}m</strong>
+                        <small class="text-muted">(${poi.distance_min_rural_metres}m rural)</small>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 4px 0;"><i class="fas fa-crosshairs" style="width: 20px;"></i></td>
+                    <td><code style="font-size: 11px;">${poi.latitude.toFixed(6)}, ${poi.longitude.toFixed(6)}</code></td>
+                </tr>
+            </table>
+            ${poi.description ? '<p class="small mb-2">' + poi.description + '</p>' : ''}
+            <div class="d-grid gap-2">
+                <a href="https://www.google.com/maps?q=${poi.latitude},${poi.longitude}"
+                   class="btn btn-sm btn-outline-secondary" target="_blank">
+                    <i class="fas fa-external-link-alt"></i> Google Maps
+                </a>
+            </div>
+        </div>
+    `;
+
+    poiMarker.bindPopup(popupContent, {
+        maxWidth: 280,
+        className: 'custom-popup'
+    });
+
+    poiMarkersGroup.addLayer(poiMarker);
+
+    // Créer les cercles de contrainte (pour le groupe zones)
+    const radiusNormal = poi.distance_min_metres;
+    const circle = L.circle([poi.latitude, poi.longitude], {
+        radius: radiusNormal,
+        color: color,
+        fillColor: color,
+        fillOpacity: 0.05,
+        opacity: 0.3,
+        weight: 2
+    });
+
+    circle.bindTooltip(`Zone ${poi.categorie_nom}: ${radiusNormal}m`, {
+        permanent: false
+    });
+
+    zonesGroup.addLayer(circle);
+});
+
+// Ajouter les zones de contrainte autour des stations-service
+infrastructures.forEach(function(infra) {
+    if (infra.type_infrastructure === 'station_service') {
+        // Zone de 500m autour de chaque station
+        const circle = L.circle([infra.latitude, infra.longitude], {
+            radius: 500,
+            color: '#ff6b6b',
+            fillColor: '#ff6b6b',
+            fillOpacity: 0.05,
+            opacity: 0.3,
+            weight: 2,
+            dashArray: '5, 10'
+        });
+
+        circle.bindTooltip(`Zone station: 500m<br><small>${infra.nom_demandeur}</small>`, {
+            permanent: false
+        });
+
+        zonesGroup.addLayer(circle);
+    }
+});
+
+// Boutons de contrôle
+document.getElementById('togglePOI').addEventListener('click', function() {
+    if (poiVisible) {
+        map.removeLayer(poiMarkersGroup);
+        this.innerHTML = '<i class="fas fa-landmark"></i> Afficher les POI (<?php echo count($pois); ?>)';
+        this.classList.remove('btn-info');
+        this.classList.add('btn-outline-info');
+        poiVisible = false;
+    } else {
+        map.addLayer(poiMarkersGroup);
+        this.innerHTML = '<i class="fas fa-eye-slash"></i> Masquer les POI (<?php echo count($pois); ?>)';
+        this.classList.remove('btn-outline-info');
+        this.classList.add('btn-info');
+        poiVisible = true;
+    }
+});
+
+document.getElementById('toggleZones').addEventListener('click', function() {
+    if (zonesVisible) {
+        map.removeLayer(zonesGroup);
+        this.innerHTML = '<i class="fas fa-circle-notch"></i> Afficher les zones de contrainte';
+        this.classList.remove('btn-warning');
+        this.classList.add('btn-outline-warning');
+        zonesVisible = false;
+    } else {
+        map.addLayer(zonesGroup);
+        this.innerHTML = '<i class="fas fa-eye-slash"></i> Masquer les zones';
+        this.classList.remove('btn-outline-warning');
+        this.classList.add('btn-warning');
+        zonesVisible = true;
+    }
+});
 </script>
 
 <?php require_once '../../includes/footer.php'; ?>

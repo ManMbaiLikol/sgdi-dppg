@@ -82,7 +82,7 @@ switch ($_SESSION['user_role']) {
 
     case 'cadre_dppg':
         $actions_rapides = [
-            ['url' => url('modules/dossiers/list.php?statut=analyse_daj'), 'icon' => 'fas fa-search', 'label' => 'Faire inspections', 'class' => 'warning'],
+            ['url' => url('modules/fiche_inspection/list_dossiers.php'), 'icon' => 'fas fa-clipboard-check', 'label' => 'Faire une inspection', 'class' => 'warning'],
             ['url' => url('modules/carte/index.php'), 'icon' => 'fas fa-map-marked-alt', 'label' => 'Carte des infrastructures', 'class' => 'success'],
             ['url' => url('modules/dossiers/list.php'), 'icon' => 'fas fa-folder-open', 'label' => 'Tous les dossiers', 'class' => 'secondary']
         ];
