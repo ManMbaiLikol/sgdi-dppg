@@ -1,6 +1,6 @@
 <?php
 require_once '../../includes/auth.php';
-require_once 'functions.php';
+require_once '../../includes/contraintes_distance_functions.php';
 
 requireLogin();
 
