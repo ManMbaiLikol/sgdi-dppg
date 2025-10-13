@@ -8,8 +8,8 @@
  */
 
 // Charger la configuration
-require_once __DIR__ . '/../includes/config.php';
-require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/app.php';
 
 // Activer l'affichage des erreurs pour le débogage
 ini_set('display_errors', 1);
