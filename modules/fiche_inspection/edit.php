@@ -9,10 +9,10 @@ requireLogin();
 $roles_autorises = ['cadre_dppg', 'admin', 'chef_service', 'chef_commission'];
 if (!in_array($_SESSION['user_role'], $roles_autorises)) {
     $_SESSION['error'] = "Accès non autorisé";
-    redirect('dashboard/index.php');
+    redirect(url('dashboard/index.php'));
 }
 
-// Seuls les cadres DPPG peuvent créer et modifier
+// Seuls les cadres DPPG peuvent créer et modifier (sauf si fiche validée)
 $peut_modifier = ($_SESSION['user_role'] === 'cadre_dppg');
 $mode_consultation = !$peut_modifier;
 
@@ -20,7 +20,7 @@ $dossier_id = $_GET['dossier_id'] ?? null;
 
 if (!$dossier_id) {
     $_SESSION['error'] = "Dossier non spécifié";
-    redirect('modules/dossiers/index.php');
+    redirect(url('modules/dossiers/list.php'));
 }
 
 // Récupérer le dossier
@@ -28,23 +28,29 @@ $dossier = getDossierById($dossier_id);
 
 if (!$dossier) {
     $_SESSION['error'] = "Dossier introuvable";
-    redirect('modules/dossiers/index.php');
+    redirect(url('modules/dossiers/list.php'));
 }
 
 // Récupérer ou créer la fiche
 $fiche = getFicheInspectionByDossier($dossier_id);
 
+// Si fiche validée, passer en mode consultation
+if ($fiche && $fiche['statut'] === 'validee') {
+    $peut_modifier = false;
+    $mode_consultation = true;
+}
+
 if (!$fiche && isset($_POST['creer_fiche'])) {
     // Vérifier que seul le cadre DPPG peut créer
     if (!$peut_modifier) {
         $_SESSION['error'] = "Seuls les cadres DPPG peuvent créer des fiches d'inspection";
-        redirect("modules/dossiers/view.php?id=$dossier_id");
+        redirect(url("modules/dossiers/view.php?id=$dossier_id"));
     }
 
     $fiche_id = creerFicheInspection($dossier_id, $_SESSION['user_id']);
     if ($fiche_id) {
         $_SESSION['success'] = "Fiche d'inspection créée avec succès";
-        redirect("modules/fiche_inspection/edit.php?dossier_id=$dossier_id");
+        redirect(url("modules/fiche_inspection/edit.php?dossier_id=$dossier_id"));
     } else {
         $_SESSION['error'] = "Erreur lors de la création de la fiche";
     }
@@ -55,13 +61,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_fiche'])) {
     // Vérifier que seul le cadre DPPG peut modifier
     if (!$peut_modifier) {
         $_SESSION['error'] = "Seuls les cadres DPPG peuvent modifier les fiches d'inspection";
-        redirect("modules/dossiers/view.php?id=$dossier_id");
+        redirect(url("modules/dossiers/view.php?id=$dossier_id"));
     }
 
     // Vérifier le token CSRF
     if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
         $_SESSION['error'] = "Token de sécurité invalide";
-        redirect("modules/fiche_inspection/edit.php?dossier_id=$dossier_id");
+        redirect(url("modules/fiche_inspection/edit.php?dossier_id=$dossier_id"));
     }
 
     try {
@@ -183,16 +189,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_fiche'])) {
 
         // Valider la fiche si demandé
         if (isset($_POST['valider'])) {
-            if (!validerFicheInspection($fiche['id'])) {
-                throw new Exception("Erreur lors de la validation de la fiche");
+            $resultat = validerFicheInspection($fiche['id'], $_SESSION['user_id']);
+
+            if (!$resultat['success']) {
+                // Afficher les erreurs de complétude
+                $erreurs_html = "<ul>";
+                foreach ($resultat['erreurs'] as $erreur) {
+                    $erreurs_html .= "<li>" . htmlspecialchars($erreur) . "</li>";
+                }
+                $erreurs_html .= "</ul>";
+                throw new Exception("La fiche ne peut pas être validée car elle est incomplète : " . $erreurs_html);
             }
-            $_SESSION['success'] = "Fiche d'inspection validée avec succès";
+
+            $_SESSION['success'] = $resultat['message'] . " Le chef de commission a été notifié.";
         } else {
             $_SESSION['success'] = "Fiche d'inspection enregistrée avec succès";
         }
 
         $pdo->commit();
-        redirect("modules/dossiers/view.php?id=$dossier_id");
+        redirect(url("modules/dossiers/view.php?id=$dossier_id"));
 
     } catch (Exception $e) {
         $pdo->rollBack();
@@ -228,6 +243,14 @@ include '../../includes/header.php';
             <p class="text-muted">Dossier N° <?php echo htmlspecialchars($dossier['numero']); ?> - <?php echo htmlspecialchars($dossier['nom_demandeur']); ?></p>
         </div>
         <div>
+            <div class="btn-group me-2" role="group">
+                <a href="<?php echo url('modules/fiche_inspection/print_blank.php'); ?>" class="btn btn-outline-info" target="_blank" title="Imprimer une fiche vierge">
+                    <i class="fas fa-print"></i> Fiche vierge
+                </a>
+                <a href="<?php echo url("modules/fiche_inspection/print_prefilled.php?dossier_id=$dossier_id"); ?>" class="btn btn-outline-info" target="_blank" title="Imprimer une fiche pré-remplie avec les infos du dossier">
+                    <i class="fas fa-print"></i> Fiche pré-remplie
+                </a>
+            </div>
             <a href="<?php echo url('modules/dossiers/view.php?id=' . $dossier_id); ?>" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Retour au dossier
             </a>
@@ -248,7 +271,7 @@ include '../../includes/header.php';
                 <h4>Aucune fiche d'inspection</h4>
                 <?php if ($peut_modifier): ?>
                     <p class="text-muted">Créez une nouvelle fiche d'inspection pour ce dossier</p>
-                    <form method="post" class="d-inline">
+                    <form method="post" action="<?php echo url("modules/fiche_inspection/edit.php?dossier_id=$dossier_id"); ?>" class="d-inline">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                         <button type="submit" name="creer_fiche" class="btn btn-primary">
                             <i class="fas fa-plus"></i> Créer une fiche d'inspection
@@ -261,7 +284,7 @@ include '../../includes/header.php';
             </div>
         </div>
     <?php else: ?>
-        <form method="post" id="ficheForm">
+        <form method="post" action="<?php echo url("modules/fiche_inspection/edit.php?dossier_id=$dossier_id"); ?>" id="ficheForm">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
 
             <!-- Section 1: Informations générales -->
@@ -273,7 +296,7 @@ include '../../includes/header.php';
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Type d'infrastructure</label>
-                            <input type="text" class="form-control" value="<?php echo htmlspecialchars($fiche['type_infrastructure']); ?>" readonly>
+                            <input type="text" class="form-control" value="<?php echo htmlspecialchars($fiche['type_infrastructure'] ?? ''); ?>" readonly>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Raison sociale <span class="text-danger">*</span></label>
@@ -520,8 +543,11 @@ include '../../includes/header.php';
                                         </select>
                                     </div>
                                     <div class="col-md-2">
-                                        <label class="form-label">Capacité (L)</label>
-                                        <input type="number" step="0.01" name="cuve_capacite[]" class="form-control">
+                                        <label class="form-label">Capacité</label>
+                                        <div class="input-group">
+                                            <input type="number" step="0.01" name="cuve_capacite[]" class="form-control">
+                                            <span class="input-group-text">L</span>
+                                        </div>
                                     </div>
                                     <div class="col-md-1">
                                         <label class="form-label">Nombre</label>
@@ -541,7 +567,7 @@ include '../../includes/header.php';
                                     <div class="row">
                                         <div class="col-md-2">
                                             <label class="form-label">N°</label>
-                                            <input type="number" name="cuve_numero[]" class="form-control" value="<?php echo htmlspecialchars($cuve['numero']); ?>">
+                                            <input type="number" name="cuve_numero[]" class="form-control" value="<?php echo htmlspecialchars($cuve['numero'] ?? ''); ?>">
                                         </div>
                                         <div class="col-md-2">
                                             <label class="form-label">Produit</label>
@@ -565,12 +591,15 @@ include '../../includes/header.php';
                                             </select>
                                         </div>
                                         <div class="col-md-2">
-                                            <label class="form-label">Capacité (L)</label>
-                                            <input type="number" step="0.01" name="cuve_capacite[]" class="form-control" value="<?php echo htmlspecialchars($cuve['capacite'] ?? ''); ?>">
+                                            <label class="form-label">Capacité</label>
+                                            <div class="input-group">
+                                                <input type="number" step="0.01" name="cuve_capacite[]" class="form-control" value="<?php echo htmlspecialchars($cuve['capacite'] ?? ''); ?>">
+                                                <span class="input-group-text">L</span>
+                                            </div>
                                         </div>
                                         <div class="col-md-1">
                                             <label class="form-label">Nombre</label>
-                                            <input type="number" name="cuve_nombre[]" class="form-control" value="<?php echo htmlspecialchars($cuve['nombre']); ?>">
+                                            <input type="number" name="cuve_nombre[]" class="form-control" value="<?php echo htmlspecialchars($cuve['nombre'] ?? ''); ?>">
                                         </div>
                                         <div class="col-md-1">
                                             <label class="form-label">&nbsp;</label>
@@ -617,8 +646,11 @@ include '../../includes/header.php';
                                         <input type="text" name="pompe_marque[]" class="form-control">
                                     </div>
                                     <div class="col-md-2">
-                                        <label class="form-label">Débit nominal (L/min)</label>
-                                        <input type="number" step="0.01" name="pompe_debit[]" class="form-control">
+                                        <label class="form-label">Débit nominal</label>
+                                        <div class="input-group">
+                                            <input type="number" step="0.01" name="pompe_debit[]" class="form-control">
+                                            <span class="input-group-text">L/min</span>
+                                        </div>
                                     </div>
                                     <div class="col-md-1">
                                         <label class="form-label">Nombre</label>
@@ -638,7 +670,7 @@ include '../../includes/header.php';
                                     <div class="row">
                                         <div class="col-md-2">
                                             <label class="form-label">N°</label>
-                                            <input type="number" name="pompe_numero[]" class="form-control" value="<?php echo htmlspecialchars($pompe['numero']); ?>">
+                                            <input type="number" name="pompe_numero[]" class="form-control" value="<?php echo htmlspecialchars($pompe['numero'] ?? ''); ?>">
                                         </div>
                                         <div class="col-md-2">
                                             <label class="form-label">Produit</label>
@@ -659,12 +691,15 @@ include '../../includes/header.php';
                                             <input type="text" name="pompe_marque[]" class="form-control" value="<?php echo htmlspecialchars($pompe['marque'] ?? ''); ?>">
                                         </div>
                                         <div class="col-md-2">
-                                            <label class="form-label">Débit nominal (L/min)</label>
-                                            <input type="number" step="0.01" name="pompe_debit[]" class="form-control" value="<?php echo htmlspecialchars($pompe['debit_nominal'] ?? ''); ?>">
+                                            <label class="form-label">Débit nominal</label>
+                                            <div class="input-group">
+                                                <input type="number" step="0.01" name="pompe_debit[]" class="form-control" value="<?php echo htmlspecialchars($pompe['debit_nominal'] ?? ''); ?>">
+                                                <span class="input-group-text">L/min</span>
+                                            </div>
                                         </div>
                                         <div class="col-md-1">
                                             <label class="form-label">Nombre</label>
-                                            <input type="number" name="pompe_nombre[]" class="form-control" value="<?php echo htmlspecialchars($pompe['nombre']); ?>">
+                                            <input type="number" name="pompe_nombre[]" class="form-control" value="<?php echo htmlspecialchars($pompe['nombre'] ?? ''); ?>">
                                         </div>
                                         <div class="col-md-1">
                                             <label class="form-label">&nbsp;</label>
@@ -878,8 +913,11 @@ document.getElementById('addCuve').addEventListener('click', function() {
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">Capacité (L)</label>
-                    <input type="number" step="0.01" name="cuve_capacite[]" class="form-control">
+                    <label class="form-label">Capacité</label>
+                    <div class="input-group">
+                        <input type="number" step="0.01" name="cuve_capacite[]" class="form-control">
+                        <span class="input-group-text">L</span>
+                    </div>
                 </div>
                 <div class="col-md-1">
                     <label class="form-label">Nombre</label>
@@ -943,8 +981,11 @@ document.getElementById('addPompe').addEventListener('click', function() {
                     <input type="text" name="pompe_marque[]" class="form-control">
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">Débit nominal (L/min)</label>
-                    <input type="number" step="0.01" name="pompe_debit[]" class="form-control">
+                    <label class="form-label">Débit nominal</label>
+                    <div class="input-group">
+                        <input type="number" step="0.01" name="pompe_debit[]" class="form-control">
+                        <span class="input-group-text">L/min</span>
+                    </div>
                 </div>
                 <div class="col-md-1">
                     <label class="form-label">Nombre</label>

@@ -57,6 +57,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Formatage automatique des montants
     var montantInputs = document.querySelectorAll('input[name*="montant"], input[type="number"][step*="0."]');
     montantInputs.forEach(function(input) {
+        // Exclure les champs qui ont déjà une unité (capacité en L, débit en L/min, etc.)
+        var inputGroup = input.closest('.input-group');
+        if (inputGroup) {
+            var hasUnit = inputGroup.querySelector('.input-group-text');
+            if (hasUnit) return; // Ignorer ce champ car il a déjà une unité
+        }
+
         input.addEventListener('input', function() {
             var value = parseFloat(this.value);
             if (!isNaN(value) && value > 0) {

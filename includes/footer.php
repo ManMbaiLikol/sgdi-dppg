@@ -21,7 +21,7 @@
 <!-- DataTables Config -->
 <script src="<?php echo asset('js/datatables-config.js'); ?>"></script>
 <!-- Custom JS -->
-<script src="<?php echo asset('js/app.js'); ?>"></script>
+<script src="<?php echo asset('js/app.js'); ?>?v=<?php echo time(); ?>"></script>
 <!-- Theme Toggle (Mode Sombre/Clair) -->
 <script src="<?php echo asset('js/theme-toggle.js'); ?>"></script>
 <!-- Accessibility Enhancements -->

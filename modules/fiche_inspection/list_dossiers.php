@@ -8,10 +8,10 @@ requireLogin();
 // Vérifier que l'utilisateur est un cadre DPPG
 if ($_SESSION['user_role'] !== 'cadre_dppg') {
     $_SESSION['error'] = "Accès réservé aux cadres DPPG";
-    redirect('dashboard/index.php');
+    redirect(url('dashboard.php'));
 }
 
-// Récupérer les dossiers sans fiche d'inspection
+// Récupérer tous les dossiers actifs avec leur fiche d'inspection si elle existe
 $sql = "SELECT
             d.id,
             d.numero,
@@ -23,12 +23,13 @@ $sql = "SELECT
             d.statut,
             d.date_creation,
             u.nom as createur_nom,
-            u.prenom as createur_prenom
+            u.prenom as createur_prenom,
+            fi.id as fiche_id,
+            fi.statut as fiche_statut
         FROM dossiers d
         LEFT JOIN fiches_inspection fi ON d.id = fi.dossier_id
         LEFT JOIN users u ON d.user_id = u.id
-        WHERE fi.id IS NULL
-        AND d.statut IN ('en_cours', 'en_attente_inspection', 'commission_constituee', 'paye')
+        WHERE d.statut IN ('en_cours', 'en_attente_inspection', 'commission_constituee', 'paye', 'inspecte', 'valide')
         ORDER BY d.date_creation DESC";
 
 $stmt = $pdo->query($sql);
@@ -36,6 +37,16 @@ $dossiers = $stmt->fetchAll();
 
 // Statistiques
 $total_dossiers = count($dossiers);
+$dossiers_non_inspectes = 0;
+$dossiers_inspectes = 0;
+
+foreach ($dossiers as $dossier) {
+    if ($dossier['fiche_id']) {
+        $dossiers_inspectes++;
+    } else {
+        $dossiers_non_inspectes++;
+    }
+}
 
 $pageTitle = "Dossiers à inspecter";
 include '../../includes/header.php';
@@ -51,7 +62,10 @@ include '../../includes/header.php';
             <p class="text-muted">Liste des dossiers sans fiche d'inspection</p>
         </div>
         <div>
-            <a href="<?php echo url('dashboard/index.php'); ?>" class="btn btn-secondary">
+            <a href="<?php echo url('modules/fiche_inspection/print_blank.php'); ?>" class="btn btn-outline-info me-2" target="_blank" title="Imprimer une fiche vierge pour l'utiliser sur le terrain">
+                <i class="fas fa-print"></i> Imprimer fiche vierge
+            </a>
+            <a href="<?php echo url('dashboard.php'); ?>" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Retour au tableau de bord
             </a>
         </div>
@@ -64,11 +78,41 @@ include '../../includes/header.php';
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="card-title mb-0">Dossiers à inspecter</h6>
+                            <h6 class="card-title mb-0">Total dossiers</h6>
                             <h2 class="mb-0 mt-2"><?php echo $total_dossiers; ?></h2>
                         </div>
                         <div>
-                            <i class="fas fa-clipboard-check fa-3x opacity-50"></i>
+                            <i class="fas fa-folder fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-0">À inspecter</h6>
+                            <h2 class="mb-0 mt-2"><?php echo $dossiers_non_inspectes; ?></h2>
+                        </div>
+                        <div>
+                            <i class="fas fa-clipboard-list fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-0">Déjà inspectés</h6>
+                            <h2 class="mb-0 mt-2"><?php echo $dossiers_inspectes; ?></h2>
+                        </div>
+                        <div>
+                            <i class="fas fa-check-circle fa-3x opacity-50"></i>
                         </div>
                     </div>
                 </div>
@@ -87,9 +131,9 @@ include '../../includes/header.php';
         <div class="card-body">
             <?php if (empty($dossiers)): ?>
                 <div class="alert alert-info text-center py-5">
-                    <i class="fas fa-check-circle fa-3x mb-3"></i>
-                    <h4>Aucun dossier à inspecter</h4>
-                    <p class="mb-0">Tous les dossiers ont déjà une fiche d'inspection créée.</p>
+                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                    <h4>Aucun dossier</h4>
+                    <p class="mb-0">Il n'y a aucun dossier actif pour le moment.</p>
                 </div>
             <?php else: ?>
                 <div class="table-responsive">
@@ -161,11 +205,25 @@ include '../../includes/header.php';
                                            title="Voir les détails">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <a href="<?php echo url('modules/fiche_inspection/edit.php?dossier_id=' . $dossier['id']); ?>"
-                                           class="btn btn-sm btn-success"
-                                           title="Créer la fiche d'inspection">
-                                            <i class="fas fa-clipboard-check"></i> Inspecter
+                                        <a href="<?php echo url('modules/fiche_inspection/print_prefilled.php?dossier_id=' . $dossier['id']); ?>"
+                                           class="btn btn-sm btn-outline-info"
+                                           target="_blank"
+                                           title="Imprimer une fiche pré-remplie">
+                                            <i class="fas fa-print"></i>
                                         </a>
+                                        <?php if ($dossier['fiche_id']): ?>
+                                            <a href="<?php echo url('modules/fiche_inspection/edit.php?dossier_id=' . $dossier['id']); ?>"
+                                               class="btn btn-sm btn-info"
+                                               title="Voir la fiche d'inspection">
+                                                <i class="fas fa-file-alt"></i> Voir l'inspection
+                                            </a>
+                                        <?php else: ?>
+                                            <a href="<?php echo url('modules/fiche_inspection/edit.php?dossier_id=' . $dossier['id']); ?>"
+                                               class="btn btn-sm btn-success"
+                                               title="Créer la fiche d'inspection">
+                                                <i class="fas fa-clipboard-check"></i> Inspecter
+                                            </a>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                             </tr>

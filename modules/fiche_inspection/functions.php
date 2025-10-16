@@ -96,13 +96,12 @@ function creerFicheInspection($dossier_id, $user_id) {
 
 /**
  * Mettre à jour une fiche d'inspection
+ * Note: Cette fonction doit être appelée dans une transaction gérée par l'appelant
  */
 function mettreAJourFicheInspection($fiche_id, $data) {
     global $pdo;
 
     try {
-        $pdo->beginTransaction();
-
         // Mise à jour de la fiche principale
         $sql = "UPDATE fiches_inspection SET
             raison_sociale = ?, bp = ?, telephone = ?, fax = ?, email = ?,
@@ -121,7 +120,7 @@ function mettreAJourFicheInspection($fiche_id, $data) {
             WHERE id = ?";
 
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([
+        $result = $stmt->execute([
             $data['raison_sociale'],
             $data['bp'],
             $data['telephone'],
@@ -166,11 +165,9 @@ function mettreAJourFicheInspection($fiche_id, $data) {
             $fiche_id
         ]);
 
-        $pdo->commit();
-        return true;
+        return $result;
 
     } catch (Exception $e) {
-        $pdo->rollBack();
         error_log("Erreur mise à jour fiche: " . $e->getMessage());
         return false;
     }
@@ -367,15 +364,172 @@ function sauvegarderDistancesStations($fiche_id, $distances) {
 }
 
 /**
- * Valider une fiche d'inspection
+ * Vérifier la complétude d'une fiche d'inspection
+ * Retourne un tableau d'erreurs (vide si tout est OK)
  */
-function validerFicheInspection($fiche_id) {
+function validerCompletudeFiche($fiche_id) {
     global $pdo;
 
-    $sql = "UPDATE fiches_inspection SET statut = 'validee' WHERE id = ?";
-    $stmt = $pdo->prepare($sql);
+    $erreurs = [];
 
-    return $stmt->execute([$fiche_id]);
+    // Récupérer la fiche
+    $sql = "SELECT * FROM fiches_inspection WHERE id = ?";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$fiche_id]);
+    $fiche = $stmt->fetch();
+
+    if (!$fiche) {
+        return ["Fiche introuvable"];
+    }
+
+    // Champs obligatoires section 1
+    if (empty($fiche['raison_sociale'])) {
+        $erreurs[] = "Raison sociale manquante";
+    }
+    if (empty($fiche['ville'])) {
+        $erreurs[] = "Ville manquante";
+    }
+
+    // Coordonnées GPS obligatoires
+    if (empty($fiche['latitude']) || empty($fiche['longitude'])) {
+        $erreurs[] = "Coordonnées GPS (latitude/longitude) manquantes";
+    }
+
+    // Au moins une cuve
+    $sql = "SELECT COUNT(*) FROM fiche_inspection_cuves WHERE fiche_id = ?";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$fiche_id]);
+    if ($stmt->fetchColumn() == 0) {
+        $erreurs[] = "Aucune cuve renseignée (minimum 1 requise)";
+    }
+
+    // Au moins une pompe
+    $sql = "SELECT COUNT(*) FROM fiche_inspection_pompes WHERE fiche_id = ?";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$fiche_id]);
+    if ($stmt->fetchColumn() == 0) {
+        $erreurs[] = "Aucune pompe renseignée (minimum 1 requise)";
+    }
+
+    // Date d'établissement
+    if (empty($fiche['date_etablissement'])) {
+        $erreurs[] = "Date d'établissement de la fiche manquante";
+    }
+
+    return $erreurs;
+}
+
+/**
+ * Valider une fiche d'inspection (workflow complet)
+ */
+function validerFicheInspection($fiche_id, $user_id) {
+    global $pdo;
+
+    try {
+        // Note: La transaction est gérée par l'appelant (edit.php)
+
+        // 1. Vérifier complétude
+        $erreurs = validerCompletudeFiche($fiche_id);
+        if (!empty($erreurs)) {
+            return [
+                'success' => false,
+                'erreurs' => $erreurs
+            ];
+        }
+
+        // 2. Récupérer la fiche avec infos dossier
+        $sql = "SELECT fi.*, d.numero as dossier_numero, d.id as dossier_id
+                FROM fiches_inspection fi
+                INNER JOIN dossiers d ON fi.dossier_id = d.id
+                WHERE fi.id = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$fiche_id]);
+        $fiche = $stmt->fetch();
+
+        if (!$fiche) {
+            return ['success' => false, 'erreurs' => ["Fiche introuvable"]];
+        }
+
+        // 3. Mettre à jour statut fiche
+        $sql = "UPDATE fiches_inspection
+                SET statut = 'validee',
+                    date_validation = NOW(),
+                    valideur_id = ?
+                WHERE id = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$user_id, $fiche_id]);
+
+        // 4. Mettre à jour statut dossier
+        $sql = "UPDATE dossiers
+                SET statut = 'inspecte',
+                    date_inspection = NOW()
+                WHERE id = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$fiche['dossier_id']]);
+
+        // 5. Créer notification pour le chef de commission
+        $sql = "SELECT c.chef_commission_id, u.nom, u.prenom
+                FROM commissions c
+                LEFT JOIN users u ON c.chef_commission_id = u.id
+                WHERE c.dossier_id = ?
+                LIMIT 1";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$fiche['dossier_id']]);
+        $commission = $stmt->fetch();
+
+        if ($commission && $commission['chef_commission_id']) {
+            // Créer notification (si table notifications existe)
+            $sql = "INSERT INTO notifications (user_id, type, message, lien, date_creation)
+                    VALUES (?, 'inspection_validee', ?, ?, NOW())";
+            $stmt = $pdo->prepare($sql);
+            $message = "Nouvelle inspection à valider pour le dossier N° " . $fiche['dossier_numero'];
+            $lien = "modules/chef_commission/valider_fiche.php?fiche_id=" . $fiche_id;
+
+            try {
+                $stmt->execute([$commission['chef_commission_id'], $message, $lien]);
+            } catch (Exception $e) {
+                // Table notifications n'existe peut-être pas encore, on ignore l'erreur
+                error_log("Notification non envoyée: " . $e->getMessage());
+            }
+        }
+
+        // 6. Historique dossier
+        require_once '../dossiers/functions.php';
+        ajouterHistoriqueDossier(
+            $fiche['dossier_id'],
+            'inspection_validee',
+            "Fiche d'inspection validée par l'inspecteur",
+            $user_id
+        );
+
+        return [
+            'success' => true,
+            'message' => "Fiche d'inspection validée avec succès"
+        ];
+
+    } catch (Exception $e) {
+        error_log("Erreur validation fiche: " . $e->getMessage());
+        return [
+            'success' => false,
+            'erreurs' => ["Erreur lors de la validation: " . $e->getMessage()]
+        ];
+    }
+}
+
+/**
+ * Récupérer une fiche avec toutes ses informations
+ */
+function getFicheInspectionById($fiche_id) {
+    global $pdo;
+
+    $sql = "SELECT fi.*, d.numero as dossier_numero, d.id as dossier_id
+            FROM fiches_inspection fi
+            INNER JOIN dossiers d ON fi.dossier_id = d.id
+            WHERE fi.id = ?";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$fiche_id]);
+
+    return $stmt->fetch();
 }
 
 /**

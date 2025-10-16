@@ -1,9 +1,28 @@
+<?php
+require_once '../../includes/auth.php';
+require_once '../dossiers/functions.php';
+
+requireLogin();
+
+$dossier_id = $_GET['dossier_id'] ?? null;
+
+if (!$dossier_id) {
+    die("Dossier non spécifié");
+}
+
+// Récupérer le dossier
+$dossier = getDossierById($dossier_id);
+
+if (!$dossier) {
+    die("Dossier introuvable");
+}
+?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fiche d'inspection de l'infrastructure pétrolière (Vierge)</title>
+    <title>Fiche d'inspection - <?php echo htmlspecialchars($dossier['numero']); ?></title>
     <style>
         @page {
             size: A4;
@@ -59,6 +78,10 @@
             flex: 1;
             border-bottom: 1px dotted #000;
             min-height: 16px;
+        }
+
+        .field-value.filled {
+            font-weight: bold;
         }
 
         table {
@@ -162,10 +185,22 @@
         .print-button:hover {
             background-color: #0056b3;
         }
+
+        .info-badge {
+            background-color: #e3f2fd;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
     </style>
 </head>
 <body>
     <button onclick="window.print()" class="print-button no-print">🖨️ Imprimer</button>
+
+    <div class="info-badge no-print">
+        <strong>Note :</strong> Les informations pré-remplies proviennent du dossier N° <?php echo htmlspecialchars($dossier['numero']); ?>.
+        Complétez les champs restants lors de l'inspection sur le terrain.
+    </div>
 
     <div class="header">
         <h1>République du Cameroun</h1>
@@ -175,6 +210,7 @@
         <p style="margin: 3px 0;">--------</p>
         <p style="margin: 3px 0;">Direction de la Promotion des Produits Pétroliers et Gaziers</p>
         <h2 style="margin-top: 15px;">FICHE DE RÉCOLTE DES DONNÉES SUR LES INFRASTRUCTURES PÉTROLIÈRES</h2>
+        <p style="margin-top: 10px;"><strong>Dossier N° <?php echo htmlspecialchars($dossier['numero']); ?></strong></p>
     </div>
 
     <!-- Section 1 -->
@@ -182,51 +218,65 @@
 
     <div class="field-row">
         <div class="field-label">Type d'infrastructure :</div>
-        <div class="field-value"></div>
+        <div class="field-value filled"><?php echo htmlspecialchars(getTypeLabel($dossier['type_infrastructure'], $dossier['sous_type'])); ?></div>
     </div>
 
     <div class="field-row">
         <div class="field-label">Raison sociale :</div>
-        <div class="field-value"></div>
+        <div class="field-value filled"><?php echo htmlspecialchars($dossier['nom_demandeur']); ?></div>
     </div>
 
     <div class="field-row">
         <div class="field-label">BP :</div>
         <div class="field-value" style="max-width: 200px;"></div>
         <div class="field-label" style="margin-left: 20px;">Tél :</div>
-        <div class="field-value"></div>
+        <div class="field-value <?php echo $dossier['telephone_demandeur'] ? 'filled' : ''; ?>">
+            <?php echo htmlspecialchars($dossier['telephone_demandeur'] ?? ''); ?>
+        </div>
     </div>
 
     <div class="field-row">
         <div class="field-label">Fax :</div>
         <div class="field-value" style="max-width: 200px;"></div>
         <div class="field-label" style="margin-left: 20px;">Email :</div>
-        <div class="field-value"></div>
+        <div class="field-value <?php echo $dossier['email_demandeur'] ? 'filled' : ''; ?>">
+            <?php echo htmlspecialchars($dossier['email_demandeur'] ?? ''); ?>
+        </div>
     </div>
 
     <div class="field-row">
         <div class="field-label">Région :</div>
-        <div class="field-value"></div>
+        <div class="field-value <?php echo $dossier['region'] ? 'filled' : ''; ?>">
+            <?php echo htmlspecialchars($dossier['region'] ?? ''); ?>
+        </div>
     </div>
 
     <div class="field-row">
         <div class="field-label">Département :</div>
-        <div class="field-value"></div>
+        <div class="field-value <?php echo $dossier['departement'] ? 'filled' : ''; ?>">
+            <?php echo htmlspecialchars($dossier['departement'] ?? ''); ?>
+        </div>
     </div>
 
     <div class="field-row">
         <div class="field-label">Arrondissement :</div>
-        <div class="field-value"></div>
+        <div class="field-value <?php echo $dossier['arrondissement'] ? 'filled' : ''; ?>">
+            <?php echo htmlspecialchars($dossier['arrondissement'] ?? ''); ?>
+        </div>
     </div>
 
     <div class="field-row">
         <div class="field-label">Ville :</div>
-        <div class="field-value"></div>
+        <div class="field-value <?php echo $dossier['ville'] ? 'filled' : ''; ?>">
+            <?php echo htmlspecialchars($dossier['ville'] ?? ''); ?>
+        </div>
     </div>
 
     <div class="field-row">
         <div class="field-label">Quartier :</div>
-        <div class="field-value"></div>
+        <div class="field-value <?php echo $dossier['quartier'] ? 'filled' : ''; ?>">
+            <?php echo htmlspecialchars($dossier['quartier'] ?? ''); ?>
+        </div>
     </div>
 
     <div class="field-row">
@@ -236,7 +286,9 @@
 
     <div class="field-row">
         <div class="field-label">Lieu-dit :</div>
-        <div class="field-value"></div>
+        <div class="field-value <?php echo $dossier['lieu_dit'] ? 'filled' : ''; ?>">
+            <?php echo htmlspecialchars($dossier['lieu_dit'] ?? ''); ?>
+        </div>
     </div>
 
     <!-- Section 2 -->
@@ -334,6 +386,8 @@
         <div class="field-label">Gérant :</div>
         <div class="field-value"></div>
     </div>
+
+    <div class="page-break"></div>
 
     <!-- Section 4 - Cuves -->
     <div class="section-title">4. INSTALLATIONS - CUVES</div>
