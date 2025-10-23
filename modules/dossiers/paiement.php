@@ -262,8 +262,8 @@ require_once '../../includes/header.php';
                         <div class="col-md-8">
                             <label for="montant" class="form-label">Montant payé * <small class="text-success">(doit être exactement <?php echo number_format($montant_requis, 0, ',', ' '); ?> FCFA)</small></label>
                             <input type="number" class="form-control" id="montant" name="montant" step="0.01" min="0"
-                                   value="<?php echo $_POST['montant'] ?? $montant_requis; ?>"
-                                   data-required-amount="<?php echo $montant_requis; ?>"
+                                   value="<?php echo htmlspecialchars($_POST['montant'] ?? $montant_requis, ENT_QUOTES, 'UTF-8'); ?>"
+                                   data-required-amount="<?php echo htmlspecialchars($montant_requis, ENT_QUOTES, 'UTF-8'); ?>"
                                    required>
                             <div class="form-text">
                                 <span id="montant-status" class="fw-bold"></span>
@@ -273,13 +273,13 @@ require_once '../../includes/header.php';
                         <div class="col-md-4">
                             <label for="devise" class="form-label">Devise</label>
                             <select class="form-select" id="devise" name="devise">
-                                <option value="FCFA" <?php echo ($_POST['devise'] ?? 'FCFA') === 'FCFA' ? 'selected' : ''; ?>>
+                                <option value="FCFA" <?php echo (htmlspecialchars($_POST['devise'] ?? 'FCFA', ENT_QUOTES, 'UTF-8') === 'FCFA') ? 'selected' : ''; ?>>
                                     FCFA
                                 </option>
-                                <option value="EUR" <?php echo ($_POST['devise'] ?? '') === 'EUR' ? 'selected' : ''; ?>>
+                                <option value="EUR" <?php echo (htmlspecialchars($_POST['devise'] ?? '', ENT_QUOTES, 'UTF-8') === 'EUR') ? 'selected' : ''; ?>>
                                     EUR
                                 </option>
-                                <option value="USD" <?php echo ($_POST['devise'] ?? '') === 'USD' ? 'selected' : ''; ?>>
+                                <option value="USD" <?php echo (htmlspecialchars($_POST['devise'] ?? '', ENT_QUOTES, 'UTF-8') === 'USD') ? 'selected' : ''; ?>>
                                     USD
                                 </option>
                             </select>
@@ -291,13 +291,13 @@ require_once '../../includes/header.php';
                             <label for="mode_paiement" class="form-label">Mode de paiement *</label>
                             <select class="form-select" id="mode_paiement" name="mode_paiement" required>
                                 <option value="">Sélectionner</option>
-                                <option value="especes" <?php echo ($_POST['mode_paiement'] ?? '') === 'especes' ? 'selected' : ''; ?>>
+                                <option value="especes" <?php echo (htmlspecialchars($_POST['mode_paiement'] ?? '', ENT_QUOTES, 'UTF-8') === 'especes') ? 'selected' : ''; ?>>
                                     Espèces
                                 </option>
-                                <option value="cheque" <?php echo ($_POST['mode_paiement'] ?? '') === 'cheque' ? 'selected' : ''; ?>>
+                                <option value="cheque" <?php echo (htmlspecialchars($_POST['mode_paiement'] ?? '', ENT_QUOTES, 'UTF-8') === 'cheque') ? 'selected' : ''; ?>>
                                     Chèque
                                 </option>
-                                <option value="virement" <?php echo ($_POST['mode_paiement'] ?? '') === 'virement' ? 'selected' : ''; ?>>
+                                <option value="virement" <?php echo (htmlspecialchars($_POST['mode_paiement'] ?? '', ENT_QUOTES, 'UTF-8') === 'virement') ? 'selected' : ''; ?>>
                                     Virement bancaire
                                 </option>
                             </select>
@@ -306,7 +306,7 @@ require_once '../../includes/header.php';
                         <div class="col-md-6">
                             <label for="date_paiement" class="form-label">Date du paiement *</label>
                             <input type="date" class="form-control" id="date_paiement" name="date_paiement"
-                                   value="<?php echo $_POST['date_paiement'] ?? date('Y-m-d'); ?>"
+                                   value="<?php echo htmlspecialchars($_POST['date_paiement'] ?? date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>"
                                    max="<?php echo date('Y-m-d'); ?>" required>
                         </div>
                     </div>

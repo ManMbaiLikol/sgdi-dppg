@@ -39,8 +39,8 @@ if (!$commission) {
 
 // Traitement approbation/rejet
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Vérifier le token CSRF
-    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+    // Vérifier le token CSRF avec hash_equals() pour éviter les attaques par timing
+    if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
         $_SESSION['error'] = "Token de sécurité invalide";
         redirect(url("modules/chef_commission/valider_fiche.php?fiche_id=$fiche_id"));
     }

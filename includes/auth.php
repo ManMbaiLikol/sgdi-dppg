@@ -5,7 +5,10 @@
 ini_set('default_charset', 'UTF-8');
 mb_internal_encoding('UTF-8');
 
-session_start();
+// Démarrer la session uniquement si elle n'est pas déjà démarrée
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/app.php';
@@ -31,6 +34,11 @@ function hasAnyRole($required_roles) {
 function requireLogin() {
     if (!isLoggedIn()) {
         redirect(url('index.php'), 'Vous devez vous connecter pour accéder à cette page', 'error');
+    }
+
+    // Générer un token CSRF s'il n'existe pas
+    if (!isset($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
 
     // Vérifier si l'utilisateur doit changer son mot de passe

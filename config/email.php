@@ -16,7 +16,7 @@ if (!defined('EMAIL_FROM_NAME')) define('EMAIL_FROM_NAME', getenv('EMAIL_FROM_NA
 // Paramètres généraux
 // EMAIL_ENABLED = true si variable d'environnement définie, sinon false
 if (!defined('EMAIL_ENABLED')) define('EMAIL_ENABLED', getenv('EMAIL_ENABLED') === 'true' || getenv('EMAIL_ENABLED') === '1');
-if (!defined('EMAIL_DEBUG')) define('EMAIL_DEBUG', getenv('EMAIL_DEBUG') !== 'false'); // Debug activé par défaut
+if (!defined('EMAIL_DEBUG')) define('EMAIL_DEBUG', getenv('EMAIL_DEBUG') === 'true' || getenv('EMAIL_DEBUG') === '1'); // Debug désactivé par défaut
 
 // Email de l'administrateur système
 if (!defined('ADMIN_EMAIL')) define('ADMIN_EMAIL', getenv('ADMIN_EMAIL') ?: 'admin@dppg.cm');

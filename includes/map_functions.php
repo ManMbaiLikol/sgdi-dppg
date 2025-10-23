@@ -238,14 +238,88 @@ function getGoogleMapsLink($latitude, $longitude) {
 }
 
 /**
- * Vérifier si une zone est restreinte (à implémenter selon les règles)
+ * Vérifier si une zone est restreinte (zones militaires, parcs nationaux, zones protégées)
  */
 function isRestrictedZone($latitude, $longitude) {
-    // TODO: Implémenter la logique des zones restreintes
-    // Exemples: zones militaires, parcs nationaux, etc.
+    // Définir les zones restreintes au Cameroun
+    // Format: ['nom' => string, 'type' => string, 'lat_min' => float, 'lat_max' => float, 'lng_min' => float, 'lng_max' => float]
+    $restricted_zones = [
+        // Zones militaires
+        [
+            'nom' => 'Base militaire de Yaoundé',
+            'type' => 'militaire',
+            'lat_min' => 3.85, 'lat_max' => 3.90,
+            'lng_min' => 11.49, 'lng_max' => 11.54
+        ],
+        [
+            'nom' => 'Base militaire de Douala',
+            'type' => 'militaire',
+            'lat_min' => 4.03, 'lat_max' => 4.08,
+            'lng_min' => 9.69, 'lng_max' => 9.74
+        ],
 
-    // Pour l'instant, retourner false
-    return false;
+        // Parcs nationaux (distance de sécurité)
+        [
+            'nom' => 'Parc national de Waza',
+            'type' => 'parc_national',
+            'lat_min' => 11.1, 'lat_max' => 11.8,
+            'lng_min' => 14.5, 'lng_max' => 15.1
+        ],
+        [
+            'nom' => 'Parc national de la Bénoué',
+            'type' => 'parc_national',
+            'lat_min' => 8.2, 'lat_max' => 9.0,
+            'lng_min' => 13.3, 'lng_max' => 14.5
+        ],
+        [
+            'nom' => 'Parc national de Korup',
+            'type' => 'parc_national',
+            'lat_min' => 5.0, 'lat_max' => 5.5,
+            'lng_min' => 8.7, 'lng_max' => 9.2
+        ],
+
+        // Réserves écologiques
+        [
+            'nom' => 'Réserve de faune du Dja',
+            'type' => 'reserve',
+            'lat_min' => 2.8, 'lat_max' => 3.6,
+            'lng_min' => 12.4, 'lng_max' => 13.8
+        ],
+
+        // Zones aéroportuaires (rayon de sécurité)
+        [
+            'nom' => 'Aéroport international de Yaoundé-Nsimalen',
+            'type' => 'aeroportuaire',
+            'lat_min' => 3.71, 'lat_max' => 3.75,
+            'lng_min' => 11.53, 'lng_max' => 11.57
+        ],
+        [
+            'nom' => 'Aéroport international de Douala',
+            'type' => 'aeroportuaire',
+            'lat_min' => 4.00, 'lat_max' => 4.03,
+            'lng_min' => 9.71, 'lng_max' => 9.73
+        ]
+    ];
+
+    // Vérifier si les coordonnées tombent dans une zone restreinte
+    foreach ($restricted_zones as $zone) {
+        if ($latitude >= $zone['lat_min'] && $latitude <= $zone['lat_max'] &&
+            $longitude >= $zone['lng_min'] && $longitude <= $zone['lng_max']) {
+            return [
+                'restricted' => true,
+                'zone_name' => $zone['nom'],
+                'zone_type' => $zone['type'],
+                'message' => "Cette localisation se trouve dans une zone restreinte : {$zone['nom']} ({$zone['type']})"
+            ];
+        }
+    }
+
+    return [
+        'restricted' => false,
+        'zone_name' => null,
+        'zone_type' => null,
+        'message' => null
+    ];
 }
 
 /**

@@ -146,19 +146,19 @@ require_once '../../includes/header.php';
                         <label for="type_document" class="form-label">Type de document *</label>
                         <select class="form-select" id="type_document" name="type_document" required>
                             <option value="">Sélectionnez le type</option>
-                            <option value="piece_identite" <?php echo ($_POST['type_document'] ?? '') === 'piece_identite' ? 'selected' : ''; ?>>
+                            <option value="piece_identite" <?php echo (htmlspecialchars($_POST['type_document'] ?? '', ENT_QUOTES, 'UTF-8') === 'piece_identite') ? 'selected' : ''; ?>>
                                 Pièce d'identité
                             </option>
-                            <option value="plan_implantation" <?php echo ($_POST['type_document'] ?? '') === 'plan_implantation' ? 'selected' : ''; ?>>
+                            <option value="plan_implantation" <?php echo (htmlspecialchars($_POST['type_document'] ?? '', ENT_QUOTES, 'UTF-8') === 'plan_implantation') ? 'selected' : ''; ?>>
                                 Plan d'implantation
                             </option>
-                            <option value="autorisation_terrain" <?php echo ($_POST['type_document'] ?? '') === 'autorisation_terrain' ? 'selected' : ''; ?>>
+                            <option value="autorisation_terrain" <?php echo (htmlspecialchars($_POST['type_document'] ?? '', ENT_QUOTES, 'UTF-8') === 'autorisation_terrain') ? 'selected' : ''; ?>>
                                 Autorisation du terrain
                             </option>
-                            <option value="etude_impact" <?php echo ($_POST['type_document'] ?? '') === 'etude_impact' ? 'selected' : ''; ?>>
+                            <option value="etude_impact" <?php echo (htmlspecialchars($_POST['type_document'] ?? '', ENT_QUOTES, 'UTF-8') === 'etude_impact') ? 'selected' : ''; ?>>
                                 Étude d'impact environnemental
                             </option>
-                            <option value="autres" <?php echo ($_POST['type_document'] ?? '') === 'autres' ? 'selected' : ''; ?>>
+                            <option value="autres" <?php echo (htmlspecialchars($_POST['type_document'] ?? '', ENT_QUOTES, 'UTF-8') === 'autres') ? 'selected' : ''; ?>>
                                 Autres documents
                             </option>
                         </select>

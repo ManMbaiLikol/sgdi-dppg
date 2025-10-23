@@ -149,16 +149,16 @@ $stats = [
                 <label class="form-label">Type d'infrastructure</label>
                 <select class="form-select form-select-sm" name="type" onchange="this.form.submit()">
                     <option value="">Tous les types</option>
-                    <option value="station_service" <?php echo ($_GET['type'] ?? '') === 'station_service' ? 'selected' : ''; ?>>
+                    <option value="station_service" <?php echo (htmlspecialchars($_GET['type'] ?? '', ENT_QUOTES, 'UTF-8') === 'station_service') ? 'selected' : ''; ?>>
                         Stations-service
                     </option>
-                    <option value="point_consommateur" <?php echo ($_GET['type'] ?? '') === 'point_consommateur' ? 'selected' : ''; ?>>
+                    <option value="point_consommateur" <?php echo (htmlspecialchars($_GET['type'] ?? '', ENT_QUOTES, 'UTF-8') === 'point_consommateur') ? 'selected' : ''; ?>>
                         Points consommateurs
                     </option>
-                    <option value="depot_gpl" <?php echo ($_GET['type'] ?? '') === 'depot_gpl' ? 'selected' : ''; ?>>
+                    <option value="depot_gpl" <?php echo (htmlspecialchars($_GET['type'] ?? '', ENT_QUOTES, 'UTF-8') === 'depot_gpl') ? 'selected' : ''; ?>>
                         Dépôts GPL
                     </option>
-                    <option value="centre_emplisseur" <?php echo ($_GET['type'] ?? '') === 'centre_emplisseur' ? 'selected' : ''; ?>>
+                    <option value="centre_emplisseur" <?php echo (htmlspecialchars($_GET['type'] ?? '', ENT_QUOTES, 'UTF-8') === 'centre_emplisseur') ? 'selected' : ''; ?>>
                         Centres emplisseurs
                     </option>
                 </select>
@@ -168,9 +168,9 @@ $stats = [
                 <select class="form-select form-select-sm" name="region" onchange="this.form.submit()">
                     <option value="">Toutes les régions</option>
                     <?php foreach($regions as $r): ?>
-                        <option value="<?php echo htmlspecialchars($r); ?>"
-                                <?php echo ($_GET['region'] ?? '') === $r ? 'selected' : ''; ?>>
-                            <?php echo htmlspecialchars($r); ?>
+                        <option value="<?php echo htmlspecialchars($r, ENT_QUOTES, 'UTF-8'); ?>"
+                                <?php echo (htmlspecialchars($_GET['region'] ?? '', ENT_QUOTES, 'UTF-8') === $r) ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($r, ENT_QUOTES, 'UTF-8'); ?>
                         </option>
                     <?php endforeach; ?>
                 </select>

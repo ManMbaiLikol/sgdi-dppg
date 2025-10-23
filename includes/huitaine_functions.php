@@ -365,8 +365,42 @@ function creerAlerteEmail($huitaine_id, $type_alerte, $email, $huitaine) {
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$huitaine_id, $type_alerte, $email]);
 
-    // TODO: Envoyer l'email réellement via PHPMailer
-    // Pour l'instant, juste enregistrer l'alerte
+    // Charger le système d'email
+    require_once __DIR__ . '/email.php';
+
+    // Calculer les jours restants
+    $date_limite = new DateTime($huitaine['date_limite']);
+    $maintenant = new DateTime();
+    $diff = $maintenant->diff($date_limite);
+    $jours_restants = $diff->days;
+
+    if ($maintenant > $date_limite) {
+        $jours_restants = -$jours_restants;
+    }
+
+    // Préparer le sujet selon le type d'alerte
+    $urgence_label = ($type_alerte === 'j' || $jours_restants <= 0) ? 'URGENT' : 'Rappel';
+    $subject = "[$urgence_label] Délai de huitaine - Dossier " . $huitaine['numero'];
+
+    // Préparer le corps de l'email avec le template
+    $body = getEmailTemplate('huitaine_alert', [
+        'numero' => $huitaine['numero'],
+        'nom_demandeur' => $huitaine['nom_demandeur'],
+        'jours_restants' => max(0, $jours_restants), // Ne pas afficher de négatif
+        'date_limite' => date('d/m/Y à H:i', strtotime($huitaine['date_limite'])),
+        'motif_huitaine' => $huitaine['description'] ?? 'Régularisation nécessaire',
+        'url_dossier' => url('modules/huitaine/view.php?id=' . $huitaine_id)
+    ]);
+
+    // Envoyer l'email réellement
+    $sent = sendEmail($email, $subject, $body, true);
+
+    // Logger le résultat
+    if (!$sent) {
+        error_log("Échec envoi email huitaine ID: $huitaine_id vers $email");
+    }
+
+    return $sent;
 }
 
 /**
