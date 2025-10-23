@@ -242,7 +242,7 @@ require_once '../../includes/header.php';
                         </small>
                     </td>
                     <td>
-                        <div class="btn-group" role="group">
+                        <div class="btn-group-modern">
                             <?php
                             $actions = getActionsPossibles($dossier, $_SESSION['user_role']);
                             foreach ($actions as $action):

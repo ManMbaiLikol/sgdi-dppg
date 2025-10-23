@@ -263,10 +263,10 @@ function getStatistiquesGeographiques($type_infrastructure = '', $type_localisat
         if (!empty($type_localisation)) {
             switch ($type_localisation) {
                 case 'region':
+                    $where_region = !empty($where_clause) ? $where_clause . ' AND' : 'WHERE';
                     $sql = "SELECT region as localisation, COUNT(*) as count
                             FROM dossiers
-                            $where_clause
-                            AND region IS NOT NULL AND region != ''
+                            $where_region region IS NOT NULL AND region != ''
                             GROUP BY region
                             ORDER BY count DESC";
                     $stmt = $pdo->prepare($sql);
@@ -277,10 +277,10 @@ function getStatistiquesGeographiques($type_infrastructure = '', $type_localisat
                     break;
 
                 case 'arrondissement':
+                    $where_arrondissement = !empty($where_clause) ? $where_clause . ' AND' : 'WHERE';
                     $sql = "SELECT arrondissement as localisation, COUNT(*) as count
                             FROM dossiers
-                            $where_clause
-                            AND arrondissement IS NOT NULL AND arrondissement != ''
+                            $where_arrondissement arrondissement IS NOT NULL AND arrondissement != ''
                             GROUP BY arrondissement
                             ORDER BY count DESC";
                     $stmt = $pdo->prepare($sql);
@@ -291,10 +291,10 @@ function getStatistiquesGeographiques($type_infrastructure = '', $type_localisat
                     break;
 
                 case 'ville':
+                    $where_ville = !empty($where_clause) ? $where_clause . ' AND' : 'WHERE';
                     $sql = "SELECT ville as localisation, COUNT(*) as count
                             FROM dossiers
-                            $where_clause
-                            AND ville IS NOT NULL AND ville != ''
+                            $where_ville ville IS NOT NULL AND ville != ''
                             GROUP BY ville
                             ORDER BY count DESC";
                     $stmt = $pdo->prepare($sql);
@@ -306,12 +306,12 @@ function getStatistiquesGeographiques($type_infrastructure = '', $type_localisat
             }
         } else {
             // Comportement par défaut : afficher toutes les répartitions
+            $where_default = !empty($where_clause) ? $where_clause . ' AND' : 'WHERE';
 
             // Répartition par région
             $sql = "SELECT region, COUNT(*) as count
                     FROM dossiers
-                    $where_clause
-                    AND region IS NOT NULL AND region != ''
+                    $where_default region IS NOT NULL AND region != ''
                     GROUP BY region
                     ORDER BY count DESC";
             $stmt = $pdo->prepare($sql);
@@ -323,8 +323,7 @@ function getStatistiquesGeographiques($type_infrastructure = '', $type_localisat
             // Répartition par arrondissement
             $sql = "SELECT arrondissement, COUNT(*) as count
                     FROM dossiers
-                    $where_clause
-                    AND arrondissement IS NOT NULL AND arrondissement != ''
+                    $where_default arrondissement IS NOT NULL AND arrondissement != ''
                     GROUP BY arrondissement
                     ORDER BY count DESC";
             $stmt = $pdo->prepare($sql);
@@ -336,8 +335,7 @@ function getStatistiquesGeographiques($type_infrastructure = '', $type_localisat
             // Répartition par ville
             $sql = "SELECT ville, COUNT(*) as count
                     FROM dossiers
-                    $where_clause
-                    AND ville IS NOT NULL AND ville != ''
+                    $where_default ville IS NOT NULL AND ville != ''
                     GROUP BY ville
                     ORDER BY count DESC
                     LIMIT 10";
@@ -469,14 +467,15 @@ function getDossiers($filters = [], $limit = 20, $offset = 0) {
                 break;
 
             case 'cadre_dppg':
-                // Voir seulement les dossiers dont il est membre de la commission
-                $where_conditions[] = "EXISTS (
+                // Voir les dossiers qu'il a créés OU dont il est membre de la commission (cadre_dppg OU chef_commission)
+                $where_conditions[] = "(d.user_id = ? OR EXISTS (
                     SELECT 1 FROM commissions c
                     WHERE c.dossier_id = d.id
-                    AND c.cadre_dppg_id = ?
-                )";
+                    AND (c.cadre_dppg_id = ? OR c.chef_commission_id = ?)
+                ))";
                 $params[] = $_SESSION['user_id'];
-                $where_conditions[] = "d.statut IN ('paye', 'inspecte', 'valide', 'decide', 'autorise')";
+                $params[] = $_SESSION['user_id'];
+                $params[] = $_SESSION['user_id'];
                 break;
 
             case 'cadre_daj':
@@ -488,6 +487,16 @@ function getDossiers($filters = [], $limit = 20, $offset = 0) {
                 )";
                 $params[] = $_SESSION['user_id'];
                 $where_conditions[] = "d.statut IN ('paye', 'en_cours', 'inspecte', 'valide', 'decide', 'autorise')";
+                break;
+
+            case 'chef_commission':
+                // Voir seulement les dossiers dont il est chef de commission
+                $where_conditions[] = "EXISTS (
+                    SELECT 1 FROM commissions c
+                    WHERE c.dossier_id = d.id
+                    AND c.chef_commission_id = ?
+                )";
+                $params[] = $_SESSION['user_id'];
                 break;
 
             case 'billeteur':
@@ -562,14 +571,15 @@ function countDossiers($filters = []) {
     if (!empty($filters['user_role'])) {
         switch ($filters['user_role']) {
             case 'cadre_dppg':
-                // Voir seulement les dossiers dont il est membre de la commission
-                $where_conditions[] = "EXISTS (
+                // Voir les dossiers qu'il a créés OU dont il est membre de la commission (cadre_dppg OU chef_commission)
+                $where_conditions[] = "(d.user_id = ? OR EXISTS (
                     SELECT 1 FROM commissions c
                     WHERE c.dossier_id = d.id
-                    AND c.cadre_dppg_id = ?
-                )";
+                    AND (c.cadre_dppg_id = ? OR c.chef_commission_id = ?)
+                ))";
                 $params[] = $_SESSION['user_id'];
-                $where_conditions[] = "d.statut IN ('paye', 'inspecte', 'valide', 'decide', 'autorise')";
+                $params[] = $_SESSION['user_id'];
+                $params[] = $_SESSION['user_id'];
                 break;
 
             case 'cadre_daj':
@@ -582,6 +592,17 @@ function countDossiers($filters = []) {
                 $params[] = $_SESSION['user_id'];
                 $where_conditions[] = "d.statut IN ('paye', 'en_cours', 'inspecte', 'valide', 'decide', 'autorise')";
                 break;
+
+            case 'chef_commission':
+                // Voir seulement les dossiers dont il est chef de commission
+                $where_conditions[] = "EXISTS (
+                    SELECT 1 FROM commissions c
+                    WHERE c.dossier_id = d.id
+                    AND c.chef_commission_id = ?
+                )";
+                $params[] = $_SESSION['user_id'];
+                break;
+
             case 'billeteur':
                 $where_conditions[] = "d.statut = 'en_cours'";
                 break;
@@ -677,6 +698,12 @@ function getStatistiquesDossiers($user_role = null) {
     if ($user_role) {
         switch ($user_role) {
             case 'cadre_dppg':
+                $where_sql = "WHERE statut IN ('paye', 'inspecte', 'valide', 'decide', 'autorise')";
+                break;
+            case 'cadre_daj':
+                $where_sql = "WHERE statut IN ('paye', 'en_cours', 'inspecte', 'valide', 'decide', 'autorise')";
+                break;
+            case 'chef_commission':
                 $where_sql = "WHERE statut IN ('paye', 'inspecte', 'valide', 'decide', 'autorise')";
                 break;
             case 'billeteur':
@@ -801,6 +828,12 @@ function getActionsPossibles($dossier, $user_role) {
         case 'cadre_daj':
             if (in_array($dossier['statut'], ['paye', 'en_cours'])) {
                 $actions[] = ['action' => 'analyser_dossier', 'label' => 'Analyser le dossier', 'class' => 'info'];
+            }
+            break;
+
+        case 'chef_commission':
+            if ($dossier['statut'] === 'inspecte') {
+                $actions[] = ['action' => 'valider_rapport', 'label' => 'Valider le rapport', 'class' => 'success'];
             }
             break;
 
@@ -1476,15 +1509,17 @@ function isMembreCommission($dossier_id, $user_id, $user_role) {
         }
 
         // Vérifier si l'utilisateur est membre
-        if ($commission['chef_commission_id'] == $user_id &&
-            ($user_role === 'chef_service' || $user_role === 'directeur')) {
+        // Si l'utilisateur est chef de commission (peu importe son rôle)
+        if ($commission['chef_commission_id'] == $user_id) {
             return true;
         }
 
+        // Si l'utilisateur est cadre DPPG désigné
         if ($commission['cadre_dppg_id'] == $user_id && $user_role === 'cadre_dppg') {
             return true;
         }
 
+        // Si l'utilisateur est cadre DAJ désigné
         if ($commission['cadre_daj_id'] == $user_id && $user_role === 'cadre_daj') {
             return true;
         }
@@ -1505,7 +1540,7 @@ function getDocumentsDossierWithPermissions($dossier_id, $user_id, $user_role) {
     try {
         // Documents d'inspection - toujours visibles pour les rôles autorisés
         $documents_inspection = [];
-        if (in_array($user_role, ['chef_service', 'directeur', 'cadre_dppg', 'cadre_daj', 'admin'])) {
+        if (in_array($user_role, ['chef_service', 'directeur', 'cadre_dppg', 'cadre_daj', 'chef_commission', 'admin'])) {
             $stmt = $pdo->prepare("
                 SELECT d.*, u.prenom as uploader_prenom, u.nom as uploader_nom
                 FROM documents d

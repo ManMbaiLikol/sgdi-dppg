@@ -1,0 +1,469 @@
+/* ============================================
+   SYSTÈME DE BOUTONS COHÉRENT - SGDI
+   ============================================ */
+
+/* =========== VARIABLES =========== */
+:root {
+    /* Espacements standardisés */
+    --btn-padding-sm: 0.375rem 0.75rem;
+    --btn-padding-md: 0.5rem 1rem;
+    --btn-padding-lg: 0.75rem 1.5rem;
+    --btn-padding-xl: 1rem 2rem;
+
+    /* Tailles de police */
+    --btn-font-sm: 0.875rem;
+    --btn-font-md: 1rem;
+    --btn-font-lg: 1.125rem;
+
+    /* Espacements entre boutons */
+    --btn-gap-sm: 0.375rem;
+    --btn-gap-md: 0.5rem;
+    --btn-gap-lg: 0.75rem;
+
+    /* Hauteurs standard */
+    --btn-height-sm: 32px;
+    --btn-height-md: 38px;
+    --btn-height-lg: 46px;
+
+    /* Coins arrondis */
+    --btn-radius: 0.5rem;
+    --btn-radius-lg: 0.75rem;
+}
+
+/* =========== TAILLES DE BOUTONS =========== */
+
+/* Extra Small */
+.btn-xs {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    border-radius: 0.375rem;
+    min-height: 28px;
+}
+
+/* Small (redéfinition cohérente) */
+.btn-sm {
+    padding: var(--btn-padding-sm);
+    font-size: var(--btn-font-sm);
+    line-height: 1.5;
+    border-radius: var(--btn-radius);
+    min-height: var(--btn-height-sm);
+}
+
+/* Medium (défaut) */
+.btn {
+    padding: var(--btn-padding-md);
+    font-size: var(--btn-font-md);
+    line-height: 1.5;
+    border-radius: var(--btn-radius);
+    min-height: var(--btn-height-md);
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+}
+
+/* Large */
+.btn-lg {
+    padding: var(--btn-padding-lg);
+    font-size: var(--btn-font-lg);
+    line-height: 1.5;
+    border-radius: var(--btn-radius-lg);
+    min-height: var(--btn-height-lg);
+}
+
+/* Extra Large */
+.btn-xl {
+    padding: var(--btn-padding-xl);
+    font-size: 1.25rem;
+    line-height: 1.5;
+    border-radius: var(--btn-radius-lg);
+    min-height: 54px;
+}
+
+/* =========== ÉTATS DES BOUTONS =========== */
+
+.btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn:focus,
+.btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+}
+
+.btn:disabled,
+.btn.disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* =========== GROUPES DE BOUTONS =========== */
+
+.btn-group-modern {
+    display: inline-flex;
+    gap: var(--btn-gap-sm);
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.btn-group-modern.gap-md {
+    gap: var(--btn-gap-md);
+}
+
+.btn-group-modern.gap-lg {
+    gap: var(--btn-gap-lg);
+}
+
+/* Groupe de boutons attachés (comme Bootstrap mais amélioré) */
+.btn-group-attached {
+    display: inline-flex;
+    flex-wrap: wrap;
+}
+
+.btn-group-attached .btn {
+    border-radius: 0;
+    margin-right: -1px;
+}
+
+.btn-group-attached .btn:first-child {
+    border-top-left-radius: var(--btn-radius);
+    border-bottom-left-radius: var(--btn-radius);
+}
+
+.btn-group-attached .btn:last-child {
+    border-top-right-radius: var(--btn-radius);
+    border-bottom-right-radius: var(--btn-radius);
+    margin-right: 0;
+}
+
+.btn-group-attached .btn:hover {
+    z-index: 1;
+}
+
+/* =========== ACTIONS RAPIDES (CARTES) =========== */
+
+.action-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    min-height: 140px;
+    border-radius: var(--btn-radius-lg);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    background: linear-gradient(135deg, var(--bs-primary) 0%, var(--bs-primary-dark, #0056b3) 100%);
+    color: white;
+    text-align: center;
+}
+
+.action-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.action-card i {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+    opacity: 0.95;
+    color: white !important;
+}
+
+.action-card .action-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.3;
+    margin: 0;
+    color: white !important;
+}
+
+/* Variantes de couleurs pour les action cards */
+.action-card.bg-success {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+    color: white !important;
+}
+
+.action-card.bg-warning {
+    background: linear-gradient(135deg, #ffc107 0%, #d39e00 100%);
+    color: white !important;
+}
+
+.action-card.bg-warning:hover {
+    color: white !important;
+}
+
+.action-card.bg-info {
+    background: linear-gradient(135deg, #17a2b8 0%, #117a8b 100%);
+    color: white !important;
+}
+
+.action-card.bg-secondary {
+    background: linear-gradient(135deg, #6c757d 0%, #545b62 100%);
+    color: white !important;
+}
+
+.action-card.bg-danger {
+    background: linear-gradient(135deg, #dc3545 0%, #bd2130 100%);
+    color: white !important;
+}
+
+.action-card.bg-primary {
+    background: linear-gradient(135deg, var(--bs-primary) 0%, var(--bs-primary-dark, #0056b3) 100%);
+    color: white !important;
+}
+
+/* =========== BOUTONS AVEC ICÔNES =========== */
+
+.btn i {
+    font-size: 1em;
+}
+
+.btn i.fa-lg {
+    font-size: 1.25em;
+}
+
+.btn-icon-only {
+    padding: 0.5rem;
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon-only.btn-sm {
+    width: 32px;
+    height: 32px;
+    padding: 0.375rem;
+}
+
+.btn-icon-only.btn-lg {
+    width: 46px;
+    height: 46px;
+    padding: 0.75rem;
+}
+
+/* =========== LAYOUTS DE BOUTONS =========== */
+
+/* Toolbar (barre d'outils) */
+.btn-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--btn-gap-md);
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.btn-toolbar.justify-end {
+    justify-content: flex-end;
+}
+
+.btn-toolbar.justify-center {
+    justify-content: center;
+}
+
+.btn-toolbar.justify-between {
+    justify-content: space-between;
+}
+
+/* Stack vertical de boutons */
+.btn-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--btn-gap-md);
+}
+
+.btn-stack .btn {
+    width: 100%;
+}
+
+/* =========== BOUTONS RESPONSIVES =========== */
+
+@media (max-width: 768px) {
+    /* Sur mobile, les boutons deviennent full-width dans les groupes */
+    .btn-group-modern-mobile-stack {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .btn-group-modern-mobile-stack .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .action-card {
+        min-height: 120px;
+        padding: 1rem;
+    }
+
+    .action-card i {
+        font-size: 2rem;
+    }
+
+    .action-card .action-label {
+        font-size: 0.875rem;
+    }
+}
+
+@media (max-width: 576px) {
+    /* Réduction des tailles sur petits écrans */
+    .btn-xl {
+        padding: 0.875rem 1.5rem;
+        font-size: 1.125rem;
+    }
+
+    .btn-lg {
+        padding: 0.625rem 1.25rem;
+        font-size: 1rem;
+    }
+}
+
+/* =========== BOUTONS AVEC BADGES =========== */
+
+.btn-with-badge {
+    position: relative;
+}
+
+.btn-with-badge .badge {
+    position: absolute;
+    top: -0.5rem;
+    right: -0.5rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 1rem;
+    border: 2px solid white;
+}
+
+/* =========== AMÉLIORATIONS VISUELLES =========== */
+
+/* Boutons avec effet de brillance */
+.btn-shine {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-shine::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+    );
+    transition: left 0.5s;
+}
+
+.btn-shine:hover::before {
+    left: 100%;
+}
+
+/* Boutons avec bordure animée */
+.btn-border-animate {
+    position: relative;
+    border: 2px solid currentColor;
+}
+
+.btn-border-animate::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 2px;
+    background: linear-gradient(45deg, currentColor, transparent);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.btn-border-animate:hover::before {
+    opacity: 1;
+}
+
+/* =========== DROPDOWNS AMÉLIORÉS =========== */
+
+.dropdown .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.dropdown-menu {
+    border-radius: var(--btn-radius);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border: none;
+    padding: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.dropdown-item {
+    border-radius: 0.375rem;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.dropdown-item i {
+    width: 1.25rem;
+    text-align: center;
+}
+
+.dropdown-item:hover {
+    background-color: rgba(13, 110, 253, 0.1);
+    color: var(--bs-primary);
+    transform: translateX(4px);
+}
+
+.dropdown-divider {
+    margin: 0.5rem 0;
+    border-color: #e9ecef;
+}
+
+/* =========== UTILITAIRES =========== */
+
+.btn-block {
+    display: flex;
+    width: 100%;
+}
+
+.btn-fixed-width-sm {
+    min-width: 100px;
+}
+
+.btn-fixed-width-md {
+    min-width: 150px;
+}
+
+.btn-fixed-width-lg {
+    min-width: 200px;
+}
+
+/* Espacements rapides */
+.gap-1 { gap: 0.25rem; }
+.gap-2 { gap: 0.5rem; }
+.gap-3 { gap: 1rem; }
+.gap-4 { gap: 1.5rem; }
+.gap-5 { gap: 3rem; }

@@ -58,6 +58,8 @@ if (isLoggedIn() && file_exists(__DIR__ . '/../includes/huitaine_functions.php')
     <link href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css" rel="stylesheet">
     <!-- Custom CSS -->
     <link href="<?php echo asset('css/style.css'); ?>" rel="stylesheet">
+    <!-- Buttons System CSS -->
+    <link href="<?php echo asset('css/buttons.css'); ?>" rel="stylesheet">
     <!-- Theme CSS -->
     <link href="<?php echo asset('css/theme.css'); ?>" rel="stylesheet">
     <!-- Responsive CSS -->

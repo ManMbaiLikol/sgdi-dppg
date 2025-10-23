@@ -13,7 +13,7 @@ $stats = getStatistiquesDossiers($_SESSION['user_role']);
 
 // Statistiques des huitaines (pour certains rôles)
 $stats_huitaine = [];
-if (hasAnyRole(['chef_service', 'admin', 'cadre_dppg', 'cadre_daj'])) {
+if (hasAnyRole(['chef_service', 'admin', 'cadre_dppg', 'cadre_daj', 'chef_commission'])) {
     $stats_huitaine = getStatistiquesHuitaine();
 }
 
@@ -150,9 +150,11 @@ require_once 'includes/header.php';
                     </div>
                     <?php if ($_SESSION['user_role'] === 'chef_service'): ?>
                     <div class="col-auto">
-                        <a href="<?php echo url('modules/chef_service/dashboard_avance.php'); ?>" class="btn btn-light">
-                            <i class="fas fa-chart-line"></i> Dashboard Avancé
-                        </a>
+                        <div class="btn-toolbar justify-end">
+                            <a href="<?php echo url('modules/chef_service/dashboard_avance.php'); ?>" class="btn btn-light">
+                                <i class="fas fa-chart-line"></i> Dashboard Avancé
+                            </a>
+                        </div>
                     </div>
                     <?php endif; ?>
                     <div class="col-auto">
@@ -321,9 +323,9 @@ require_once 'includes/header.php';
                     foreach ($actions_rapides as $action):
                     ?>
                     <div class="<?php echo $action_col_class; ?> mb-3">
-                        <a href="<?php echo $action['url']; ?>" class="btn btn-<?php echo $action['class']; ?> w-100 d-flex flex-column align-items-center justify-content-center" style="height: 120px; text-align: center;">
-                            <i class="<?php echo $action['icon']; ?> fa-2x mb-2"></i>
-                            <span style="font-size: 0.9rem; line-height: 1.2; font-weight: 500;"><?php echo $action['label']; ?></span>
+                        <a href="<?php echo $action['url']; ?>" class="action-card w-100 bg-<?php echo $action['class']; ?>">
+                            <i class="<?php echo $action['icon']; ?>"></i>
+                            <span class="action-label"><?php echo $action['label']; ?></span>
                         </a>
                     </div>
                     <?php endforeach; ?>
@@ -360,9 +362,11 @@ require_once 'includes/header.php';
                     }
                     ?>
                 </h5>
-                <a href="<?php echo url('modules/dossiers/list.php'); ?>" class="btn btn-outline-primary btn-sm">
-                    Voir tous <i class="fas fa-arrow-right"></i>
-                </a>
+                <div class="btn-toolbar">
+                    <a href="<?php echo url('modules/dossiers/list.php'); ?>" class="btn btn-outline-primary btn-sm">
+                        Voir tous <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
             </div>
 
             <?php if (empty($dossiers_recents)): ?>
@@ -467,9 +471,11 @@ require_once 'includes/header.php';
                                 }
                                 $url = url($url_path);
                                 ?>
-                                <a href="<?php echo $url; ?>" class="btn btn-<?php echo $action_principale['class']; ?> btn-sm">
-                                    <?php echo $action_principale['label']; ?>
-                                </a>
+                                <div class="btn-toolbar">
+                                    <a href="<?php echo $url; ?>" class="btn btn-<?php echo $action_principale['class']; ?> btn-sm">
+                                        <?php echo $action_principale['label']; ?>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -870,29 +876,33 @@ require_once 'includes/header.php';
                     <i class="fas fa-money-check"></i> Dossiers payés
                 </h5>
                 <div class="d-flex gap-2">
-                    <!-- Recherche rapide -->
-                    <form method="GET" action="<?php echo url('modules/paiements/list.php'); ?>" class="d-flex gap-2">
-                        <input type="text" class="form-control form-control-sm" name="search"
-                               placeholder="Recherche par référence..." style="width: 200px;">
-                        <button type="submit" class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </form>
+                    <div class="btn-toolbar justify-end">
+                        <!-- Recherche rapide -->
+                        <form method="GET" action="<?php echo url('modules/paiements/list.php'); ?>" class="d-flex gap-2">
+                            <input type="text" class="form-control form-control-sm" name="search"
+                                   placeholder="Recherche par référence..." style="width: 200px;">
+                            <button type="submit" class="btn btn-outline-primary btn-sm btn-icon-only">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </form>
 
-                    <!-- Export CSV/Excel -->
-                    <a href="<?php echo url('modules/paiements/export.php?format=csv'); ?>"
-                       class="btn btn-outline-success btn-sm">
-                        <i class="fas fa-file-csv"></i> CSV
-                    </a>
+                        <!-- Export CSV/Excel -->
+                        <div class="btn-group-modern">
+                            <a href="<?php echo url('modules/paiements/export.php?format=csv'); ?>"
+                               class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-file-csv"></i> CSV
+                            </a>
 
-                    <a href="<?php echo url('modules/paiements/export.php?format=excel'); ?>"
-                       class="btn btn-outline-success btn-sm">
-                        <i class="fas fa-file-excel"></i> Excel
-                    </a>
+                            <a href="<?php echo url('modules/paiements/export.php?format=excel'); ?>"
+                               class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-file-excel"></i> Excel
+                            </a>
+                        </div>
 
-                    <a href="<?php echo url('modules/paiements/list.php'); ?>" class="btn btn-outline-primary btn-sm">
-                        Voir tous <i class="fas fa-arrow-right"></i>
-                    </a>
+                        <a href="<?php echo url('modules/paiements/list.php'); ?>" class="btn btn-outline-primary btn-sm">
+                            Voir tous <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
                 </div>
             </div>
 

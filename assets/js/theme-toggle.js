@@ -24,15 +24,18 @@
             // Appliquer le thème au chargement
             this.applyTheme(this.currentTheme);
 
-            // Créer les boutons de toggle
-            this.createFloatingToggle();
-            this.createHeaderToggle();
+            // Le bouton existe déjà dans header.php, pas besoin de le créer
+            // this.createFloatingToggle();
+            // this.createHeaderToggle();
 
             // Écouter les changements de préférence système
             this.watchSystemTheme();
 
             // Écouter les événements
             this.attachEvents();
+
+            // Connecter le bouton existant
+            this.connectExistingButton();
         }
 
         /**
@@ -80,8 +83,8 @@
             const newTheme = this.currentTheme === THEME_DARK ? THEME_LIGHT : THEME_DARK;
             this.applyTheme(newTheme);
 
-            // Animation rotation
-            const toggleBtn = document.querySelector('.theme-toggle');
+            // Animation rotation sur le bouton du header
+            const toggleBtn = document.getElementById('theme-toggle');
             if (toggleBtn) {
                 toggleBtn.classList.add('rotating');
                 setTimeout(() => toggleBtn.classList.remove('rotating'), 500);
@@ -107,31 +110,28 @@
         }
 
         /**
+         * Connecter le bouton existant dans le header
+         */
+        connectExistingButton() {
+            const existingButton = document.getElementById('theme-toggle');
+            if (existingButton) {
+                existingButton.addEventListener('click', () => this.toggleTheme());
+            }
+        }
+
+        /**
          * Créer le bouton dans le header
          */
         createHeaderToggle() {
-            // Chercher un conteneur dans le header
-            const headerActions = document.querySelector('.header-actions') ||
-                                 document.querySelector('.navbar-nav') ||
-                                 document.querySelector('header .container');
-
-            if (headerActions) {
-                const toggle = document.createElement('button');
-                toggle.className = 'theme-toggle-header btn';
-                toggle.setAttribute('aria-label', 'Changer de thème');
-                toggle.innerHTML = '<i class="fas fa-moon"></i> <span class="d-none d-md-inline">Thème</span>';
-
-                toggle.addEventListener('click', () => this.toggleTheme());
-
-                headerActions.appendChild(toggle);
-            }
+            // Ne rien faire - le bouton existe déjà dans le header.php
+            // Cette fonction est désactivée pour éviter les doublons
         }
 
         /**
          * Mettre à jour les icônes
          */
         updateToggleIcons() {
-            const icons = document.querySelectorAll('.theme-toggle i, .theme-toggle-header i');
+            const icons = document.querySelectorAll('.theme-toggle i, #theme-toggle i');
             const isDark = this.currentTheme === THEME_DARK;
 
             icons.forEach(icon => {

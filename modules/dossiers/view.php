@@ -83,7 +83,7 @@ require_once '../../includes/header.php';
                         </small>
                     </div>
                 </div>
-                <div>
+                <div class="btn-toolbar justify-end">
                     <a href="<?php echo url('modules/dossiers/list.php'); ?>" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left"></i> Retour à la liste
                     </a>
@@ -91,7 +91,7 @@ require_once '../../includes/header.php';
                     $actions_possibles = getActionsPossibles($dossier, $_SESSION['user_role']);
                     if (!empty($actions_possibles) || $_SESSION['user_role'] === 'chef_service'):
                     ?>
-                    <div class="btn-group" role="group">
+                    <div class="btn-group-modern">
                         <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
                             <i class="fas fa-cog"></i> Actions
                         </button>
@@ -116,7 +116,7 @@ require_once '../../includes/header.php';
                             <div class="dropdown-divider"></div>
                             <?php endif; ?>
 
-                            <?php if (hasAnyRole(['chef_service', 'admin', 'cadre_dppg', 'cadre_daj']) && $dossier['statut'] !== 'en_huitaine'): ?>
+                            <?php if (hasAnyRole(['chef_service', 'admin', 'cadre_dppg', 'cadre_daj', 'chef_commission']) && $dossier['statut'] !== 'en_huitaine'): ?>
                             <a class="dropdown-item text-warning" href="<?php echo url('modules/huitaine/creer.php?id=' . $dossier_id); ?>">
                                 <i class="fas fa-clock"></i> Créer une huitaine
                             </a>
@@ -157,7 +157,7 @@ require_once '../../includes/header.php';
                     <?php endif; ?>
 
                     <?php if ($_SESSION['user_role'] === 'admin'): ?>
-                    <div class="btn-group" role="group">
+                    <div class="btn-group-modern">
                         <button type="button" class="btn btn-outline-danger dropdown-toggle" data-bs-toggle="dropdown">
                             <i class="fas fa-tools"></i> Administration
                         </button>
@@ -202,7 +202,7 @@ require_once '../../includes/header.php';
                         <p class="mb-0">
                             <small>Date limite: <?php echo formatDateTime($huitaine_active['date_limite']); ?></small>
                         </p>
-                        <?php if (hasAnyRole(['chef_service', 'admin', 'cadre_dppg', 'cadre_daj'])): ?>
+                        <?php if (hasAnyRole(['chef_service', 'admin', 'cadre_dppg', 'cadre_daj', 'chef_commission'])): ?>
                         <a href="<?php echo url('modules/huitaine/regulariser.php?id=' . $huitaine_active['id']); ?>"
                            class="btn btn-success btn-sm mt-2">
                             <i class="fas fa-check"></i> Régulariser
@@ -301,14 +301,16 @@ require_once '../../includes/header.php';
                                                     <?php echo formatGPSCoordinates($coords['latitude'], $coords['longitude'], 'dms'); ?>
                                                 </small>
                                                 <br>
-                                                <a href="<?php echo getGoogleMapsLink($coords['latitude'], $coords['longitude']); ?>"
-                                                   target="_blank" class="btn btn-sm btn-outline-primary mt-2">
-                                                    <i class="fas fa-map"></i> Voir sur Google Maps
-                                                </a>
-                                                <a href="<?php echo url('modules/dossiers/localisation.php?id=' . $dossier_id); ?>"
-                                                   class="btn btn-sm btn-outline-secondary mt-2">
-                                                    <i class="fas fa-edit"></i> Modifier
-                                                </a>
+                                                <div class="btn-group-modern mt-2">
+                                                    <a href="<?php echo getGoogleMapsLink($coords['latitude'], $coords['longitude']); ?>"
+                                                       target="_blank" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-map"></i> Voir sur Google Maps
+                                                    </a>
+                                                    <a href="<?php echo url('modules/dossiers/localisation.php?id=' . $dossier_id); ?>"
+                                                       class="btn btn-sm btn-outline-secondary">
+                                                        <i class="fas fa-edit"></i> Modifier
+                                                    </a>
+                                                </div>
                                                 <?php endif; ?>
                                             </td>
                                         </tr>
@@ -695,15 +697,15 @@ require_once '../../includes/header.php';
                                                 </span>
                                             </td>
                                             <td class="text-center">
-                                                <div class="btn-group btn-group-sm" role="group">
+                                                <div class="btn-group-modern">
                                                     <a href="<?php echo url('modules/documents/download.php?id=' . $doc['id']); ?>"
-                                                       class="btn btn-outline-primary"
+                                                       class="btn btn-outline-primary btn-sm"
                                                        title="Télécharger le document">
                                                         <i class="fas fa-download"></i>
                                                     </a>
-                                                    <?php if (in_array($_SESSION['user_role'], ['cadre_daj', 'cadre_dppg'])): ?>
+                                                    <?php if (in_array($_SESSION['user_role'], ['cadre_daj', 'cadre_dppg', 'chef_commission'])): ?>
                                                     <button type="button"
-                                                            class="btn btn-outline-info"
+                                                            class="btn btn-outline-info btn-sm"
                                                             title="Prévisualiser"
                                                             onclick="previewDocument(<?php echo $doc['id']; ?>)">
                                                         <i class="fas fa-eye"></i>
@@ -717,8 +719,8 @@ require_once '../../includes/header.php';
                                 </table>
                             </div>
 
-                            <!-- Statistiques des documents pour DAJ/DPPG -->
-                            <?php if (in_array($_SESSION['user_role'], ['cadre_daj', 'cadre_dppg'])): ?>
+                            <!-- Statistiques des documents pour DAJ/DPPG/Chef Commission -->
+                            <?php if (in_array($_SESSION['user_role'], ['cadre_daj', 'cadre_dppg', 'chef_commission'])): ?>
                             <div class="row g-3 mb-4">
                                 <div class="col-md-3">
                                     <div class="card bg-primary text-white">
@@ -997,7 +999,7 @@ require_once '../../includes/header.php';
                                 </p>
                                 <?php endif; ?>
 
-                                <div class="d-grid gap-2">
+                                <div class="btn-stack">
                                     <?php if (in_array($_SESSION['user_role'], ['cadre_dppg', 'admin']) && $fiche_inspection['statut'] === 'brouillon'): ?>
                                     <a href="<?php echo url('modules/fiche_inspection/edit.php?dossier_id=' . $dossier_id); ?>"
                                        class="btn btn-sm btn-primary">
@@ -1026,7 +1028,7 @@ require_once '../../includes/header.php';
                                     Aucune fiche d'inspection créée pour ce dossier
                                 </div>
                                 <?php if (in_array($_SESSION['user_role'], ['cadre_dppg', 'admin'])): ?>
-                                <div class="d-grid gap-2">
+                                <div class="btn-stack">
                                     <a href="<?php echo url('modules/fiche_inspection/edit.php?dossier_id=' . $dossier_id); ?>"
                                        class="btn btn-sm btn-primary">
                                         <i class="fas fa-plus"></i> Créer une fiche
