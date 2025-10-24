@@ -44,7 +44,8 @@ echo ""
 echo "   Récupération des credentials..."
 
 # Export via Railway CLI
-railway run bash -c "mysqldump -h \$MYSQLHOST -P \$MYSQLPORT -u \$MYSQLUSER -p\$MYSQLPASSWORD \$MYSQLDATABASE --single-transaction --routines --triggers --events" > "$BACKUP_FILE" 2>&1
+# Note: Railway utilise MYSQL_HOST (avec underscore) et non MYSQLHOST
+railway run bash -c "mysqldump -h \$MYSQL_HOST -P \$MYSQL_PORT -u \$MYSQL_USER -p\$MYSQL_PASSWORD \$MYSQL_DATABASE --single-transaction --routines --triggers --events" > "$BACKUP_FILE" 2>&1
 
 if [ $? -eq 0 ]; then
     echo "✅ Export réussi!"
