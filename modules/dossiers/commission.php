@@ -176,7 +176,7 @@ require_once '../../includes/header.php';
                     </ul>
                 </div>
 
-                <form method="POST">
+                <form method="POST" id="commission-form">
                     <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
 
                     <!-- Chef de commission -->
@@ -215,7 +215,12 @@ require_once '../../includes/header.php';
                                 <?php endforeach; ?>
                             </select>
                             <input type="hidden" name="chef_commission_role" id="chef_commission_role" value="<?php echo sanitize($_POST['chef_commission_role'] ?? ''); ?>">
-                            <small id="role-indicator" class="form-text"></small>
+                            <div class="mt-2">
+                                <small id="role-indicator" class="form-text"></small>
+                                <div class="alert alert-info mt-2" style="font-size: 0.875rem;">
+                                    <strong>🔍 Debug:</strong> Valeur du champ chef_commission_role = '<span id="debug-role-value" style="font-weight: bold; color: red;">vide</span>'
+                                </div>
+                            </div>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -327,6 +332,13 @@ function updateChefRole() {
             indicator.textContent = ' ✓ Rôle: ' + role;
             indicator.style.color = 'green';
         }
+
+        // Mettre à jour l'affichage debug
+        const debugDisplay = document.getElementById('debug-role-value');
+        if (debugDisplay) {
+            debugDisplay.textContent = role;
+            debugDisplay.style.color = 'green';
+        }
     } else {
         roleInput.value = '';
         console.log('Champ chef_commission_role vidé');
@@ -335,12 +347,24 @@ function updateChefRole() {
         if (indicator) {
             indicator.textContent = '';
         }
+
+        const debugDisplay = document.getElementById('debug-role-value');
+        if (debugDisplay) {
+            debugDisplay.textContent = 'vide';
+            debugDisplay.style.color = 'red';
+        }
     }
 }
 
-// Validation avant soumission
+// FORCER la mise à jour du rôle au chargement si une valeur est pré-sélectionnée
 document.addEventListener('DOMContentLoaded', function() {
-    const form = document.querySelector('form');
+    const selectElement = document.getElementById('chef_commission_id');
+    if (selectElement && selectElement.value) {
+        console.log('Valeur pré-sélectionnée détectée au chargement, mise à jour du rôle...');
+        updateChefRole();
+    }
+
+    const form = document.getElementById('commission-form');
     if (form) {
         form.addEventListener('submit', function(e) {
             const roleInput = document.getElementById('chef_commission_role');
