@@ -71,3 +71,6 @@ node_modules/
 *.backup
 *.sql.gz
 *.sql.zip
+sync/backups/*.sql
+sync/backups/*.dump
+!sync/backups/.gitkeep
