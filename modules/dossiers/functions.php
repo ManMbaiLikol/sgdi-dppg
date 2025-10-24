@@ -467,12 +467,13 @@ function getDossiers($filters = [], $limit = 20, $offset = 0) {
                 break;
 
             case 'cadre_dppg':
-                // Voir les dossiers qu'il a créés OU dont il est membre de la commission (cadre_dppg OU chef_commission)
-                $where_conditions[] = "(d.user_id = ? OR EXISTS (
+                // Voir SEULEMENT les dossiers dont il est membre de la commission
+                // Règle stricte: accès uniquement aux membres de la commission (cadre_dppg, cadre_daj, chef_commission)
+                $where_conditions[] = "EXISTS (
                     SELECT 1 FROM commissions c
                     WHERE c.dossier_id = d.id
-                    AND (c.cadre_dppg_id = ? OR c.chef_commission_id = ?)
-                ))";
+                    AND (c.cadre_dppg_id = ? OR c.cadre_daj_id = ? OR c.chef_commission_id = ?)
+                )";
                 $params[] = $_SESSION['user_id'];
                 $params[] = $_SESSION['user_id'];
                 $params[] = $_SESSION['user_id'];
@@ -571,12 +572,13 @@ function countDossiers($filters = []) {
     if (!empty($filters['user_role'])) {
         switch ($filters['user_role']) {
             case 'cadre_dppg':
-                // Voir les dossiers qu'il a créés OU dont il est membre de la commission (cadre_dppg OU chef_commission)
-                $where_conditions[] = "(d.user_id = ? OR EXISTS (
+                // Voir SEULEMENT les dossiers dont il est membre de la commission
+                // Règle stricte: accès uniquement aux membres de la commission (cadre_dppg, cadre_daj, chef_commission)
+                $where_conditions[] = "EXISTS (
                     SELECT 1 FROM commissions c
                     WHERE c.dossier_id = d.id
-                    AND (c.cadre_dppg_id = ? OR c.chef_commission_id = ?)
-                ))";
+                    AND (c.cadre_dppg_id = ? OR c.cadre_daj_id = ? OR c.chef_commission_id = ?)
+                )";
                 $params[] = $_SESSION['user_id'];
                 $params[] = $_SESSION['user_id'];
                 $params[] = $_SESSION['user_id'];
@@ -898,6 +900,61 @@ function getDossierDetails($dossier_id) {
     $stmt->execute([$dossier_id]);
 
     return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+/**
+ * Vérifier si l'utilisateur a le droit d'accéder à un dossier
+ * Selon la règle stricte: seuls les membres de la commission peuvent voir un dossier
+ */
+function canAccessDossier($dossier_id, $user_id, $user_role) {
+    global $pdo;
+
+    // Admin et chef de service peuvent tout voir
+    if (in_array($user_role, ['admin', 'chef_service'])) {
+        return true;
+    }
+
+    // Sous-directeur: peut voir les dossiers qu'il a visés
+    if ($user_role === 'sous_directeur') {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM visas WHERE dossier_id = ? AND role = 'sous_directeur'");
+        $stmt->execute([$dossier_id]);
+        return $stmt->fetchColumn() > 0;
+    }
+
+    // Directeur: peut voir les dossiers qu'il a visés
+    if ($user_role === 'directeur') {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM visas WHERE dossier_id = ? AND role = 'directeur'");
+        $stmt->execute([$dossier_id]);
+        return $stmt->fetchColumn() > 0;
+    }
+
+    // Ministre: peut voir les dossiers en attente de décision ou décidés
+    if ($user_role === 'ministre') {
+        $stmt = $pdo->prepare("SELECT statut FROM dossiers WHERE id = ?");
+        $stmt->execute([$dossier_id]);
+        $statut = $stmt->fetchColumn();
+        return in_array($statut, ['visa_directeur', 'decide', 'autorise', 'rejete']);
+    }
+
+    // Cadre DPPG, Cadre DAJ, Chef Commission: seulement si membre de la commission
+    if (in_array($user_role, ['cadre_dppg', 'cadre_daj', 'chef_commission'])) {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM commissions
+                              WHERE dossier_id = ?
+                              AND (cadre_dppg_id = ? OR cadre_daj_id = ? OR chef_commission_id = ?)");
+        $stmt->execute([$dossier_id, $user_id, $user_id, $user_id]);
+        return $stmt->fetchColumn() > 0;
+    }
+
+    // Billeteur: peut voir les dossiers en cours (pour paiement)
+    if ($user_role === 'billeteur') {
+        $stmt = $pdo->prepare("SELECT statut FROM dossiers WHERE id = ?");
+        $stmt->execute([$dossier_id]);
+        $statut = $stmt->fetchColumn();
+        return $statut === 'en_cours';
+    }
+
+    // Par défaut: pas d'accès
+    return false;
 }
 
 /**

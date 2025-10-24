@@ -21,6 +21,11 @@ if (!$dossier) {
     redirect(url('modules/dossiers/list.php'), 'Dossier non trouvé', 'error');
 }
 
+// Vérification stricte des permissions d'accès
+if (!canAccessDossier($dossier_id, $_SESSION['user_id'], $_SESSION['user_role'])) {
+    redirect(url('modules/dossiers/list.php'), 'Vous n\'avez pas l\'autorisation d\'accéder à ce dossier', 'error');
+}
+
 // Récupérer les informations complémentaires avec vérification des permissions
 $documents_info = getDocumentsDossierWithPermissions($dossier_id, $_SESSION['user_id'], $_SESSION['user_role']);
 $documents = array_merge($documents_info['documents_dossier'], $documents_info['documents_inspection']);
