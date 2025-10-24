@@ -11,7 +11,7 @@ $page_title = 'Gestion des utilisateurs';
 // Filtres
 $filters = [
     'role' => sanitize($_GET['role'] ?? ''),
-    'actif' => isset($_GET['actif']) ? intval($_GET['actif']) : '',
+    'actif' => isset($_GET['actif']) && $_GET['actif'] !== '' ? intval($_GET['actif']) : '',
     'search' => sanitize($_GET['search'] ?? '')
 ];
 
