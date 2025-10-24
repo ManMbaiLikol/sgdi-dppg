@@ -11,7 +11,8 @@ if ($_SESSION['user_role'] !== 'cadre_dppg') {
     redirect(url('dashboard.php'));
 }
 
-// Récupérer tous les dossiers actifs avec leur fiche d'inspection si elle existe
+// Récupérer SEULEMENT les dossiers où l'utilisateur est membre de la commission
+// Règle stricte: seuls les membres de la commission peuvent inspecter un dossier
 $sql = "SELECT
             d.id,
             d.numero,
@@ -30,9 +31,15 @@ $sql = "SELECT
         LEFT JOIN fiches_inspection fi ON d.id = fi.dossier_id
         LEFT JOIN users u ON d.user_id = u.id
         WHERE d.statut IN ('en_cours', 'en_attente_inspection', 'commission_constituee', 'paye', 'inspecte', 'valide')
+        AND EXISTS (
+            SELECT 1 FROM commissions c
+            WHERE c.dossier_id = d.id
+            AND (c.cadre_dppg_id = ? OR c.cadre_daj_id = ? OR c.chef_commission_id = ?)
+        )
         ORDER BY d.date_creation DESC";
 
-$stmt = $pdo->query($sql);
+$stmt = $pdo->prepare($sql);
+$stmt->execute([$_SESSION['user_id'], $_SESSION['user_id'], $_SESSION['user_id']]);
 $dossiers = $stmt->fetchAll();
 
 // Statistiques
