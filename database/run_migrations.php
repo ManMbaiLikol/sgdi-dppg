@@ -132,21 +132,18 @@ require_once __DIR__ . '/../config/database.php';
         echo "</div>";
 
         try {
-            // IMPORTANT: Créer la base sgdi_mvp si elle n'existe pas (pour compatibilité avec USE sgdi_mvp)
+            // Railway utilise la base "railway" - on reste dessus (pas de sgdi_mvp)
             echo "<div class='info'><strong>🔧 Préparation base de données...</strong><br>";
-            try {
-                $pdo->exec("CREATE DATABASE IF NOT EXISTS sgdi_mvp CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-                echo "✅ Base de données 'sgdi_mvp' créée/vérifiée<br>";
-                $pdo->exec("USE sgdi_mvp");
-                echo "✅ Base de données 'sgdi_mvp' sélectionnée<br>";
-            } catch (PDOException $e) {
-                echo "⚠️ Note: " . htmlspecialchars($e->getMessage()) . "<br>";
-            }
+            $current_db = $pdo->query("SELECT DATABASE()")->fetchColumn();
+            echo "✅ Base de données actuelle: <strong>" . htmlspecialchars($current_db) . "</strong><br>";
             echo "</div>";
 
             // Supprimer les commentaires SQL
             $sql_clean = preg_replace('/^--.*$/m', '', $sql_content);  // Commentaires --
             $sql_clean = preg_replace('/\/\*.*?\*\//s', '', $sql_clean); // Commentaires /* */
+
+            // IMPORTANT: Supprimer la ligne "USE sgdi_mvp;" car Railway utilise la base "railway"
+            $sql_clean = preg_replace('/^\s*USE\s+sgdi_mvp\s*;?\s*$/mi', '', $sql_clean);
 
             // IMPORTANT: MySQL (Railway) ne supporte pas "IF NOT EXISTS" dans ALTER TABLE ADD COLUMN
             // On le supprime et on gérera les erreurs "Duplicate column" comme des avertissements
