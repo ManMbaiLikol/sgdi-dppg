@@ -28,6 +28,10 @@ if (!$fiche) {
     redirect('modules/dossiers/view.php?id=' . $dossier_id);
 }
 
+// Déterminer le type d'infrastructure pour adapter le formulaire
+$est_point_consommateur = ($dossier['type_infrastructure'] === 'point_consommateur');
+$titre_type = $est_point_consommateur ? 'Point Consommateur' : 'Station-Service';
+
 // Récupérer les données associées
 $cuves = getCuvesFiche($fiche['id']);
 $pompes = getPompesFiche($fiche['id']);
@@ -344,61 +348,132 @@ function displayCheckbox($value) {
     <!-- Section 3 -->
     <div class="section-title">3. INFORMATIONS TECHNIQUES</div>
 
-    <div class="field-row">
-        <div class="field-label">Date de mise en service :</div>
-        <div class="field-value"><?php echo displayValue($fiche['date_mise_service'] ? date('d/m/Y', strtotime($fiche['date_mise_service'])) : ''); ?></div>
-    </div>
+    <?php if ($est_point_consommateur): ?>
+        <!-- Section spécifique aux POINTS CONSOMMATEURS -->
+        <div class="field-row">
+            <div class="field-label">Numéro du contrat d'approvisionnement :</div>
+            <div class="field-value"><?php echo displayValue($fiche['numero_contrat_approvisionnement']); ?></div>
+        </div>
 
-    <div class="field-row">
-        <div class="field-label">N° Autorisation MINEE :</div>
-        <div class="field-value"><?php echo displayValue($fiche['autorisation_minee']); ?></div>
-    </div>
+        <div class="field-row">
+            <div class="field-label">Nom de la société contractante :</div>
+            <div class="field-value"><?php echo displayValue($fiche['societe_contractante']); ?></div>
+        </div>
 
-    <div class="field-row">
-        <div class="field-label">N° Autorisation MINMIDT :</div>
-        <div class="field-value"><?php echo displayValue($fiche['autorisation_minmidt']); ?></div>
-    </div>
+        <div class="field-row">
+            <div class="field-label">Besoins moyens mensuels en produits pétroliers :</div>
+            <div class="field-value"><?php echo displayValue($fiche['besoins_mensuels_litres'] ? number_format($fiche['besoins_mensuels_litres'], 0, ',', ' ') . ' litres' : ''); ?></div>
+        </div>
 
-    <div class="field-row">
-        <div class="field-label">Type de gestion :</div>
-        <span class="checkbox"><?php echo $fiche['type_gestion'] === 'libre' ? '☑' : '☐'; ?></span> Libre
-        <span style="margin: 0 10px;"></span>
-        <span class="checkbox"><?php echo $fiche['type_gestion'] === 'location' ? '☑' : '☐'; ?></span> Location
-        <span style="margin: 0 10px;"></span>
-        <span class="checkbox"><?php echo $fiche['type_gestion'] === 'autres' ? '☑' : '☐'; ?></span> Autres : <?php echo displayValue($fiche['type_gestion_autre'], ''); ?>
-    </div>
+        <div class="field-row">
+            <div class="field-label">Nombre de personnels employés :</div>
+            <div class="field-value"><?php echo displayValue($fiche['nombre_personnels']); ?></div>
+        </div>
 
-    <div style="margin-top: 15px; margin-bottom: 10px; font-weight: bold;">Documents techniques disponibles :</div>
-    <div class="checkbox-group">
-        <div class="checkbox-item">
-            <span class="checkbox"><?php echo displayCheckbox($fiche['plan_ensemble']); ?></span> Plan d'ensemble
+        <div class="field-row">
+            <div class="field-label">Superficie du site :</div>
+            <div class="field-value"><?php echo displayValue($fiche['superficie_site'] ? number_format($fiche['superficie_site'], 0, ',', ' ') . ' m²' : ''); ?></div>
         </div>
-        <div class="checkbox-item">
-            <span class="checkbox"><?php echo displayCheckbox($fiche['contrat_bail']); ?></span> Contrat de bail
-        </div>
-        <div class="checkbox-item">
-            <span class="checkbox"><?php echo displayCheckbox($fiche['permis_batir']); ?></span> Permis de bâtir
-        </div>
-        <div class="checkbox-item">
-            <span class="checkbox"><?php echo displayCheckbox($fiche['certificat_urbanisme']); ?></span> Certificat d'urbanisme
-        </div>
-        <div class="checkbox-item">
-            <span class="checkbox"><?php echo displayCheckbox($fiche['lettre_minepded']); ?></span> Lettre MINEPDED
-        </div>
-        <div class="checkbox-item">
-            <span class="checkbox"><?php echo displayCheckbox($fiche['plan_masse']); ?></span> Plan de masse
-        </div>
-    </div>
 
-    <div style="margin-top: 15px; margin-bottom: 10px; font-weight: bold;">Effectifs du personnel :</div>
-    <div class="field-row">
-        <div class="field-label">Chef de piste :</div>
-        <div class="field-value"><?php echo displayValue($fiche['chef_piste']); ?></div>
-    </div>
-    <div class="field-row">
-        <div class="field-label">Gérant :</div>
-        <div class="field-value"><?php echo displayValue($fiche['gerant']); ?></div>
-    </div>
+        <div class="field-row">
+            <div class="field-label">Système de récupération des huiles usées :</div>
+            <div class="field-value"><?php echo displayValue($fiche['systeme_recuperation_huiles']); ?></div>
+        </div>
+
+        <div style="margin-top: 15px; margin-bottom: 10px; font-weight: bold;">Parc d'engin de la société :</div>
+        <div style="border: 1px solid #000; padding: 8px; margin-bottom: 10px; min-height: 40px;">
+            <?php echo displayValue($fiche['parc_engin']); ?>
+        </div>
+
+        <div style="margin-top: 15px; margin-bottom: 10px; font-weight: bold;">Bâtiments du site :</div>
+        <div style="border: 1px solid #000; padding: 8px; margin-bottom: 10px; min-height: 40px;">
+            <?php echo displayValue($fiche['batiments_site']); ?>
+        </div>
+
+        <div style="margin-top: 15px; margin-bottom: 10px; font-weight: bold;">Infrastructures d'approvisionnement :</div>
+        <div class="checkbox-group">
+            <div class="checkbox-item">
+                <span class="checkbox"><?php echo displayCheckbox($fiche['infra_eau']); ?></span> Eau
+            </div>
+            <div class="checkbox-item">
+                <span class="checkbox"><?php echo displayCheckbox($fiche['infra_electricite']); ?></span> Électricité
+            </div>
+        </div>
+
+        <div style="margin-top: 15px; margin-bottom: 10px; font-weight: bold;">Réseaux de télécommunication :</div>
+        <div class="checkbox-group">
+            <div class="checkbox-item">
+                <span class="checkbox"><?php echo displayCheckbox($fiche['reseau_camtel']); ?></span> CAMTEL
+            </div>
+            <div class="checkbox-item">
+                <span class="checkbox"><?php echo displayCheckbox($fiche['reseau_mtn']); ?></span> MTN
+            </div>
+            <div class="checkbox-item">
+                <span class="checkbox"><?php echo displayCheckbox($fiche['reseau_orange']); ?></span> ORANGE
+            </div>
+            <div class="checkbox-item">
+                <span class="checkbox"><?php echo displayCheckbox($fiche['reseau_nexttel']); ?></span> NEXTTEL
+            </div>
+        </div>
+
+    <?php else: ?>
+        <!-- Section par défaut pour STATIONS-SERVICES -->
+        <div class="field-row">
+            <div class="field-label">Date de mise en service :</div>
+            <div class="field-value"><?php echo displayValue($fiche['date_mise_service'] ? date('d/m/Y', strtotime($fiche['date_mise_service'])) : ''); ?></div>
+        </div>
+
+        <div class="field-row">
+            <div class="field-label">N° Autorisation MINEE :</div>
+            <div class="field-value"><?php echo displayValue($fiche['autorisation_minee']); ?></div>
+        </div>
+
+        <div class="field-row">
+            <div class="field-label">N° Autorisation MINMIDT :</div>
+            <div class="field-value"><?php echo displayValue($fiche['autorisation_minmidt']); ?></div>
+        </div>
+
+        <div class="field-row">
+            <div class="field-label">Type de gestion :</div>
+            <span class="checkbox"><?php echo $fiche['type_gestion'] === 'libre' ? '☑' : '☐'; ?></span> Libre
+            <span style="margin: 0 10px;"></span>
+            <span class="checkbox"><?php echo $fiche['type_gestion'] === 'location' ? '☑' : '☐'; ?></span> Location
+            <span style="margin: 0 10px;"></span>
+            <span class="checkbox"><?php echo $fiche['type_gestion'] === 'autres' ? '☑' : '☐'; ?></span> Autres : <?php echo displayValue($fiche['type_gestion_autre'], ''); ?>
+        </div>
+
+        <div style="margin-top: 15px; margin-bottom: 10px; font-weight: bold;">Documents techniques disponibles :</div>
+        <div class="checkbox-group">
+            <div class="checkbox-item">
+                <span class="checkbox"><?php echo displayCheckbox($fiche['plan_ensemble']); ?></span> Plan d'ensemble
+            </div>
+            <div class="checkbox-item">
+                <span class="checkbox"><?php echo displayCheckbox($fiche['contrat_bail']); ?></span> Contrat de bail
+            </div>
+            <div class="checkbox-item">
+                <span class="checkbox"><?php echo displayCheckbox($fiche['permis_batir']); ?></span> Permis de bâtir
+            </div>
+            <div class="checkbox-item">
+                <span class="checkbox"><?php echo displayCheckbox($fiche['certificat_urbanisme']); ?></span> Certificat d'urbanisme
+            </div>
+            <div class="checkbox-item">
+                <span class="checkbox"><?php echo displayCheckbox($fiche['lettre_minepded']); ?></span> Lettre MINEPDED
+            </div>
+            <div class="checkbox-item">
+                <span class="checkbox"><?php echo displayCheckbox($fiche['plan_masse']); ?></span> Plan de masse
+            </div>
+        </div>
+
+        <div style="margin-top: 15px; margin-bottom: 10px; font-weight: bold;">Effectifs du personnel :</div>
+        <div class="field-row">
+            <div class="field-label">Chef de piste :</div>
+            <div class="field-value"><?php echo displayValue($fiche['chef_piste']); ?></div>
+        </div>
+        <div class="field-row">
+            <div class="field-label">Gérant :</div>
+            <div class="field-value"><?php echo displayValue($fiche['gerant']); ?></div>
+        </div>
+    <?php endif; ?>
 
     <div class="page-break"></div>
 

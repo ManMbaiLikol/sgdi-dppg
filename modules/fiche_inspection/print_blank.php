@@ -1,9 +1,15 @@
+<?php
+// Déterminer le type d'infrastructure depuis l'URL
+$type = $_GET['type'] ?? 'station_service';
+$est_point_consommateur = ($type === 'point_consommateur');
+$titre_type = $est_point_consommateur ? 'Point Consommateur' : 'Station-Service';
+?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fiche d'inspection de l'infrastructure pétrolière (Vierge)</title>
+    <title>Fiche d'inspection <?php echo $titre_type; ?> (Vierge)</title>
     <style>
         @page {
             size: A4;
@@ -279,61 +285,128 @@
     <!-- Section 3 -->
     <div class="section-title">3. INFORMATIONS TECHNIQUES</div>
 
-    <div class="field-row">
-        <div class="field-label">Date de mise en service :</div>
-        <div class="field-value"></div>
-    </div>
+    <?php if ($est_point_consommateur): ?>
+        <!-- Section spécifique aux POINTS CONSOMMATEURS -->
+        <div class="field-row">
+            <div class="field-label">Numéro du contrat d'approvisionnement :</div>
+            <div class="field-value"></div>
+        </div>
 
-    <div class="field-row">
-        <div class="field-label">N° Autorisation MINEE :</div>
-        <div class="field-value"></div>
-    </div>
+        <div class="field-row">
+            <div class="field-label">Nom de la société contractante :</div>
+            <div class="field-value"></div>
+        </div>
 
-    <div class="field-row">
-        <div class="field-label">N° Autorisation MINMIDT :</div>
-        <div class="field-value"></div>
-    </div>
+        <div class="field-row">
+            <div class="field-label">Besoins moyens mensuels en produits pétroliers (litres) :</div>
+            <div class="field-value"></div>
+        </div>
 
-    <div class="field-row">
-        <div class="field-label">Type de gestion :</div>
-        <span class="checkbox"></span> Libre
-        <span style="margin: 0 10px;"></span>
-        <span class="checkbox"></span> Location
-        <span style="margin: 0 10px;"></span>
-        <span class="checkbox"></span> Autres : <div class="field-value" style="max-width: 200px; display: inline-block;"></div>
-    </div>
+        <div class="field-row">
+            <div class="field-label">Nombre de personnels employés :</div>
+            <div class="field-value"></div>
+        </div>
 
-    <div style="margin-top: 10px; margin-bottom: 6px; font-weight: bold;">Documents techniques disponibles :</div>
-    <div class="checkbox-group">
-        <div class="checkbox-item">
-            <span class="checkbox"></span> Plan d'ensemble
+        <div class="field-row">
+            <div class="field-label">Superficie du site (m²) :</div>
+            <div class="field-value"></div>
         </div>
-        <div class="checkbox-item">
-            <span class="checkbox"></span> Contrat de bail
-        </div>
-        <div class="checkbox-item">
-            <span class="checkbox"></span> Permis de bâtir
-        </div>
-        <div class="checkbox-item">
-            <span class="checkbox"></span> Certificat d'urbanisme
-        </div>
-        <div class="checkbox-item">
-            <span class="checkbox"></span> Lettre MINEPDED
-        </div>
-        <div class="checkbox-item">
-            <span class="checkbox"></span> Plan de masse
-        </div>
-    </div>
 
-    <div style="margin-top: 10px; margin-bottom: 6px; font-weight: bold;">Effectifs du personnel :</div>
-    <div class="field-row">
-        <div class="field-label">Chef de piste :</div>
-        <div class="field-value"></div>
-    </div>
-    <div class="field-row">
-        <div class="field-label">Gérant :</div>
-        <div class="field-value"></div>
-    </div>
+        <div class="field-row">
+            <div class="field-label">Système de récupération des huiles usées :</div>
+            <div class="field-value"></div>
+        </div>
+
+        <div style="margin-top: 10px; margin-bottom: 4px; font-weight: bold;">Parc d'engin de la société :</div>
+        <div style="border: 1px dotted #000; min-height: 60px; padding: 4px; margin-bottom: 10px;"></div>
+
+        <div style="margin-top: 10px; margin-bottom: 4px; font-weight: bold;">Bâtiments du site :</div>
+        <div style="border: 1px dotted #000; min-height: 60px; padding: 4px; margin-bottom: 10px;"></div>
+
+        <div style="margin-top: 10px; margin-bottom: 6px; font-weight: bold;">Infrastructures d'approvisionnement :</div>
+        <div class="checkbox-group">
+            <div class="checkbox-item">
+                <span class="checkbox"></span> Eau
+            </div>
+            <div class="checkbox-item">
+                <span class="checkbox"></span> Électricité
+            </div>
+        </div>
+
+        <div style="margin-top: 10px; margin-bottom: 6px; font-weight: bold;">Réseaux de télécommunication :</div>
+        <div class="checkbox-group">
+            <div class="checkbox-item">
+                <span class="checkbox"></span> CAMTEL
+            </div>
+            <div class="checkbox-item">
+                <span class="checkbox"></span> MTN
+            </div>
+            <div class="checkbox-item">
+                <span class="checkbox"></span> ORANGE
+            </div>
+            <div class="checkbox-item">
+                <span class="checkbox"></span> NEXTTEL
+            </div>
+        </div>
+
+    <?php else: ?>
+        <!-- Section par défaut pour STATIONS-SERVICES -->
+        <div class="field-row">
+            <div class="field-label">Date de mise en service :</div>
+            <div class="field-value"></div>
+        </div>
+
+        <div class="field-row">
+            <div class="field-label">N° Autorisation MINEE :</div>
+            <div class="field-value"></div>
+        </div>
+
+        <div class="field-row">
+            <div class="field-label">N° Autorisation MINMIDT :</div>
+            <div class="field-value"></div>
+        </div>
+
+        <div class="field-row">
+            <div class="field-label">Type de gestion :</div>
+            <span class="checkbox"></span> Libre
+            <span style="margin: 0 10px;"></span>
+            <span class="checkbox"></span> Location
+            <span style="margin: 0 10px;"></span>
+            <span class="checkbox"></span> Autres : <div class="field-value" style="max-width: 200px; display: inline-block;"></div>
+        </div>
+
+        <div style="margin-top: 10px; margin-bottom: 6px; font-weight: bold;">Documents techniques disponibles :</div>
+        <div class="checkbox-group">
+            <div class="checkbox-item">
+                <span class="checkbox"></span> Plan d'ensemble
+            </div>
+            <div class="checkbox-item">
+                <span class="checkbox"></span> Contrat de bail
+            </div>
+            <div class="checkbox-item">
+                <span class="checkbox"></span> Permis de bâtir
+            </div>
+            <div class="checkbox-item">
+                <span class="checkbox"></span> Certificat d'urbanisme
+            </div>
+            <div class="checkbox-item">
+                <span class="checkbox"></span> Lettre MINEPDED
+            </div>
+            <div class="checkbox-item">
+                <span class="checkbox"></span> Plan de masse
+            </div>
+        </div>
+
+        <div style="margin-top: 10px; margin-bottom: 6px; font-weight: bold;">Effectifs du personnel :</div>
+        <div class="field-row">
+            <div class="field-label">Chef de piste :</div>
+            <div class="field-value"></div>
+        </div>
+        <div class="field-row">
+            <div class="field-label">Gérant :</div>
+            <div class="field-value"></div>
+        </div>
+    <?php endif; ?>
 
     <!-- Section 4 - Cuves -->
     <div class="section-title">4. INSTALLATIONS - CUVES</div>

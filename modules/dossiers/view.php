@@ -1022,7 +1022,7 @@ require_once '../../includes/header.php';
                                         <i class="fas fa-print"></i> Imprimer (remplie)
                                     </a>
 
-                                    <a href="<?php echo url('modules/fiche_inspection/print_blank.php'); ?>"
+                                    <a href="<?php echo url('modules/fiche_inspection/print_blank.php?type=' . $dossier['type_infrastructure']); ?>"
                                        class="btn btn-sm btn-outline-secondary" target="_blank">
                                         <i class="fas fa-file-alt"></i> Imprimer (vierge)
                                     </a>
@@ -1039,7 +1039,7 @@ require_once '../../includes/header.php';
                                         <i class="fas fa-plus"></i> Créer une fiche
                                     </a>
 
-                                    <a href="<?php echo url('modules/fiche_inspection/print_blank.php'); ?>"
+                                    <a href="<?php echo url('modules/fiche_inspection/print_blank.php?type=' . $dossier['type_infrastructure']); ?>"
                                        class="btn btn-sm btn-outline-secondary" target="_blank">
                                         <i class="fas fa-file-alt"></i> Imprimer formulaire vierge
                                     </a>
