@@ -124,18 +124,35 @@ require_once __DIR__ . '/../config/database.php';
         echo "<h2>📝 Exécution des migrations...</h2>";
 
         try {
-            // Séparer les requêtes SQL
-            $queries = array_filter(
-                array_map('trim', preg_split('/;[\r\n]+/', $sql_content)),
-                function($query) {
-                    return !empty($query) &&
-                           !preg_match('/^--/', $query) &&
-                           !preg_match('/^\/\*/', $query) &&
-                           strlen(trim($query)) > 5;
+            // Supprimer les commentaires SQL
+            $sql_clean = preg_replace('/^--.*$/m', '', $sql_content);  // Commentaires --
+            $sql_clean = preg_replace('/\/\*.*?\*\//s', '', $sql_clean); // Commentaires /* */
+
+            // Séparer les requêtes par point-virgule
+            $queries_raw = explode(';', $sql_clean);
+
+            // Filtrer et nettoyer
+            $queries = [];
+            foreach ($queries_raw as $query) {
+                $query = trim($query);
+                // Ignorer les requêtes vides, USE, SET, etc.
+                if (!empty($query) &&
+                    strlen($query) > 10 &&
+                    !preg_match('/^(USE|SET|DELIMITER|SHOW|SELECT)\s/i', $query)) {
+                    $queries[] = $query;
                 }
-            );
+            }
 
             echo "<p>Nombre de requêtes à exécuter: <strong>" . count($queries) . "</strong></p>";
+
+            // DEBUG: Afficher les 3 premières requêtes
+            if (count($queries) > 0 && count($queries) < 5) {
+                echo "<div class='info'><strong>Preview requêtes:</strong><br>";
+                foreach (array_slice($queries, 0, 3) as $i => $q) {
+                    echo "<code>" . ($i+1) . ". " . htmlspecialchars(substr($q, 0, 100)) . "...</code><br>";
+                }
+                echo "</div>";
+            }
 
             $success_count = 0;
             $error_count = 0;
