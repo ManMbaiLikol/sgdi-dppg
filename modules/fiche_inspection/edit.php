@@ -1,4 +1,11 @@
 <?php
+// Activer l'affichage des erreurs en mode debug
+if (isset($_GET['debug'])) {
+    ini_set('display_errors', 1);
+    ini_set('display_startup_errors', 1);
+    error_reporting(E_ALL);
+}
+
 require_once '../../includes/auth.php';
 require_once '../dossiers/functions.php';
 require_once 'functions.php';
@@ -31,14 +38,15 @@ if (!$dossier) {
     redirect(url('modules/dossiers/list.php'));
 }
 
+// Déterminer le type d'infrastructure pour adapter le formulaire
+$est_point_consommateur = ($dossier['type_infrastructure'] === 'point_consommateur');
+$est_station_service = ($dossier['type_infrastructure'] === 'station_service');
+
 // Récupérer ou créer la fiche
 $fiche = getFicheInspectionByDossier($dossier_id);
 
-// Si fiche validée, passer en mode consultation
-if ($fiche && $fiche['statut'] === 'validee') {
-    $peut_modifier = false;
-    $mode_consultation = true;
-}
+// Note: Les cadres DPPG peuvent toujours modifier les fiches, même validées
+// Cela permet de corriger les erreurs après validation
 
 if (!$fiche && isset($_POST['creer_fiche'])) {
     // Vérifier que seul le cadre DPPG peut créer
@@ -58,16 +66,48 @@ if (!$fiche && isset($_POST['creer_fiche'])) {
 
 // Traitement du formulaire
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_fiche'])) {
+    // DEBUG: Confirmation de réception du formulaire
+    if (isset($_GET['debug'])) {
+        $est_validation_debug = (isset($_POST['save_fiche']) && $_POST['save_fiche'] === 'valider');
+        echo "<div style='background: #fff3cd; padding: 15px; border: 2px solid #ffc107; margin: 20px;'>";
+        echo "<h3>🔍 DEBUG - Formulaire reçu</h3>";
+        echo "<p>✅ Le formulaire a bien été soumis</p>";
+        echo "<p><strong>Action demandée:</strong> " . ($est_validation_debug ? "VALIDATION de la fiche" : "Enregistrement brouillon") . "</p>";
+        echo "<p>Peut modifier: " . ($peut_modifier ? 'Oui' : 'Non') . "</p>";
+        echo "<p>Token CSRF présent: " . (isset($_POST['csrf_token']) ? 'Oui' : 'Non') . "</p>";
+        echo "<p>Token valide: " . (isset($_POST['csrf_token']) && $_POST['csrf_token'] === $_SESSION['csrf_token'] ? 'Oui' : 'Non') . "</p>";
+        if ($est_validation_debug) {
+            echo "<p style='color: #d32f2f;'><strong>⚠️ Note:</strong> En mode debug, la validation redirige normalement (pas de debug affiché).</p>";
+        }
+        echo "</div>";
+    }
+
     // Vérifier que seul le cadre DPPG peut modifier
     if (!$peut_modifier) {
         $_SESSION['error'] = "Seuls les cadres DPPG peuvent modifier les fiches d'inspection";
-        redirect(url("modules/dossiers/view.php?id=$dossier_id"));
+        if (!isset($_GET['debug'])) {
+            redirect(url("modules/dossiers/view.php?id=$dossier_id"));
+        } else {
+            echo "<div style='background: #f8d7da; padding: 15px; border: 2px solid #dc3545; margin: 20px;'>";
+            echo "<h3>❌ ERREUR - Permission refusée</h3>";
+            echo "<p>Vous n'avez pas la permission de modifier cette fiche.</p>";
+            echo "</div>";
+            exit;
+        }
     }
 
     // Vérifier le token CSRF
     if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
         $_SESSION['error'] = "Token de sécurité invalide";
-        redirect(url("modules/fiche_inspection/edit.php?dossier_id=$dossier_id"));
+        if (!isset($_GET['debug'])) {
+            redirect(url("modules/fiche_inspection/edit.php?dossier_id=$dossier_id"));
+        } else {
+            echo "<div style='background: #f8d7da; padding: 15px; border: 2px solid #dc3545; margin: 20px;'>";
+            echo "<h3>❌ ERREUR - Token CSRF invalide</h3>";
+            echo "<p>Le token de sécurité est invalide. Essayez de recharger la page.</p>";
+            echo "</div>";
+            exit;
+        }
     }
 
     try {
@@ -114,9 +154,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_fiche'])) {
             'decanteur_separateur' => isset($_POST['decanteur_separateur']) ? 1 : 0,
             'autres_dispositions_securite' => $_POST['autres_dispositions_securite'] ?? '',
             'observations_generales' => $_POST['observations_generales'] ?? '',
+            'recommandations' => $_POST['recommandations'] ?? '',
             'lieu_etablissement' => $_POST['lieu_etablissement'] ?? '',
-            'date_etablissement' => $_POST['date_etablissement'] ?? null
+            'date_etablissement' => $_POST['date_etablissement'] ?? null,
+            // Champs spécifiques aux points consommateurs
+            'numero_contrat_approvisionnement' => $_POST['numero_contrat_approvisionnement'] ?? '',
+            'societe_contractante' => $_POST['societe_contractante'] ?? '',
+            'besoins_mensuels_litres' => $_POST['besoins_mensuels_litres'] ?? null,
+            'parc_engin' => $_POST['parc_engin'] ?? '',
+            'systeme_recuperation_huiles' => $_POST['systeme_recuperation_huiles'] ?? '',
+            'nombre_personnels' => $_POST['nombre_personnels'] ?? null,
+            'superficie_site' => $_POST['superficie_site'] ?? null,
+            'batiments_site' => $_POST['batiments_site'] ?? '',
+            'infra_eau' => isset($_POST['infra_eau']) ? 1 : 0,
+            'infra_electricite' => isset($_POST['infra_electricite']) ? 1 : 0,
+            'reseau_camtel' => isset($_POST['reseau_camtel']) ? 1 : 0,
+            'reseau_mtn' => isset($_POST['reseau_mtn']) ? 1 : 0,
+            'reseau_orange' => isset($_POST['reseau_orange']) ? 1 : 0,
+            'reseau_nexttel' => isset($_POST['reseau_nexttel']) ? 1 : 0
         ];
+
+        // DEBUG: Afficher les données des nouveaux champs
+        if (isset($_GET['debug'])) {
+            echo "<pre>DEBUG - Données envoyées pour mise à jour:\n";
+            echo "numero_contrat_approvisionnement: " . var_export($data['numero_contrat_approvisionnement'], true) . "\n";
+            echo "societe_contractante: " . var_export($data['societe_contractante'], true) . "\n";
+            echo "besoins_mensuels_litres: " . var_export($data['besoins_mensuels_litres'], true) . "\n";
+            echo "nombre_personnels: " . var_export($data['nombre_personnels'], true) . "\n";
+            echo "superficie_site: " . var_export($data['superficie_site'], true) . "\n";
+            echo "recommandations: " . var_export($data['recommandations'], true) . "\n";
+            echo "</pre>";
+        }
 
         // Mettre à jour la fiche principale
         if (!mettreAJourFicheInspection($fiche['id'], $data)) {
@@ -188,7 +256,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_fiche'])) {
         }
 
         // Valider la fiche si demandé
-        if (isset($_POST['valider'])) {
+        if (isset($_POST['save_fiche']) && $_POST['save_fiche'] === 'valider') {
             $resultat = validerFicheInspection($fiche['id'], $_SESSION['user_id']);
 
             if (!$resultat['success']) {
@@ -207,12 +275,102 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_fiche'])) {
         }
 
         $pdo->commit();
+
+        // Mode debug : afficher les résultats sans redirection (sauf si validation)
+        $est_validation = (isset($_POST['save_fiche']) && $_POST['save_fiche'] === 'valider');
+
+        if (isset($_GET['debug']) && !$est_validation) {
+            echo "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Debug - Fiche d'inspection</title></head><body>";
+            echo "<div style='background: #d4edda; padding: 20px; border: 2px solid #28a745; margin: 20px;'>";
+            echo "<h2 style='color: #155724;'>✅ SUCCÈS - Fiche enregistrée</h2>";
+            echo "<p><strong>Vérification des données dans la base de données...</strong></p>";
+
+            // Récupérer les données depuis la BDD
+            $stmt = $pdo->prepare("SELECT
+                numero_contrat_approvisionnement, societe_contractante,
+                besoins_mensuels_litres, nombre_personnels, superficie_site,
+                parc_engin, systeme_recuperation_huiles, batiments_site,
+                infra_eau, infra_electricite,
+                reseau_camtel, reseau_mtn, reseau_orange, reseau_nexttel,
+                recommandations
+                FROM fiches_inspection WHERE id = ?");
+            $stmt->execute([$fiche['id']]);
+            $donnees_bdd = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            echo "<h3>Données envoyées depuis le formulaire (POST) :</h3>";
+            echo "<pre style='background: #e3f2fd; padding: 10px; border: 1px solid #2196f3;'>";
+            echo "numero_contrat_approvisionnement: " . var_export($_POST['numero_contrat_approvisionnement'] ?? 'non défini', true) . "\n";
+            echo "societe_contractante: " . var_export($_POST['societe_contractante'] ?? 'non défini', true) . "\n";
+            echo "besoins_mensuels_litres: " . var_export($_POST['besoins_mensuels_litres'] ?? 'non défini', true) . "\n";
+            echo "nombre_personnels: " . var_export($_POST['nombre_personnels'] ?? 'non défini', true) . "\n";
+            echo "superficie_site: " . var_export($_POST['superficie_site'] ?? 'non défini', true) . "\n";
+            echo "recommandations: " . var_export($_POST['recommandations'] ?? 'non défini', true) . "\n";
+            echo "</pre>";
+
+            echo "<h3>Données effectivement enregistrées dans la BDD :</h3>";
+            echo "<pre style='background: white; padding: 10px; border: 1px solid #ccc;'>";
+            print_r($donnees_bdd);
+            echo "</pre>";
+
+            // Comparer POST et BDD
+            $differences = [];
+            if (($_POST['numero_contrat_approvisionnement'] ?? '') != ($donnees_bdd['numero_contrat_approvisionnement'] ?? '')) {
+                $differences[] = "numero_contrat_approvisionnement";
+            }
+            if (($_POST['societe_contractante'] ?? '') != ($donnees_bdd['societe_contractante'] ?? '')) {
+                $differences[] = "societe_contractante";
+            }
+            if (($_POST['recommandations'] ?? '') != ($donnees_bdd['recommandations'] ?? '')) {
+                $differences[] = "recommandations";
+            }
+
+            if (!empty($differences)) {
+                echo "<div style='background: #ffebee; padding: 10px; border: 1px solid #f44336; margin-top: 10px;'>";
+                echo "<h4 style='color: #c62828;'>⚠️ Différences détectées :</h4>";
+                echo "<p>Les champs suivants n'ont pas été enregistrés correctement :</p>";
+                echo "<ul>";
+                foreach ($differences as $champ) {
+                    echo "<li><strong>$champ</strong></li>";
+                }
+                echo "</ul>";
+                echo "</div>";
+            } else {
+                echo "<div style='background: #e8f5e9; padding: 10px; border: 1px solid #4caf50; margin-top: 10px;'>";
+                echo "<h4 style='color: #2e7d32;'>✅ Tous les champs ont été enregistrés correctement !</h4>";
+                echo "</div>";
+            }
+
+            echo "<p style='margin-top: 20px;'>";
+            echo "<a href='" . url("modules/fiche_inspection/edit.php?dossier_id=$dossier_id") . "' class='btn btn-primary' style='padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; display: inline-block;'>Retour à la fiche (sans debug)</a>";
+            echo "</p>";
+            echo "</div>";
+            echo "</body></html>";
+            exit; // Arrêter l'exécution pour ne pas rediriger
+        }
+
         redirect(url("modules/dossiers/view.php?id=$dossier_id"));
 
     } catch (Exception $e) {
         $pdo->rollBack();
         $_SESSION['error'] = $e->getMessage();
         error_log("Erreur sauvegarde fiche: " . $e->getMessage());
+
+        // En mode debug, afficher l'erreur complète
+        if (isset($_GET['debug'])) {
+            echo "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Erreur - Debug</title></head><body>";
+            echo "<div style='background: #f8d7da; padding: 20px; border: 2px solid #dc3545; margin: 20px;'>";
+            echo "<h2 style='color: #721c24;'>❌ ERREUR lors de l'enregistrement</h2>";
+            echo "<pre style='background: white; padding: 10px; border: 1px solid #ccc;'>";
+            echo htmlspecialchars($e->getMessage());
+            echo "\n\n";
+            echo "Trace:\n";
+            echo htmlspecialchars($e->getTraceAsString());
+            echo "</pre>";
+            echo "<p><a href='" . url("modules/fiche_inspection/edit.php?dossier_id=$dossier_id&debug=1") . "' style='padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; display: inline-block;'>Retour à la fiche</a></p>";
+            echo "</div>";
+            echo "</body></html>";
+            exit;
+        }
     }
 }
 
@@ -264,6 +422,22 @@ include '../../includes/header.php';
         </div>
     <?php endif; ?>
 
+    <?php if ($fiche && $fiche['statut'] === 'validee' && $peut_modifier): ?>
+        <div class="alert alert-warning mb-4">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Fiche déjà validée</strong> - Cette fiche a été validée le <?php echo formatDateTime($fiche['date_validation'] ?? ''); ?>.
+            Vous pouvez toujours la modifier pour corriger d'éventuelles erreurs.
+            <?php if ($fiche['valideur_id'] ?? null): ?>
+                <br><small>Validée par : <?php
+                    $stmt = $pdo->prepare("SELECT nom, prenom FROM users WHERE id = ?");
+                    $stmt->execute([$fiche['valideur_id']]);
+                    $valideur = $stmt->fetch();
+                    echo $valideur ? htmlspecialchars($valideur['nom'] . ' ' . $valideur['prenom']) : 'Utilisateur inconnu';
+                ?></small>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
+
     <?php if (!$fiche): ?>
         <div class="card">
             <div class="card-body text-center py-5">
@@ -271,7 +445,7 @@ include '../../includes/header.php';
                 <h4>Aucune fiche d'inspection</h4>
                 <?php if ($peut_modifier): ?>
                     <p class="text-muted">Créez une nouvelle fiche d'inspection pour ce dossier</p>
-                    <form method="post" action="<?php echo url("modules/fiche_inspection/edit.php?dossier_id=$dossier_id"); ?>" class="d-inline">
+                    <form method="post" action="<?php echo url("modules/fiche_inspection/edit.php?dossier_id=$dossier_id" . (isset($_GET['debug']) ? '&debug=1' : '')); ?>" class="d-inline">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                         <button type="submit" name="creer_fiche" class="btn btn-primary">
                             <i class="fas fa-plus"></i> Créer une fiche d'inspection
@@ -284,7 +458,7 @@ include '../../includes/header.php';
             </div>
         </div>
     <?php else: ?>
-        <form method="post" action="<?php echo url("modules/fiche_inspection/edit.php?dossier_id=$dossier_id"); ?>" id="ficheForm">
+        <form method="post" action="<?php echo url("modules/fiche_inspection/edit.php?dossier_id=$dossier_id" . (isset($_GET['debug']) ? '&debug=1' : '')); ?>" id="ficheForm">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
 
             <!-- Section 1: Informations générales -->
@@ -422,87 +596,185 @@ include '../../includes/header.php';
                     <h5 class="mb-0">3. INFORMATIONS TECHNIQUES</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Date de mise en service</label>
-                            <input type="date" name="date_mise_service" class="form-control" value="<?php echo htmlspecialchars($fiche['date_mise_service'] ?? ''); ?>">
+                    <?php if ($est_point_consommateur): ?>
+                        <!-- Section spécifique aux POINTS CONSOMMATEURS -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Numéro du contrat d'approvisionnement</label>
+                                <input type="text" name="numero_contrat_approvisionnement" class="form-control" value="<?php echo htmlspecialchars($fiche['numero_contrat_approvisionnement'] ?? ''); ?>" placeholder="Ex: CTR-2025-001">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nom de la société contractante</label>
+                                <input type="text" name="societe_contractante" class="form-control" value="<?php echo htmlspecialchars($fiche['societe_contractante'] ?? ''); ?>" placeholder="Nom de la société">
+                            </div>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">N° Autorisation MINEE</label>
-                            <input type="text" name="autorisation_minee" class="form-control" value="<?php echo htmlspecialchars($fiche['autorisation_minee'] ?? ''); ?>">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">N° Autorisation MINMIDT</label>
-                            <input type="text" name="autorisation_minmidt" class="form-control" value="<?php echo htmlspecialchars($fiche['autorisation_minmidt'] ?? ''); ?>">
-                        </div>
-                    </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Type de gestion</label>
-                            <select name="type_gestion" class="form-select" id="typeGestion">
-                                <option value="libre" <?php echo ($fiche['type_gestion'] ?? '') === 'libre' ? 'selected' : ''; ?>>Libre</option>
-                                <option value="location" <?php echo ($fiche['type_gestion'] ?? '') === 'location' ? 'selected' : ''; ?>>Location</option>
-                                <option value="autres" <?php echo ($fiche['type_gestion'] ?? '') === 'autres' ? 'selected' : ''; ?>>Autres</option>
-                            </select>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Besoins moyens mensuels en produits pétroliers</label>
+                                <div class="input-group">
+                                    <input type="number" step="0.01" name="besoins_mensuels_litres" class="form-control" value="<?php echo htmlspecialchars($fiche['besoins_mensuels_litres'] ?? ''); ?>" placeholder="0.00">
+                                    <span class="input-group-text">litres</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nombre de personnels employés</label>
+                                <input type="number" name="nombre_personnels" class="form-control" value="<?php echo htmlspecialchars($fiche['nombre_personnels'] ?? ''); ?>" placeholder="0">
+                            </div>
                         </div>
-                        <div class="col-md-6 mb-3" id="autreGestionDiv" style="display: <?php echo ($fiche['type_gestion'] ?? '') === 'autres' ? 'block' : 'none'; ?>;">
-                            <label class="form-label">Préciser (si autres)</label>
-                            <input type="text" name="type_gestion_autre" class="form-control" value="<?php echo htmlspecialchars($fiche['type_gestion_autre'] ?? ''); ?>">
-                        </div>
-                    </div>
 
-                    <h6 class="mt-4 mb-3">Documents techniques disponibles</h6>
-                    <div class="row">
-                        <div class="col-md-4 mb-2">
-                            <div class="form-check">
-                                <input type="checkbox" name="plan_ensemble" class="form-check-input" id="planEnsemble" <?php echo $fiche['plan_ensemble'] ? 'checked' : ''; ?>>
-                                <label class="form-check-label" for="planEnsemble">Plan d'ensemble</label>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Superficie du site</label>
+                                <div class="input-group">
+                                    <input type="number" step="0.01" name="superficie_site" class="form-control" value="<?php echo htmlspecialchars($fiche['superficie_site'] ?? ''); ?>" placeholder="0.00">
+                                    <span class="input-group-text">m²</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Système de récupération des huiles usées</label>
+                                <input type="text" name="systeme_recuperation_huiles" class="form-control" value="<?php echo htmlspecialchars($fiche['systeme_recuperation_huiles'] ?? ''); ?>">
                             </div>
                         </div>
-                        <div class="col-md-4 mb-2">
-                            <div class="form-check">
-                                <input type="checkbox" name="contrat_bail" class="form-check-input" id="contratBail" <?php echo $fiche['contrat_bail'] ? 'checked' : ''; ?>>
-                                <label class="form-check-label" for="contratBail">Contrat de bail</label>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-2">
-                            <div class="form-check">
-                                <input type="checkbox" name="permis_batir" class="form-check-input" id="permisBatir" <?php echo $fiche['permis_batir'] ? 'checked' : ''; ?>>
-                                <label class="form-check-label" for="permisBatir">Permis de bâtir</label>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-2">
-                            <div class="form-check">
-                                <input type="checkbox" name="certificat_urbanisme" class="form-check-input" id="certificatUrbanisme" <?php echo $fiche['certificat_urbanisme'] ? 'checked' : ''; ?>>
-                                <label class="form-check-label" for="certificatUrbanisme">Certificat d'urbanisme</label>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-2">
-                            <div class="form-check">
-                                <input type="checkbox" name="lettre_minepded" class="form-check-input" id="lettreMinepded" <?php echo $fiche['lettre_minepded'] ? 'checked' : ''; ?>>
-                                <label class="form-check-label" for="lettreMinepded">Lettre MINEPDED</label>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-2">
-                            <div class="form-check">
-                                <input type="checkbox" name="plan_masse" class="form-check-input" id="planMasse" <?php echo $fiche['plan_masse'] ? 'checked' : ''; ?>>
-                                <label class="form-check-label" for="planMasse">Plan de masse</label>
-                            </div>
-                        </div>
-                    </div>
 
-                    <h6 class="mt-4 mb-3">Personnel</h6>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Chef de piste</label>
-                            <input type="text" name="chef_piste" class="form-control" value="<?php echo htmlspecialchars($fiche['chef_piste'] ?? ''); ?>">
+                        <div class="mb-3">
+                            <label class="form-label">Parc d'engin de la société</label>
+                            <textarea name="parc_engin" class="form-control" rows="3" placeholder="Décrivez le parc d'engin..."><?php echo htmlspecialchars($fiche['parc_engin'] ?? ''); ?></textarea>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Gérant</label>
-                            <input type="text" name="gerant" class="form-control" value="<?php echo htmlspecialchars($fiche['gerant'] ?? ''); ?>">
+
+                        <div class="mb-3">
+                            <label class="form-label">Bâtiments du site</label>
+                            <textarea name="batiments_site" class="form-control" rows="3" placeholder="Décrivez les bâtiments présents sur le site..."><?php echo htmlspecialchars($fiche['batiments_site'] ?? ''); ?></textarea>
                         </div>
-                    </div>
+
+                        <h6 class="mt-4 mb-3">Infrastructures d'approvisionnement</h6>
+                        <div class="row">
+                            <div class="col-md-3 mb-2">
+                                <div class="form-check">
+                                    <input type="checkbox" name="infra_eau" class="form-check-input" id="infraEau" <?php echo ($fiche['infra_eau'] ?? 0) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="infraEau">Eau</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <div class="form-check">
+                                    <input type="checkbox" name="infra_electricite" class="form-check-input" id="infraElectricite" <?php echo ($fiche['infra_electricite'] ?? 0) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="infraElectricite">Électricité</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h6 class="mt-3 mb-3">Réseaux de télécommunication</h6>
+                        <div class="row">
+                            <div class="col-md-3 mb-2">
+                                <div class="form-check">
+                                    <input type="checkbox" name="reseau_camtel" class="form-check-input" id="reseauCamtel" <?php echo ($fiche['reseau_camtel'] ?? 0) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="reseauCamtel">CAMTEL</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <div class="form-check">
+                                    <input type="checkbox" name="reseau_mtn" class="form-check-input" id="reseauMtn" <?php echo ($fiche['reseau_mtn'] ?? 0) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="reseauMtn">MTN</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <div class="form-check">
+                                    <input type="checkbox" name="reseau_orange" class="form-check-input" id="reseauOrange" <?php echo ($fiche['reseau_orange'] ?? 0) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="reseauOrange">ORANGE</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <div class="form-check">
+                                    <input type="checkbox" name="reseau_nexttel" class="form-check-input" id="reseauNexttel" <?php echo ($fiche['reseau_nexttel'] ?? 0) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="reseauNexttel">NEXTTEL</label>
+                                </div>
+                            </div>
+                        </div>
+
+                    <?php else: ?>
+                        <!-- Section par défaut pour STATIONS-SERVICES et autres types -->
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Date de mise en service</label>
+                                <input type="date" name="date_mise_service" class="form-control" value="<?php echo htmlspecialchars($fiche['date_mise_service'] ?? ''); ?>">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">N° Autorisation MINEE</label>
+                                <input type="text" name="autorisation_minee" class="form-control" value="<?php echo htmlspecialchars($fiche['autorisation_minee'] ?? ''); ?>">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">N° Autorisation MINMIDT</label>
+                                <input type="text" name="autorisation_minmidt" class="form-control" value="<?php echo htmlspecialchars($fiche['autorisation_minmidt'] ?? ''); ?>">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Type de gestion</label>
+                                <select name="type_gestion" class="form-select" id="typeGestion">
+                                    <option value="libre" <?php echo ($fiche['type_gestion'] ?? '') === 'libre' ? 'selected' : ''; ?>>Libre</option>
+                                    <option value="location" <?php echo ($fiche['type_gestion'] ?? '') === 'location' ? 'selected' : ''; ?>>Location</option>
+                                    <option value="autres" <?php echo ($fiche['type_gestion'] ?? '') === 'autres' ? 'selected' : ''; ?>>Autres</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3" id="autreGestionDiv" style="display: <?php echo ($fiche['type_gestion'] ?? '') === 'autres' ? 'block' : 'none'; ?>;">
+                                <label class="form-label">Préciser (si autres)</label>
+                                <input type="text" name="type_gestion_autre" class="form-control" value="<?php echo htmlspecialchars($fiche['type_gestion_autre'] ?? ''); ?>">
+                            </div>
+                        </div>
+
+                        <h6 class="mt-4 mb-3">Documents techniques disponibles</h6>
+                        <div class="row">
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    <input type="checkbox" name="plan_ensemble" class="form-check-input" id="planEnsemble" <?php echo $fiche['plan_ensemble'] ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="planEnsemble">Plan d'ensemble</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    <input type="checkbox" name="contrat_bail" class="form-check-input" id="contratBail" <?php echo $fiche['contrat_bail'] ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="contratBail">Contrat de bail</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    <input type="checkbox" name="permis_batir" class="form-check-input" id="permisBatir" <?php echo $fiche['permis_batir'] ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="permisBatir">Permis de bâtir</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    <input type="checkbox" name="certificat_urbanisme" class="form-check-input" id="certificatUrbanisme" <?php echo $fiche['certificat_urbanisme'] ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="certificatUrbanisme">Certificat d'urbanisme</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    <input type="checkbox" name="lettre_minepded" class="form-check-input" id="lettreMinepded" <?php echo $fiche['lettre_minepded'] ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="lettreMinepded">Lettre MINEPDED</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    <input type="checkbox" name="plan_masse" class="form-check-input" id="planMasse" <?php echo $fiche['plan_masse'] ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="planMasse">Plan de masse</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h6 class="mt-4 mb-3">Personnel</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Chef de piste</label>
+                                <input type="text" name="chef_piste" class="form-control" value="<?php echo htmlspecialchars($fiche['chef_piste'] ?? ''); ?>">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Gérant</label>
+                                <input type="text" name="gerant" class="form-control" value="<?php echo htmlspecialchars($fiche['gerant'] ?? ''); ?>">
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -718,7 +990,8 @@ include '../../includes/header.php';
                 </div>
             </div>
 
-            <!-- Section 5: Distances -->
+            <!-- Section 5: Distances (uniquement pour stations-services) -->
+            <?php if (!$est_point_consommateur): ?>
             <div class="card mb-4">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">5. DISTANCES PAR RAPPORT AUX ÉDIFICES ET STATIONS</h5>
@@ -781,6 +1054,7 @@ include '../../includes/header.php';
                     </div>
                 </div>
             </div>
+            <?php endif; ?>
 
             <!-- Section 6: Sécurité et environnement -->
             <div class="card mb-4">
@@ -815,14 +1089,24 @@ include '../../includes/header.php';
                     <h5 class="mb-0">7. OBSERVATIONS GÉNÉRALES</h5>
                 </div>
                 <div class="card-body">
-                    <textarea name="observations_generales" class="form-control" rows="6"><?php echo htmlspecialchars($fiche['observations_generales'] ?? ''); ?></textarea>
+                    <textarea name="observations_generales" class="form-control" rows="6" placeholder="Observations générales sur le site inspecté..."><?php echo htmlspecialchars($fiche['observations_generales'] ?? ''); ?></textarea>
                 </div>
             </div>
 
-            <!-- Section 8: Établissement -->
+            <!-- Section 8: Recommandations -->
             <div class="card mb-4">
                 <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">8. ÉTABLISSEMENT DE LA FICHE</h5>
+                    <h5 class="mb-0">8. RECOMMANDATIONS</h5>
+                </div>
+                <div class="card-body">
+                    <textarea name="recommandations" class="form-control" rows="6" placeholder="Recommandations de l'inspecteur..."><?php echo htmlspecialchars($fiche['recommandations'] ?? ''); ?></textarea>
+                </div>
+            </div>
+
+            <!-- Section 9: Établissement -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">9. ÉTABLISSEMENT DE LA FICHE</h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
@@ -873,15 +1157,20 @@ include '../../includes/header.php';
 </div>
 
 <script>
-// Gestion du type de gestion "Autres"
-document.getElementById('typeGestion').addEventListener('change', function() {
-    document.getElementById('autreGestionDiv').style.display = this.value === 'autres' ? 'block' : 'none';
-});
+// Gestion du type de gestion "Autres" (uniquement pour stations-services)
+const typeGestion = document.getElementById('typeGestion');
+if (typeGestion) {
+    typeGestion.addEventListener('change', function() {
+        document.getElementById('autreGestionDiv').style.display = this.value === 'autres' ? 'block' : 'none';
+    });
+}
 
 // Gestion des cuves
 let cuveCounter = <?php echo count($cuves) > 0 ? max(array_column($cuves, 'numero')) : 1; ?>;
 
-document.getElementById('addCuve').addEventListener('click', function() {
+const addCuveBtn = document.getElementById('addCuve');
+if (addCuveBtn) {
+    addCuveBtn.addEventListener('click', function() {
     cuveCounter++;
     const container = document.getElementById('cuvesContainer');
     const template = `
@@ -932,27 +1221,33 @@ document.getElementById('addCuve').addEventListener('click', function() {
             </div>
         </div>
     `;
-    container.insertAdjacentHTML('beforeend', template);
-});
+        container.insertAdjacentHTML('beforeend', template);
+    });
+}
 
-document.getElementById('cuvesContainer').addEventListener('click', function(e) {
-    if (e.target.closest('.remove-cuve')) {
-        e.target.closest('.cuve-row').remove();
-    }
-});
+const cuvesContainer = document.getElementById('cuvesContainer');
+if (cuvesContainer) {
+    cuvesContainer.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-cuve')) {
+            e.target.closest('.cuve-row').remove();
+        }
+    });
 
-document.getElementById('cuvesContainer').addEventListener('change', function(e) {
-    if (e.target.classList.contains('cuve-produit')) {
-        const row = e.target.closest('.cuve-row');
-        const autreDiv = row.querySelector('.cuve-autre');
-        autreDiv.style.display = e.target.value === 'autre' ? 'block' : 'none';
-    }
-});
+    cuvesContainer.addEventListener('change', function(e) {
+        if (e.target.classList.contains('cuve-produit')) {
+            const row = e.target.closest('.cuve-row');
+            const autreDiv = row.querySelector('.cuve-autre');
+            autreDiv.style.display = e.target.value === 'autre' ? 'block' : 'none';
+        }
+    });
+}
 
 // Gestion des pompes
 let pompeCounter = <?php echo count($pompes) > 0 ? max(array_column($pompes, 'numero')) : 1; ?>;
 
-document.getElementById('addPompe').addEventListener('click', function() {
+const addPompeBtn = document.getElementById('addPompe');
+if (addPompeBtn) {
+    addPompeBtn.addEventListener('click', function() {
     pompeCounter++;
     const container = document.getElementById('pompesContainer');
     const template = `
@@ -1000,22 +1295,26 @@ document.getElementById('addPompe').addEventListener('click', function() {
             </div>
         </div>
     `;
-    container.insertAdjacentHTML('beforeend', template);
-});
+        container.insertAdjacentHTML('beforeend', template);
+    });
+}
 
-document.getElementById('pompesContainer').addEventListener('click', function(e) {
-    if (e.target.closest('.remove-pompe')) {
-        e.target.closest('.pompe-row').remove();
-    }
-});
+const pompesContainer = document.getElementById('pompesContainer');
+if (pompesContainer) {
+    pompesContainer.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-pompe')) {
+            e.target.closest('.pompe-row').remove();
+        }
+    });
 
-document.getElementById('pompesContainer').addEventListener('change', function(e) {
-    if (e.target.classList.contains('pompe-produit')) {
-        const row = e.target.closest('.pompe-row');
-        const autreDiv = row.querySelector('.pompe-autre');
-        autreDiv.style.display = e.target.value === 'autre' ? 'block' : 'none';
-    }
-});
+    pompesContainer.addEventListener('change', function(e) {
+        if (e.target.classList.contains('pompe-produit')) {
+            const row = e.target.closest('.pompe-row');
+            const autreDiv = row.querySelector('.pompe-autre');
+            autreDiv.style.display = e.target.value === 'autre' ? 'block' : 'none';
+        }
+    });
+}
 
 // Validation du formulaire
 document.getElementById('ficheForm').addEventListener('submit', function(e) {

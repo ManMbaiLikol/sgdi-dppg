@@ -116,7 +116,12 @@ function mettreAJourFicheInspection($fiche_id, $data) {
             certificat_urbanisme = ?, lettre_minepded = ?, plan_masse = ?,
             chef_piste = ?, gerant = ?,
             bouches_incendies = ?, decanteur_separateur = ?, autres_dispositions_securite = ?,
-            observations_generales = ?, lieu_etablissement = ?, date_etablissement = ?
+            observations_generales = ?, recommandations = ?, lieu_etablissement = ?, date_etablissement = ?,
+            numero_contrat_approvisionnement = ?, societe_contractante = ?,
+            besoins_mensuels_litres = ?, parc_engin = ?, systeme_recuperation_huiles = ?,
+            nombre_personnels = ?, superficie_site = ?, batiments_site = ?,
+            infra_eau = ?, infra_electricite = ?,
+            reseau_camtel = ?, reseau_mtn = ?, reseau_orange = ?, reseau_nexttel = ?
             WHERE id = ?";
 
         $stmt = $pdo->prepare($sql);
@@ -160,8 +165,24 @@ function mettreAJourFicheInspection($fiche_id, $data) {
             $data['decanteur_separateur'] ? 1 : 0,
             $data['autres_dispositions_securite'],
             $data['observations_generales'],
+            $data['recommandations'] ?? '',
             $data['lieu_etablissement'],
             $data['date_etablissement'],
+            // Champs spécifiques aux points consommateurs
+            $data['numero_contrat_approvisionnement'] ?? null,
+            $data['societe_contractante'] ?? null,
+            $data['besoins_mensuels_litres'] ?? null,
+            $data['parc_engin'] ?? null,
+            $data['systeme_recuperation_huiles'] ?? null,
+            $data['nombre_personnels'] ?? null,
+            $data['superficie_site'] ?? null,
+            $data['batiments_site'] ?? null,
+            $data['infra_eau'] ?? 0,
+            $data['infra_electricite'] ?? 0,
+            $data['reseau_camtel'] ?? 0,
+            $data['reseau_mtn'] ?? 0,
+            $data['reseau_orange'] ?? 0,
+            $data['reseau_nexttel'] ?? 0,
             $fiche_id
         ]);
 
@@ -169,6 +190,15 @@ function mettreAJourFicheInspection($fiche_id, $data) {
 
     } catch (Exception $e) {
         error_log("Erreur mise à jour fiche: " . $e->getMessage());
+        // DEBUG: Afficher l'erreur SQL complète
+        if (isset($_GET['debug'])) {
+            echo "<pre style='background: #ffebee; padding: 10px; border: 1px solid red;'>";
+            echo "ERREUR SQL:\n";
+            echo $e->getMessage() . "\n\n";
+            echo "Stack trace:\n";
+            echo $e->getTraceAsString();
+            echo "</pre>";
+        }
         return false;
     }
 }
@@ -461,8 +491,7 @@ function validerFicheInspection($fiche_id, $user_id) {
 
         // 4. Mettre à jour statut dossier
         $sql = "UPDATE dossiers
-                SET statut = 'inspecte',
-                    date_inspection = NOW()
+                SET statut = 'inspecte'
                 WHERE id = ?";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$fiche['dossier_id']]);
@@ -479,23 +508,22 @@ function validerFicheInspection($fiche_id, $user_id) {
 
         if ($commission && $commission['chef_commission_id']) {
             // Créer notification (si table notifications existe)
-            $sql = "INSERT INTO notifications (user_id, type, message, lien, date_creation)
-                    VALUES (?, 'inspection_validee', ?, ?, NOW())";
-            $stmt = $pdo->prepare($sql);
-            $message = "Nouvelle inspection à valider pour le dossier N° " . $fiche['dossier_numero'];
-            $lien = "modules/chef_commission/valider_fiche.php?fiche_id=" . $fiche_id;
-
+            // Note: Vérifier d'abord si la colonne 'lien' existe
             try {
-                $stmt->execute([$commission['chef_commission_id'], $message, $lien]);
+                $sql = "INSERT INTO notifications (user_id, type, message, date_creation)
+                        VALUES (?, 'inspection_validee', ?, NOW())";
+                $stmt = $pdo->prepare($sql);
+                $message = "Nouvelle inspection à valider pour le dossier N° " . $fiche['dossier_numero'];
+                $stmt->execute([$commission['chef_commission_id'], $message]);
             } catch (Exception $e) {
-                // Table notifications n'existe peut-être pas encore, on ignore l'erreur
+                // Table notifications n'existe peut-être pas encore ou structure différente
                 error_log("Notification non envoyée: " . $e->getMessage());
             }
         }
 
         // 6. Historique dossier
-        require_once '../dossiers/functions.php';
-        ajouterHistoriqueDossier(
+        logAction(
+            $pdo,
             $fiche['dossier_id'],
             'inspection_validee',
             "Fiche d'inspection validée par l'inspecteur",
