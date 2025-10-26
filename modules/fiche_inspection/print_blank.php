@@ -19,7 +19,7 @@ $titre_type = $est_point_consommateur ? 'Point Consommateur' : 'Station-Service'
         body {
             font-family: Arial, sans-serif;
             font-size: 10pt;
-            line-height: 1.3;
+            line-height: 1.4;
             color: #000;
         }
 
@@ -110,6 +110,7 @@ $titre_type = $est_point_consommateur ? 'Point Consommateur' : 'Station-Service'
             min-height: 150px;
             border: 1px solid #000;
             padding: 5px;
+            line-height: 1.4;
         }
 
         .observations-lines {

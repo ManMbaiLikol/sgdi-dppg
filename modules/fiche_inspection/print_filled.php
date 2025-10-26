@@ -165,7 +165,7 @@ function displayCheckbox($value) {
             padding: 10px;
             min-height: 100px;
             white-space: pre-wrap;
-            line-height: 1.6;
+            line-height: 1.4;
         }
 
         .signature-section {
@@ -381,13 +381,13 @@ function displayCheckbox($value) {
         </div>
 
         <div style="margin-top: 15px; margin-bottom: 10px; font-weight: bold;">Parc d'engin de la société :</div>
-        <div style="border: 1px solid #000; padding: 8px; margin-bottom: 10px; min-height: 40px;">
-            <?php echo displayValue($fiche['parc_engin']); ?>
+        <div style="border: 1px solid #000; padding: 10px; margin-bottom: 10px; min-height: 40px; line-height: 1.4; white-space: pre-wrap;">
+            <?php echo nl2br(htmlspecialchars($fiche['parc_engin'] ?? '—')); ?>
         </div>
 
         <div style="margin-top: 15px; margin-bottom: 10px; font-weight: bold;">Bâtiments du site :</div>
-        <div style="border: 1px solid #000; padding: 8px; margin-bottom: 10px; min-height: 40px;">
-            <?php echo displayValue($fiche['batiments_site']); ?>
+        <div style="border: 1px solid #000; padding: 10px; margin-bottom: 10px; min-height: 40px; line-height: 1.4; white-space: pre-wrap;">
+            <?php echo nl2br(htmlspecialchars($fiche['batiments_site'] ?? '—')); ?>
         </div>
 
         <div style="margin-top: 15px; margin-bottom: 10px; font-weight: bold;">Infrastructures d'approvisionnement :</div>
