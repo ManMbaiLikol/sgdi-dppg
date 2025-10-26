@@ -180,7 +180,7 @@ $titre_type = $est_point_consommateur ? 'Point Consommateur' : 'Station-Service'
         <p style="margin: 3px 0;">--------</p>
         <p style="margin: 3px 0;">Ministère de l'Eau et de l'Énergie</p>
         <p style="margin: 3px 0;">--------</p>
-        <p style="margin: 3px 0;">Direction de la Promotion des Produits Pétroliers et Gaziers</p>
+        <p style="margin: 3px 0;">Direction des Produits Pétroliers et du Gaz</p>
         <h2 style="margin-top: 15px;">FICHE DE RÉCOLTE DES DONNÉES SUR LES INFRASTRUCTURES PÉTROLIÈRES</h2>
     </div>
 
