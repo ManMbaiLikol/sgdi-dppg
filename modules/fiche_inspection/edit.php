@@ -110,6 +110,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_fiche'])) {
         }
     }
 
+    // MODE DEBUG: Afficher toutes les données POST reçues
+    if (isset($_GET['debug'])) {
+        echo "<div style='background: #e3f2fd; padding: 20px; border: 2px solid #2196f3; margin: 20px;'>";
+        echo "<h3>🔍 DEBUG - Données POST reçues:</h3>";
+        echo "<pre>";
+        echo "est_point_consommateur: " . ($est_point_consommateur ? 'OUI' : 'NON') . "\n\n";
+        echo "Section 3 - INFORMATIONS TECHNIQUES:\n";
+        echo "  numero_contrat_approvisionnement: '" . ($_POST['numero_contrat_approvisionnement'] ?? 'NON DEFINI') . "'\n";
+        echo "  societe_contractante: '" . ($_POST['societe_contractante'] ?? 'NON DEFINI') . "'\n";
+        echo "  besoins_mensuels_litres: '" . ($_POST['besoins_mensuels_litres'] ?? 'NON DEFINI') . "'\n";
+        echo "  nombre_personnels: '" . ($_POST['nombre_personnels'] ?? 'NON DEFINI') . "'\n";
+        echo "  superficie_site: '" . ($_POST['superficie_site'] ?? 'NON DEFINI') . "'\n";
+        echo "  parc_engin: '" . ($_POST['parc_engin'] ?? 'NON DEFINI') . "'\n";
+        echo "  systeme_recuperation_huiles: '" . ($_POST['systeme_recuperation_huiles'] ?? 'NON DEFINI') . "'\n";
+        echo "  batiments_site: '" . ($_POST['batiments_site'] ?? 'NON DEFINI') . "'\n\n";
+        echo "Section 8 - RECOMMANDATIONS:\n";
+        echo "  recommandations: '" . ($_POST['recommandations'] ?? 'NON DEFINI') . "'\n";
+        echo "</pre>";
+        echo "</div>";
+    }
+
     try {
         $pdo->beginTransaction();
 
@@ -920,7 +941,7 @@ include '../../includes/header.php';
                                     <div class="col-md-2">
                                         <label class="form-label">Débit nominal</label>
                                         <div class="input-group">
-                                            <input type="number" step="0.01" name="pompe_debit[]" class="form-control">
+                                            <input type="number" step="1" name="pompe_debit[]" class="form-control">
                                             <span class="input-group-text">L/min</span>
                                         </div>
                                     </div>
@@ -965,7 +986,7 @@ include '../../includes/header.php';
                                         <div class="col-md-2">
                                             <label class="form-label">Débit nominal</label>
                                             <div class="input-group">
-                                                <input type="number" step="0.01" name="pompe_debit[]" class="form-control" value="<?php echo htmlspecialchars($pompe['debit_nominal'] ?? ''); ?>">
+                                                <input type="number" step="1" name="pompe_debit[]" class="form-control" value="<?php echo htmlspecialchars($pompe['debit_nominal'] ?? ''); ?>">
                                                 <span class="input-group-text">L/min</span>
                                             </div>
                                         </div>
@@ -1278,7 +1299,7 @@ if (addPompeBtn) {
                 <div class="col-md-2">
                     <label class="form-label">Débit nominal</label>
                     <div class="input-group">
-                        <input type="number" step="0.01" name="pompe_debit[]" class="form-control">
+                        <input type="number" step="1" name="pompe_debit[]" class="form-control">
                         <span class="input-group-text">L/min</span>
                     </div>
                 </div>
