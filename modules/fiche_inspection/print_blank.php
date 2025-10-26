@@ -13,47 +13,47 @@ $titre_type = $est_point_consommateur ? 'Point Consommateur' : 'Station-Service'
     <style>
         @page {
             size: A4;
-            margin: 1.5cm;
+            margin: 1.2cm;
         }
 
         body {
             font-family: Arial, sans-serif;
-            font-size: 10pt;
-            line-height: 1.4;
+            font-size: 9pt;
+            line-height: 1.3;
             color: #000;
         }
 
         .header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
             border-bottom: 2px solid #000;
-            padding-bottom: 8px;
+            padding-bottom: 5px;
         }
 
         .header h1 {
-            font-size: 14pt;
+            font-size: 13pt;
             font-weight: bold;
-            margin: 5px 0;
+            margin: 3px 0;
             text-transform: uppercase;
         }
 
         .header h2 {
-            font-size: 13pt;
+            font-size: 11pt;
             font-weight: bold;
-            margin: 5px 0;
+            margin: 3px 0;
         }
 
         .section-title {
             font-weight: bold;
             text-decoration: underline;
-            margin-top: 12px;
-            margin-bottom: 6px;
-            font-size: 10.5pt;
+            margin-top: 8px;
+            margin-bottom: 4px;
+            font-size: 9.5pt;
         }
 
         .field-row {
             display: flex;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
         }
 
         .field-label {
@@ -64,20 +64,20 @@ $titre_type = $est_point_consommateur ? 'Point Consommateur' : 'Station-Service'
         .field-value {
             flex: 1;
             border-bottom: 1px dotted #000;
-            min-height: 16px;
+            min-height: 14px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 6px 0;
+            margin: 4px 0;
         }
 
         table th, table td {
             border: 1px solid #000;
-            padding: 4px;
+            padding: 3px;
             text-align: left;
-            font-size: 9pt;
+            font-size: 8pt;
         }
 
         table th {
@@ -87,40 +87,40 @@ $titre_type = $est_point_consommateur ? 'Point Consommateur' : 'Station-Service'
         }
 
         .checkbox-group {
-            margin: 6px 0;
+            margin: 4px 0;
         }
 
         .checkbox-item {
             display: inline-block;
-            margin-right: 30px;
-            margin-bottom: 5px;
+            margin-right: 25px;
+            margin-bottom: 3px;
         }
 
         .checkbox {
             display: inline-block;
-            width: 15px;
-            height: 15px;
+            width: 13px;
+            height: 13px;
             border: 1px solid #000;
-            margin-right: 5px;
+            margin-right: 4px;
             vertical-align: middle;
         }
 
         .observations {
             width: 100%;
-            min-height: 150px;
+            min-height: 100px;
             border: 1px solid #000;
-            padding: 5px;
-            line-height: 1.4;
+            padding: 4px;
+            line-height: 1.3;
         }
 
         .observations-lines {
-            line-height: 2;
+            line-height: 1.8;
         }
 
         .signature-section {
             display: flex;
             justify-content: space-between;
-            margin-top: 15px;
+            margin-top: 10px;
             page-break-inside: avoid;
         }
 
@@ -128,13 +128,13 @@ $titre_type = $est_point_consommateur ? 'Point Consommateur' : 'Station-Service'
             width: 45%;
             text-align: center;
             border: 1px solid #000;
-            padding: 6px;
-            min-height: 70px;
+            padding: 5px;
+            min-height: 55px;
         }
 
         .signature-label {
             font-weight: bold;
-            margin-bottom: 35px;
+            margin-bottom: 25px;
         }
 
         .page-break {
@@ -318,13 +318,13 @@ $titre_type = $est_point_consommateur ? 'Point Consommateur' : 'Station-Service'
             <div class="field-value"></div>
         </div>
 
-        <div style="margin-top: 10px; margin-bottom: 4px; font-weight: bold;">Parc d'engin de la société :</div>
-        <div style="border: 1px dotted #000; min-height: 60px; padding: 4px; margin-bottom: 10px;"></div>
+        <div style="margin-top: 6px; margin-bottom: 3px; font-weight: bold;">Parc d'engin de la société :</div>
+        <div style="border: 1px dotted #000; min-height: 40px; padding: 3px; margin-bottom: 6px;"></div>
 
-        <div style="margin-top: 10px; margin-bottom: 4px; font-weight: bold;">Bâtiments du site :</div>
-        <div style="border: 1px dotted #000; min-height: 60px; padding: 4px; margin-bottom: 10px;"></div>
+        <div style="margin-top: 6px; margin-bottom: 3px; font-weight: bold;">Bâtiments du site :</div>
+        <div style="border: 1px dotted #000; min-height: 40px; padding: 3px; margin-bottom: 6px;"></div>
 
-        <div style="margin-top: 10px; margin-bottom: 6px; font-weight: bold;">Infrastructures d'approvisionnement :</div>
+        <div style="margin-top: 6px; margin-bottom: 4px; font-weight: bold;">Infrastructures d'approvisionnement :</div>
         <div class="checkbox-group">
             <div class="checkbox-item">
                 <span class="checkbox"></span> Eau
@@ -334,7 +334,7 @@ $titre_type = $est_point_consommateur ? 'Point Consommateur' : 'Station-Service'
             </div>
         </div>
 
-        <div style="margin-top: 10px; margin-bottom: 6px; font-weight: bold;">Réseaux de télécommunication :</div>
+        <div style="margin-top: 6px; margin-bottom: 4px; font-weight: bold;">Réseaux de télécommunication :</div>
         <div class="checkbox-group">
             <div class="checkbox-item">
                 <span class="checkbox"></span> CAMTEL
@@ -376,7 +376,7 @@ $titre_type = $est_point_consommateur ? 'Point Consommateur' : 'Station-Service'
             <span class="checkbox"></span> Autres : <div class="field-value" style="max-width: 200px; display: inline-block;"></div>
         </div>
 
-        <div style="margin-top: 10px; margin-bottom: 6px; font-weight: bold;">Documents techniques disponibles :</div>
+        <div style="margin-top: 6px; margin-bottom: 4px; font-weight: bold;">Documents techniques disponibles :</div>
         <div class="checkbox-group">
             <div class="checkbox-item">
                 <span class="checkbox"></span> Plan d'ensemble
@@ -398,7 +398,7 @@ $titre_type = $est_point_consommateur ? 'Point Consommateur' : 'Station-Service'
             </div>
         </div>
 
-        <div style="margin-top: 10px; margin-bottom: 6px; font-weight: bold;">Effectifs du personnel :</div>
+        <div style="margin-top: 6px; margin-bottom: 4px; font-weight: bold;">Effectifs du personnel :</div>
         <div class="field-row">
             <div class="field-label">Chef de piste :</div>
             <div class="field-value"></div>
@@ -541,32 +541,32 @@ $titre_type = $est_point_consommateur ? 'Point Consommateur' : 'Station-Service'
         </div>
     </div>
 
-    <div style="margin-top: 8px;">
+    <div style="margin-top: 5px;">
         <strong>Autres dispositions relatives à la sécurité et environnementales :</strong>
     </div>
-    <div class="observations-lines" style="margin-top: 3px;">
-        <div style="border-bottom: 1px dotted #000; min-height: 16px;"></div>
-        <div style="border-bottom: 1px dotted #000; min-height: 16px;"></div>
+    <div class="observations-lines" style="margin-top: 2px;">
+        <div style="border-bottom: 1px dotted #000; min-height: 14px;"></div>
+        <div style="border-bottom: 1px dotted #000; min-height: 14px;"></div>
     </div>
 
     <!-- Section 7 - Observations -->
     <div class="section-title">7. OBSERVATIONS GÉNÉRALES</div>
-    <div class="observations-lines" style="margin-top: 6px;">
-        <?php for ($i = 0; $i < 6; $i++): ?>
-        <div style="border-bottom: 1px dotted #000; min-height: 16px; margin-bottom: 3px;"></div>
+    <div class="observations-lines" style="margin-top: 4px;">
+        <?php for ($i = 0; $i < 5; $i++): ?>
+        <div style="border-bottom: 1px dotted #000; min-height: 14px; margin-bottom: 2px;"></div>
         <?php endfor; ?>
     </div>
 
     <!-- Section 8 - Recommandations -->
-    <div class="section-title" style="margin-top: 12px;">8. RECOMMANDATIONS</div>
-    <div class="observations-lines" style="margin-top: 6px;">
-        <?php for ($i = 0; $i < 6; $i++): ?>
-        <div style="border-bottom: 1px dotted #000; min-height: 16px; margin-bottom: 3px;"></div>
+    <div class="section-title" style="margin-top: 8px;">8. RECOMMANDATIONS</div>
+    <div class="observations-lines" style="margin-top: 4px;">
+        <?php for ($i = 0; $i < 5; $i++): ?>
+        <div style="border-bottom: 1px dotted #000; min-height: 14px; margin-bottom: 2px;"></div>
         <?php endfor; ?>
     </div>
 
     <!-- Établissement -->
-    <div style="margin-top: 15px;">
+    <div style="margin-top: 10px;">
         <div class="field-row">
             <div class="field-label">Fiche établie à :</div>
             <div class="field-value" style="max-width: 300px;"></div>
@@ -576,21 +576,21 @@ $titre_type = $est_point_consommateur ? 'Point Consommateur' : 'Station-Service'
     </div>
 
     <!-- Signatures -->
-    <div style="text-align: center; margin: 20px 0 12px 0;">
+    <div style="text-align: center; margin: 12px 0 8px 0;">
         <strong>Ont signé :</strong>
     </div>
 
     <div class="signature-section">
         <div class="signature-box">
             <div class="signature-label">POUR LE MINEE</div>
-            <div style="margin-top: 50px; border-top: 1px solid #000; display: inline-block; padding-top: 5px;">
+            <div style="margin-top: 35px; border-top: 1px solid #000; display: inline-block; padding-top: 3px;">
                 Signature et cachet
             </div>
         </div>
 
         <div class="signature-box">
             <div class="signature-label">POUR LE DEMANDEUR</div>
-            <div style="margin-top: 50px; border-top: 1px solid #000; display: inline-block; padding-top: 5px;">
+            <div style="margin-top: 35px; border-top: 1px solid #000; display: inline-block; padding-top: 3px;">
                 Signature et cachet
             </div>
         </div>

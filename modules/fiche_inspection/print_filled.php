@@ -67,47 +67,47 @@ function displayCheckbox($value) {
     <style>
         @page {
             size: A4;
-            margin: 2cm;
+            margin: 1.2cm;
         }
 
         body {
             font-family: Arial, sans-serif;
-            font-size: 11pt;
-            line-height: 1.4;
+            font-size: 9pt;
+            line-height: 1.3;
             color: #000;
         }
 
         .header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 12px;
             border-bottom: 2px solid #000;
-            padding-bottom: 10px;
+            padding-bottom: 5px;
         }
 
         .header h1 {
-            font-size: 14pt;
+            font-size: 13pt;
             font-weight: bold;
-            margin: 5px 0;
+            margin: 3px 0;
             text-transform: uppercase;
         }
 
         .header h2 {
-            font-size: 13pt;
+            font-size: 11pt;
             font-weight: bold;
-            margin: 5px 0;
+            margin: 3px 0;
         }
 
         .section-title {
             font-weight: bold;
             text-decoration: underline;
-            margin-top: 20px;
-            margin-bottom: 10px;
-            font-size: 11pt;
+            margin-top: 8px;
+            margin-bottom: 4px;
+            font-size: 9.5pt;
         }
 
         .field-row {
             display: flex;
-            margin-bottom: 8px;
+            margin-bottom: 3px;
         }
 
         .field-label {
@@ -118,20 +118,21 @@ function displayCheckbox($value) {
         .field-value {
             flex: 1;
             border-bottom: 1px dotted #000;
-            min-height: 18px;
-            padding: 0 5px;
+            min-height: 14px;
+            padding: 0 4px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 10px 0;
+            margin: 4px 0;
         }
 
         table th, table td {
             border: 1px solid #000;
-            padding: 8px;
+            padding: 3px;
             text-align: left;
+            font-size: 8pt;
         }
 
         table th {
@@ -141,37 +142,37 @@ function displayCheckbox($value) {
         }
 
         .checkbox-group {
-            margin: 10px 0;
+            margin: 4px 0;
         }
 
         .checkbox-item {
             display: inline-block;
-            margin-right: 30px;
-            margin-bottom: 5px;
+            margin-right: 25px;
+            margin-bottom: 3px;
         }
 
         .checkbox {
             display: inline-block;
-            width: 15px;
-            height: 15px;
-            margin-right: 5px;
+            width: 13px;
+            height: 13px;
+            margin-right: 4px;
             vertical-align: middle;
-            font-size: 14pt;
+            font-size: 12pt;
         }
 
         .observations {
             width: 100%;
             border: 1px solid #000;
-            padding: 10px;
-            min-height: 100px;
+            padding: 5px;
+            min-height: 60px;
             white-space: pre-wrap;
-            line-height: 1.4;
+            line-height: 1.3;
         }
 
         .signature-section {
             display: flex;
             justify-content: space-between;
-            margin-top: 30px;
+            margin-top: 12px;
             page-break-inside: avoid;
         }
 
@@ -179,13 +180,13 @@ function displayCheckbox($value) {
             width: 45%;
             text-align: center;
             border: 1px solid #000;
-            padding: 10px;
-            min-height: 100px;
+            padding: 5px;
+            min-height: 60px;
         }
 
         .signature-label {
             font-weight: bold;
-            margin-bottom: 50px;
+            margin-bottom: 30px;
         }
 
         .page-break {
@@ -380,17 +381,17 @@ function displayCheckbox($value) {
             <div class="field-value"><?php echo displayValue($fiche['systeme_recuperation_huiles']); ?></div>
         </div>
 
-        <div style="margin-top: 15px; margin-bottom: 10px; font-weight: bold;">Parc d'engin de la société :</div>
-        <div style="border: 1px solid #000; padding: 10px; margin-bottom: 10px; min-height: 40px; line-height: 1.4; white-space: pre-wrap;">
+        <div style="margin-top: 6px; margin-bottom: 3px; font-weight: bold;">Parc d'engin de la société :</div>
+        <div style="border: 1px solid #000; padding: 5px; margin-bottom: 6px; min-height: 30px; line-height: 1.3; white-space: pre-wrap;">
             <?php echo nl2br(htmlspecialchars($fiche['parc_engin'] ?? '—')); ?>
         </div>
 
-        <div style="margin-top: 15px; margin-bottom: 10px; font-weight: bold;">Bâtiments du site :</div>
-        <div style="border: 1px solid #000; padding: 10px; margin-bottom: 10px; min-height: 40px; line-height: 1.4; white-space: pre-wrap;">
+        <div style="margin-top: 6px; margin-bottom: 3px; font-weight: bold;">Bâtiments du site :</div>
+        <div style="border: 1px solid #000; padding: 5px; margin-bottom: 6px; min-height: 30px; line-height: 1.3; white-space: pre-wrap;">
             <?php echo nl2br(htmlspecialchars($fiche['batiments_site'] ?? '—')); ?>
         </div>
 
-        <div style="margin-top: 15px; margin-bottom: 10px; font-weight: bold;">Infrastructures d'approvisionnement :</div>
+        <div style="margin-top: 6px; margin-bottom: 4px; font-weight: bold;">Infrastructures d'approvisionnement :</div>
         <div class="checkbox-group">
             <div class="checkbox-item">
                 <span class="checkbox"><?php echo displayCheckbox($fiche['infra_eau']); ?></span> Eau
@@ -400,7 +401,7 @@ function displayCheckbox($value) {
             </div>
         </div>
 
-        <div style="margin-top: 15px; margin-bottom: 10px; font-weight: bold;">Réseaux de télécommunication :</div>
+        <div style="margin-top: 6px; margin-bottom: 4px; font-weight: bold;">Réseaux de télécommunication :</div>
         <div class="checkbox-group">
             <div class="checkbox-item">
                 <span class="checkbox"><?php echo displayCheckbox($fiche['reseau_camtel']); ?></span> CAMTEL
@@ -442,7 +443,7 @@ function displayCheckbox($value) {
             <span class="checkbox"><?php echo $fiche['type_gestion'] === 'autres' ? '☑' : '☐'; ?></span> Autres : <?php echo displayValue($fiche['type_gestion_autre'], ''); ?>
         </div>
 
-        <div style="margin-top: 15px; margin-bottom: 10px; font-weight: bold;">Documents techniques disponibles :</div>
+        <div style="margin-top: 6px; margin-bottom: 4px; font-weight: bold;">Documents techniques disponibles :</div>
         <div class="checkbox-group">
             <div class="checkbox-item">
                 <span class="checkbox"><?php echo displayCheckbox($fiche['plan_ensemble']); ?></span> Plan d'ensemble
@@ -464,7 +465,7 @@ function displayCheckbox($value) {
             </div>
         </div>
 
-        <div style="margin-top: 15px; margin-bottom: 10px; font-weight: bold;">Effectifs du personnel :</div>
+        <div style="margin-top: 6px; margin-bottom: 4px; font-weight: bold;">Effectifs du personnel :</div>
         <div class="field-row">
             <div class="field-label">Chef de piste :</div>
             <div class="field-value"><?php echo displayValue($fiche['chef_piste']); ?></div>
@@ -474,8 +475,6 @@ function displayCheckbox($value) {
             <div class="field-value"><?php echo displayValue($fiche['gerant']); ?></div>
         </div>
     <?php endif; ?>
-
-    <div class="page-break"></div>
 
     <!-- Section 4 - Cuves -->
     <div class="section-title">4. INSTALLATIONS - CUVES</div>
@@ -555,8 +554,6 @@ function displayCheckbox($value) {
         </tbody>
     </table>
 
-    <div class="page-break"></div>
-
     <?php if (!$est_point_consommateur): ?>
     <!-- Section 5 - Distances édifices (uniquement pour stations-services) -->
     <div class="section-title">Distance par rapport aux édifices et places publiques les plus proches</div>
@@ -615,20 +612,18 @@ function displayCheckbox($value) {
         </div>
     </div>
 
-    <div style="margin-top: 10px;">
+    <div style="margin-top: 5px;">
         <strong>Autres dispositions relatives à la sécurité et environnementales :</strong>
     </div>
     <?php if (!empty($fiche['autres_dispositions_securite'])): ?>
-        <div class="observations" style="min-height: 60px;">
+        <div class="observations" style="min-height: 40px;">
             <?php echo nl2br(htmlspecialchars($fiche['autres_dispositions_securite'])); ?>
         </div>
     <?php else: ?>
-        <div style="margin-top: 5px;">
-            <div style="border-bottom: 1px dotted #000; min-height: 20px; margin-bottom: 5px;">—</div>
+        <div style="margin-top: 3px;">
+            <div style="border-bottom: 1px dotted #000; min-height: 16px; margin-bottom: 3px;">—</div>
         </div>
     <?php endif; ?>
-
-    <div class="page-break"></div>
 
     <!-- Section 7 - Observations -->
     <div class="section-title">7. OBSERVATIONS GÉNÉRALES</div>
@@ -643,7 +638,7 @@ function displayCheckbox($value) {
     <?php endif; ?>
 
     <!-- Section 8 - Recommandations -->
-    <div class="section-title" style="margin-top: 20px;">8. RECOMMANDATIONS</div>
+    <div class="section-title" style="margin-top: 8px;">8. RECOMMANDATIONS</div>
     <?php if (!empty($fiche['recommandations'])): ?>
         <div class="observations">
             <?php echo nl2br(htmlspecialchars($fiche['recommandations'])); ?>
@@ -655,7 +650,7 @@ function displayCheckbox($value) {
     <?php endif; ?>
 
     <!-- Établissement -->
-    <div style="margin-top: 30px;">
+    <div style="margin-top: 12px;">
         <div class="field-row">
             <div class="field-label">Fiche établie à :</div>
             <div class="field-value" style="max-width: 300px;"><?php echo displayValue($fiche['lieu_etablissement']); ?></div>
@@ -667,7 +662,7 @@ function displayCheckbox($value) {
     </div>
 
     <!-- Signatures -->
-    <div style="text-align: center; margin: 40px 0 20px 0;">
+    <div style="text-align: center; margin: 12px 0 8px 0;">
         <strong>Ont signé :</strong>
     </div>
 
@@ -675,28 +670,28 @@ function displayCheckbox($value) {
         <div class="signature-box">
             <div class="signature-label">POUR LE MINEE</div>
             <?php if ($fiche['inspecteur_nom'] || $fiche['inspecteur_prenom']): ?>
-                <div style="margin-top: 60px;">
+                <div style="margin-top: 30px;">
                     <strong><?php echo htmlspecialchars($fiche['inspecteur_prenom'] . ' ' . $fiche['inspecteur_nom']); ?></strong>
                 </div>
             <?php endif; ?>
-            <div style="margin-top: 20px; border-top: 1px solid #000; display: inline-block; padding-top: 5px;">
+            <div style="margin-top: 12px; border-top: 1px solid #000; display: inline-block; padding-top: 3px;">
                 Signature et cachet
             </div>
         </div>
 
         <div class="signature-box">
             <div class="signature-label">POUR LE DEMANDEUR</div>
-            <div style="margin-top: 60px;">
+            <div style="margin-top: 30px;">
                 <strong><?php echo htmlspecialchars($dossier['nom_demandeur']); ?></strong>
             </div>
-            <div style="margin-top: 20px; border-top: 1px solid #000; display: inline-block; padding-top: 5px;">
+            <div style="margin-top: 12px; border-top: 1px solid #000; display: inline-block; padding-top: 3px;">
                 Signature et cachet
             </div>
         </div>
     </div>
 
     <?php if ($fiche['statut']): ?>
-        <div style="margin-top: 30px; text-align: center; font-size: 10pt; color: #666;">
+        <div style="margin-top: 12px; text-align: center; font-size: 8pt; color: #666;">
             <em>Statut: <?php
                 switch($fiche['statut']) {
                     case 'brouillon': echo 'Brouillon'; break;
