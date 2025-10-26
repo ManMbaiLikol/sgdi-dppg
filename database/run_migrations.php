@@ -148,8 +148,13 @@ require_once __DIR__ . '/../config/database.php';
             $sql_clean = preg_replace('/^--.*$/m', '', $sql_content);  // Commentaires --
             $sql_clean = preg_replace('/\/\*.*?\*\//s', '', $sql_clean); // Commentaires /* */
 
+            // IMPORTANT: MySQL (Railway) ne supporte pas "IF NOT EXISTS" dans ALTER TABLE ADD COLUMN
+            // On le supprime et on gérera les erreurs "Duplicate column" comme des avertissements
+            $sql_clean = preg_replace('/IF NOT EXISTS\s+/i', '', $sql_clean);
+
             echo "<div class='info'>";
             echo "Taille après nettoyage: " . strlen($sql_clean) . " octets<br>";
+            echo "⚠️ Note: 'IF NOT EXISTS' supprimé pour compatibilité MySQL Railway<br>";
             echo "</div>";
 
             // Séparer les requêtes par point-virgule
