@@ -123,10 +123,22 @@ require_once __DIR__ . '/../config/database.php';
 
         echo "<h2>📝 Exécution des migrations...</h2>";
 
+        // DEBUG: Afficher infos fichier
+        echo "<div class='info'>";
+        echo "<strong>📋 DEBUG - Fichier SQL:</strong><br>";
+        echo "Chemin: <code>" . htmlspecialchars($migration_file) . "</code><br>";
+        echo "Taille brute: " . strlen($sql_content) . " octets<br>";
+        echo "Premières 300 caractères:<br><pre>" . htmlspecialchars(substr($sql_content, 0, 300)) . "</pre>";
+        echo "</div>";
+
         try {
             // Supprimer les commentaires SQL
             $sql_clean = preg_replace('/^--.*$/m', '', $sql_content);  // Commentaires --
             $sql_clean = preg_replace('/\/\*.*?\*\//s', '', $sql_clean); // Commentaires /* */
+
+            echo "<div class='info'>";
+            echo "Taille après nettoyage: " . strlen($sql_clean) . " octets<br>";
+            echo "</div>";
 
             // Séparer les requêtes par point-virgule
             $queries_raw = explode(';', $sql_clean);
