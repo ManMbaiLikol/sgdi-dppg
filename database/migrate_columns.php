@@ -46,6 +46,10 @@ require_once __DIR__ . '/../config/database.php';
         try {
             echo "<h2>📝 Exécution des modifications...</h2>";
 
+            // Désactiver le mode strict SQL pour gérer les dates invalides
+            $pdo->exec("SET SESSION sql_mode = 'NO_ENGINE_SUBSTITUTION'");
+            echo "<div class='success'>✅ Mode SQL strict désactivé</div>";
+
             // Modification 1: superficie_site
             echo "<p>Modification de <strong>superficie_site</strong>...</p>";
             $sql1 = "ALTER TABLE fiches_inspection
