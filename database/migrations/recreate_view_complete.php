@@ -1,6 +1,6 @@
 <?php
 // Script de recréation de la vue vue_fiches_inspection_completes
-require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../../config/database.php';
 
 echo "=== Recréation de la vue vue_fiches_inspection_completes ===\n\n";
 
