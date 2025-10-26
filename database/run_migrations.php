@@ -142,8 +142,8 @@ require_once __DIR__ . '/../config/database.php';
             $sql_clean = preg_replace('/^--.*$/m', '', $sql_content);  // Commentaires --
             $sql_clean = preg_replace('/\/\*.*?\*\//s', '', $sql_clean); // Commentaires /* */
 
-            // IMPORTANT: Supprimer la ligne "USE sgdi_mvp;" car Railway utilise la base "railway"
-            $sql_clean = preg_replace('/^\s*USE\s+sgdi_mvp\s*;?\s*$/mi', '', $sql_clean);
+            // IMPORTANT: Supprimer TOUTES les lignes "USE [database];" car on utilise déjà la bonne base
+            $sql_clean = preg_replace('/USE\s+\w+\s*;/i', '', $sql_clean);
 
             // IMPORTANT: MySQL (Railway) ne supporte pas "IF NOT EXISTS" dans ALTER TABLE ADD COLUMN
             // On le supprime et on gérera les erreurs "Duplicate column" comme des avertissements
