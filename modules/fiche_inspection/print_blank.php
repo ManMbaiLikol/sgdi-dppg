@@ -458,7 +458,8 @@ $titre_type = $est_point_consommateur ? 'Point Consommateur' : 'Station-Service'
         </tbody>
     </table>
 
-    <!-- Section 5 - Distances édifices -->
+    <?php if (!$est_point_consommateur): ?>
+    <!-- Section 5 - Distances édifices (uniquement pour stations-services) -->
     <div class="section-title">Distance par rapport aux édifices et places publiques les plus proches</div>
     <table>
         <thead>
@@ -492,7 +493,7 @@ $titre_type = $est_point_consommateur ? 'Point Consommateur' : 'Station-Service'
         </tbody>
     </table>
 
-    <!-- Section 5 - Distances stations -->
+    <!-- Section 5 - Distances stations (uniquement pour stations-services) -->
     <div class="section-title">Distance par rapport aux stations-services les plus proches</div>
     <table>
         <thead>
@@ -525,6 +526,7 @@ $titre_type = $est_point_consommateur ? 'Point Consommateur' : 'Station-Service'
             </tr>
         </tbody>
     </table>
+    <?php endif; ?>
 
     <!-- Section 6 - Sécurité -->
     <div class="section-title">SÉCURITÉ ET ENVIRONNEMENT</div>
