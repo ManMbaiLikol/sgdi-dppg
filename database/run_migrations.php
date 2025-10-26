@@ -136,6 +136,10 @@ require_once __DIR__ . '/../config/database.php';
             echo "<div class='info'><strong>🔧 Préparation base de données...</strong><br>";
             $current_db = $pdo->query("SELECT DATABASE()")->fetchColumn();
             echo "✅ Base de données actuelle: <strong>" . htmlspecialchars($current_db) . "</strong><br>";
+
+            // Désactiver temporairement le mode strict SQL pour gérer les dates invalides (0000-00-00)
+            $pdo->exec("SET SESSION sql_mode = 'NO_ENGINE_SUBSTITUTION'");
+            echo "✅ Mode SQL strict désactivé temporairement<br>";
             echo "</div>";
 
             // Supprimer les commentaires SQL
