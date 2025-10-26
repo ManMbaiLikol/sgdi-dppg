@@ -463,6 +463,9 @@ function displayCheckbox($value) {
             <div class="checkbox-item">
                 <span class="checkbox"><?php echo displayCheckbox($fiche['plan_masse']); ?></span> Plan de masse
             </div>
+            <div class="checkbox-item">
+                <span class="checkbox"><?php echo displayCheckbox($fiche['lettre_desistement']); ?></span> Lettre de désistement
+            </div>
         </div>
 
         <div style="margin-top: 6px; margin-bottom: 4px; font-weight: bold;">Effectifs du personnel :</div>

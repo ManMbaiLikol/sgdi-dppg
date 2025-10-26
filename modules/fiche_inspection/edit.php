@@ -782,6 +782,12 @@ include '../../includes/header.php';
                                     <label class="form-check-label" for="planMasse">Plan de masse</label>
                                 </div>
                             </div>
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    <input type="checkbox" name="lettre_desistement" class="form-check-input" id="lettreDesistement" <?php echo $fiche['lettre_desistement'] ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="lettreDesistement">Lettre de désistement</label>
+                                </div>
+                            </div>
                         </div>
 
                         <h6 class="mt-4 mb-3">Personnel</h6>
