@@ -132,10 +132,14 @@ require_once __DIR__ . '/../config/database.php';
         echo "</div>";
 
         try {
-            // Railway utilise la base "railway" - on reste dessus (pas de sgdi_mvp)
+            // FORCER l'utilisation de la base "railway" (pas sgdi_mvp)
             echo "<div class='info'><strong>🔧 Préparation base de données...</strong><br>";
+
+            // Obtenir le nom de la base depuis les variables d'environnement
+            $target_db = getenv('MYSQL_DATABASE') ?: 'railway';
+            $pdo->exec("USE `{$target_db}`");
             $current_db = $pdo->query("SELECT DATABASE()")->fetchColumn();
-            echo "✅ Base de données actuelle: <strong>" . htmlspecialchars($current_db) . "</strong><br>";
+            echo "✅ Base de données FORCÉE: <strong>" . htmlspecialchars($current_db) . "</strong><br>";
 
             // Désactiver temporairement le mode strict SQL pour gérer les dates invalides (0000-00-00)
             $pdo->exec("SET SESSION sql_mode = 'NO_ENGINE_SUBSTITUTION'");
