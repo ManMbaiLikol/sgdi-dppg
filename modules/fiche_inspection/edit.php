@@ -1,16 +1,16 @@
 <?php
-// Activer l'affichage des erreurs en mode debug
-if (isset($_GET['debug'])) {
-    ini_set('display_errors', 1);
-    ini_set('display_startup_errors', 1);
-    error_reporting(E_ALL);
-}
-
 require_once '../../includes/auth.php';
 require_once '../dossiers/functions.php';
 require_once 'functions.php';
 
 requireLogin();
+
+// Activer l'affichage des erreurs en mode debug (admins uniquement)
+if (isset($_GET['debug']) && $_SESSION['user_role'] === 'admin') {
+    ini_set('display_errors', 1);
+    ini_set('display_startup_errors', 1);
+    error_reporting(E_ALL);
+}
 
 // Vérifier les permissions d'accès
 $roles_autorises = ['cadre_dppg', 'admin', 'chef_service', 'chef_commission'];
@@ -66,11 +66,11 @@ if (!$fiche && isset($_POST['creer_fiche'])) {
 
 // Traitement du formulaire
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_fiche'])) {
-    // DEBUG: Confirmation de réception du formulaire
-    if (isset($_GET['debug'])) {
+    // DEBUG: Confirmation de réception du formulaire (admins uniquement)
+    if (isset($_GET['debug']) && $_SESSION['user_role'] === 'admin') {
         $est_validation_debug = (isset($_POST['save_fiche']) && $_POST['save_fiche'] === 'valider');
         echo "<div style='background: #fff3cd; padding: 15px; border: 2px solid #ffc107; margin: 20px;'>";
-        echo "<h3>🔍 DEBUG - Formulaire reçu</h3>";
+        echo "<h3>🔍 DEBUG ADMIN - Formulaire reçu</h3>";
         echo "<p>✅ Le formulaire a bien été soumis</p>";
         echo "<p><strong>Action demandée:</strong> " . ($est_validation_debug ? "VALIDATION de la fiche" : "Enregistrement brouillon") . "</p>";
         echo "<p>Peut modifier: " . ($peut_modifier ? 'Oui' : 'Non') . "</p>";
@@ -85,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_fiche'])) {
     // Vérifier que seul le cadre DPPG peut modifier
     if (!$peut_modifier) {
         $_SESSION['error'] = "Seuls les cadres DPPG peuvent modifier les fiches d'inspection";
-        if (!isset($_GET['debug'])) {
+        if (!isset($_GET['debug']) || $_SESSION['user_role'] !== 'admin') {
             redirect(url("modules/dossiers/view.php?id=$dossier_id"));
         } else {
             echo "<div style='background: #f8d7da; padding: 15px; border: 2px solid #dc3545; margin: 20px;'>";
@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_fiche'])) {
     // Vérifier le token CSRF
     if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
         $_SESSION['error'] = "Token de sécurité invalide";
-        if (!isset($_GET['debug'])) {
+        if (!isset($_GET['debug']) || $_SESSION['user_role'] !== 'admin') {
             redirect(url("modules/fiche_inspection/edit.php?dossier_id=$dossier_id"));
         } else {
             echo "<div style='background: #f8d7da; padding: 15px; border: 2px solid #dc3545; margin: 20px;'>";
@@ -110,10 +110,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_fiche'])) {
         }
     }
 
-    // MODE DEBUG: Afficher toutes les données POST reçues
-    if (isset($_GET['debug'])) {
+    // MODE DEBUG: Afficher toutes les données POST reçues (admins uniquement)
+    if (isset($_GET['debug']) && $_SESSION['user_role'] === 'admin') {
         echo "<div style='background: #e3f2fd; padding: 20px; border: 2px solid #2196f3; margin: 20px;'>";
-        echo "<h3>🔍 DEBUG - Données POST reçues:</h3>";
+        echo "<h3>🔍 DEBUG ADMIN - Données POST reçues:</h3>";
         echo "<pre>";
         echo "est_point_consommateur: " . ($est_point_consommateur ? 'OUI' : 'NON') . "\n\n";
         echo "Section 3 - INFORMATIONS TECHNIQUES:\n";
@@ -195,9 +195,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_fiche'])) {
             'reseau_nexttel' => isset($_POST['reseau_nexttel']) ? 1 : 0
         ];
 
-        // DEBUG: Afficher les données des nouveaux champs
-        if (isset($_GET['debug'])) {
-            echo "<pre>DEBUG - Données envoyées pour mise à jour:\n";
+        // DEBUG: Afficher les données des nouveaux champs (admins uniquement)
+        if (isset($_GET['debug']) && $_SESSION['user_role'] === 'admin') {
+            echo "<pre>DEBUG ADMIN - Données envoyées pour mise à jour:\n";
             echo "numero_contrat_approvisionnement: " . var_export($data['numero_contrat_approvisionnement'], true) . "\n";
             echo "societe_contractante: " . var_export($data['societe_contractante'], true) . "\n";
             echo "besoins_mensuels_litres: " . var_export($data['besoins_mensuels_litres'], true) . "\n";
@@ -297,11 +297,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_fiche'])) {
 
         $pdo->commit();
 
-        // Mode debug : afficher les résultats sans redirection (sauf si validation)
+        // Mode debug : afficher les résultats sans redirection (sauf si validation, admins uniquement)
         $est_validation = (isset($_POST['save_fiche']) && $_POST['save_fiche'] === 'valider');
 
-        if (isset($_GET['debug']) && !$est_validation) {
-            echo "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Debug - Fiche d'inspection</title></head><body>";
+        if (isset($_GET['debug']) && $_SESSION['user_role'] === 'admin' && !$est_validation) {
+            echo "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Debug Admin - Fiche d'inspection</title></head><body>";
             echo "<div style='background: #d4edda; padding: 20px; border: 2px solid #28a745; margin: 20px;'>";
             echo "<h2 style='color: #155724;'>✅ SUCCÈS - Fiche enregistrée</h2>";
             echo "<p><strong>Vérification des données dans la base de données...</strong></p>";
@@ -376,9 +376,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_fiche'])) {
         $_SESSION['error'] = $e->getMessage();
         error_log("Erreur sauvegarde fiche: " . $e->getMessage());
 
-        // En mode debug, afficher l'erreur complète
-        if (isset($_GET['debug'])) {
-            echo "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Erreur - Debug</title></head><body>";
+        // En mode debug, afficher l'erreur complète (admins uniquement)
+        if (isset($_GET['debug']) && $_SESSION['user_role'] === 'admin') {
+            echo "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Erreur - Debug Admin</title></head><body>";
             echo "<div style='background: #f8d7da; padding: 20px; border: 2px solid #dc3545; margin: 20px;'>";
             echo "<h2 style='color: #721c24;'>❌ ERREUR lors de l'enregistrement</h2>";
             echo "<pre style='background: white; padding: 10px; border: 1px solid #ccc;'>";
