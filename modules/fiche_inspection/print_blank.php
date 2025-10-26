@@ -549,7 +549,15 @@ $titre_type = $est_point_consommateur ? 'Point Consommateur' : 'Station-Service'
     </div>
 
     <!-- Section 7 - Observations -->
-    <div class="section-title">Observations générales :</div>
+    <div class="section-title">7. OBSERVATIONS GÉNÉRALES</div>
+    <div class="observations-lines" style="margin-top: 6px;">
+        <?php for ($i = 0; $i < 6; $i++): ?>
+        <div style="border-bottom: 1px dotted #000; min-height: 16px; margin-bottom: 3px;"></div>
+        <?php endfor; ?>
+    </div>
+
+    <!-- Section 8 - Recommandations -->
+    <div class="section-title" style="margin-top: 12px;">8. RECOMMANDATIONS</div>
     <div class="observations-lines" style="margin-top: 6px;">
         <?php for ($i = 0; $i < 6; $i++): ?>
         <div style="border-bottom: 1px dotted #000; min-height: 16px; margin-bottom: 3px;"></div>

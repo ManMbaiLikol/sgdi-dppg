@@ -631,7 +631,7 @@ function displayCheckbox($value) {
     <div class="page-break"></div>
 
     <!-- Section 7 - Observations -->
-    <div class="section-title">Observations générales :</div>
+    <div class="section-title">7. OBSERVATIONS GÉNÉRALES</div>
     <?php if (!empty($fiche['observations_generales'])): ?>
         <div class="observations">
             <?php echo nl2br(htmlspecialchars($fiche['observations_generales'])); ?>
@@ -639,6 +639,18 @@ function displayCheckbox($value) {
     <?php else: ?>
         <div class="observations" style="font-style: italic; color: #666;">
             Aucune observation
+        </div>
+    <?php endif; ?>
+
+    <!-- Section 8 - Recommandations -->
+    <div class="section-title" style="margin-top: 20px;">8. RECOMMANDATIONS</div>
+    <?php if (!empty($fiche['recommandations'])): ?>
+        <div class="observations">
+            <?php echo nl2br(htmlspecialchars($fiche['recommandations'])); ?>
+        </div>
+    <?php else: ?>
+        <div class="observations" style="font-style: italic; color: #666;">
+            Aucune recommandation
         </div>
     <?php endif; ?>
 
