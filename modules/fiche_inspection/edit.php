@@ -169,6 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_fiche'])) {
             'certificat_urbanisme' => isset($_POST['certificat_urbanisme']) ? 1 : 0,
             'lettre_minepded' => isset($_POST['lettre_minepded']) ? 1 : 0,
             'plan_masse' => isset($_POST['plan_masse']) ? 1 : 0,
+            'lettre_desistement' => isset($_POST['lettre_desistement']) ? 1 : 0,
             'chef_piste' => $_POST['chef_piste'] ?? '',
             'gerant' => $_POST['gerant'] ?? '',
             'bouches_incendies' => isset($_POST['bouches_incendies']) ? 1 : 0,
