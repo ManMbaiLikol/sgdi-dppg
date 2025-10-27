@@ -1,0 +1,11 @@
+numero_dossier;type_infrastructure;nom_demandeur;region;ville;latitude;longitude;date_autorisation;numero_decision;observations
+;Implantation station-service;TOTAL CAMEROUN;Littoral;Douala;4.0511;9.7679;15/03/2015;N°0125/MINEE/SG/DPPG/SDTD;Station autorisée avant SGDI - Test pilote
+;Reprise station-service;BOCOM PETROLEUM;Centre;Yaoundé;3.8480;11.5021;20/06/2016;N°0248/MINEE/SG/DPPG/SDTD;Reprise autorisée - Test pilote
+;Implantation station-service;OILIBYA CAMEROUN;Ouest;Bafoussam;5.4781;10.4177;10/11/2017;N°0356/MINEE/SG/DPPG/SDTD;Station Bafoussam Centre
+;Implantation station-service;TRADEX;Nord;Garoua;9.3012;13.3964;05/08/2018;N°0421/MINEE/SG/DPPG/SDTD;Station route de Maroua
+;Reprise station-service;MRS OIL;Littoral;Douala;4.0615;9.7124;12/02/2019;N°0089/MINEE/SG/DPPG/SDTD;Reprise station quartier Akwa
+;Implantation station-service;NEPTUNE OIL;Sud;Ebolowa;2.9057;11.1543;22/05/2019;N°0287/MINEE/SG/DPPG/SDTD;Première station Ebolowa
+;Implantation station-service;CORLAY;Est;Bertoua;4.5777;13.6846;30/09/2020;N°0412/MINEE/SG/DPPG/SDTD;Station route de Batouri
+;Reprise station-service;PETROLEX;Adamaoua;Ngaoundéré;7.3167;13.5833;15/01/2021;N°0034/MINEE/SG/DPPG/SDTD;Reprise après faillite ancien exploitant
+;Implantation station-service;CAMOCO;Extrême-Nord;Maroua;10.5904;14.3163;08/07/2021;N°0298/MINEE/SG/DPPG/SDTD;Station entrée ville
+;Implantation station-service;NATIONAL OIL;Nord-Ouest;Bamenda;5.9597;10.1463;20/11/2022;N°0523/MINEE/SG/DPPG/SDTD;Station commerciale route Bafut

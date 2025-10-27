@@ -1,0 +1,5 @@
+numero_dossier;type_infrastructure;nom_demandeur;entreprise_beneficiaire;activite_entreprise;region;ville;latitude;longitude;date_autorisation;numero_decision;observations
+;Implantation point consommateur;TOTAL CAMEROUN;CIMENCAM;Fabrication de ciment;Littoral;Bonabéri;4.0725;9.7006;22/05/2016;N°0198/MINEE/SG/DPPG/SDTD;Point consommateur autorisé avant SGDI
+;Reprise point consommateur;BOCOM PETROLEUM;ALUCAM;Métallurgie aluminium;Littoral;Edéa;3.7989;10.1347;18/09/2017;N°0312/MINEE/SG/DPPG/SDTD;
+;Implantation point consommateur;OILIBYA CAMEROUN;SOCAPALM;Agro-industrie;Littoral;Dizangué;4.5123;10.0234;30/11/2018;N°0445/MINEE/SG/DPPG/SDTD;
+;Implantation point consommateur;MRS OIL;SOSUCAM;Industrie sucrière;Nord;Mbandjock;4.4556;11.9123;15/04/2019;N°0167/MINEE/SG/DPPG/SDTD;

@@ -1,0 +1,6 @@
+numero_dossier;type_infrastructure;nom_demandeur;region;ville;latitude;longitude;date_autorisation;numero_decision;observations
+;Implantation station-service;TOTAL CAMEROUN;Littoral;Douala;4.0511;9.7679;15/03/2015;N°0125/MINEE/SG/DPPG/SDTD;Station autorisée avant SGDI
+;Reprise station-service;BOCOM PETROLEUM;Centre;Yaoundé;3.8480;11.5021;20/06/2016;N°0248/MINEE/SG/DPPG/SDTD;Reprise autorisée avant SGDI
+;Implantation station-service;OILIBYA CAMEROUN;Ouest;Bafoussam;5.4781;10.4177;10/11/2017;N°0356/MINEE/SG/DPPG/SDTD;
+;Implantation station-service;TRADEX;Nord;Garoua;9.3012;13.3964;05/08/2018;N°0421/MINEE/SG/DPPG/SDTD;
+;Reprise station-service;MRS OIL;Littoral;Douala;4.0615;9.7124;12/02/2019;N°0089/MINEE/SG/DPPG/SDTD;
