@@ -174,11 +174,11 @@ function mettreAJourFicheInspection($fiche_id, $data) {
             $data['numero_contrat_approvisionnement'] ?? null,
             $data['societe_contractante'] ?? null,
             // Convertir les chaînes vides en NULL pour les champs numériques
-            !empty($data['besoins_mensuels_litres']) ? floatval($data['besoins_mensuels_litres']) : null,
+            !empty($data['besoins_mensuels_litres']) ? round(floatval($data['besoins_mensuels_litres'])) : null,
             $data['parc_engin'] ?? null,
             $data['systeme_recuperation_huiles'] ?? null,
             !empty($data['nombre_personnels']) ? intval($data['nombre_personnels']) : null,
-            !empty($data['superficie_site']) ? floatval($data['superficie_site']) : null,
+            !empty($data['superficie_site']) ? round(floatval($data['superficie_site'])) : null,
             $data['batiments_site'] ?? null,
             $data['infra_eau'] ?? 0,
             $data['infra_electricite'] ?? 0,
@@ -288,7 +288,7 @@ function sauvegarderCuves($fiche_id, $cuves) {
                     $cuve['produit'],
                     $cuve['produit_autre'] ?? null,
                     $cuve['type_cuve'] ?? 'double_enveloppe',
-                    !empty($cuve['capacite']) ? floatval($cuve['capacite']) : null,
+                    !empty($cuve['capacite']) ? round(floatval($cuve['capacite'])) : null,
                     !empty($cuve['nombre']) ? intval($cuve['nombre']) : 1
                 ]);
             }
@@ -327,7 +327,7 @@ function sauvegarderPompes($fiche_id, $pompes) {
                     $pompe['produit'],
                     $pompe['produit_autre'] ?? null,
                     $pompe['marque'] ?? null,
-                    !empty($pompe['debit_nominal']) ? floatval($pompe['debit_nominal']) : null,
+                    !empty($pompe['debit_nominal']) ? round(floatval($pompe['debit_nominal'])) : null,
                     !empty($pompe['nombre']) ? intval($pompe['nombre']) : 1
                 ]);
             }
@@ -355,7 +355,7 @@ function sauvegarderDistancesEdifices($fiche_id, $distances) {
         foreach ($distances as $direction => $data) {
             $stmt->execute([
                 $data['description'] ?? null,
-                !empty($data['distance']) ? floatval($data['distance']) : null,
+                !empty($data['distance']) ? round(floatval($data['distance'])) : null,
                 $fiche_id,
                 $direction
             ]);
@@ -383,7 +383,7 @@ function sauvegarderDistancesStations($fiche_id, $distances) {
         foreach ($distances as $direction => $data) {
             $stmt->execute([
                 $data['nom'] ?? null,
-                !empty($data['distance']) ? floatval($data['distance']) : null,
+                !empty($data['distance']) ? round(floatval($data['distance'])) : null,
                 $fiche_id,
                 $direction
             ]);

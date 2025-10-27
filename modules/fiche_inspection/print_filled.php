@@ -506,7 +506,7 @@ function displayCheckbox($value) {
                         ?>
                     </td>
                     <td><?php echo $cuve['type_cuve'] === 'double_enveloppe' ? 'Double enveloppe' : 'Simple enveloppe'; ?></td>
-                    <td style="text-align: right;"><?php echo number_format($cuve['capacite'], 2, ',', ' '); ?></td>
+                    <td style="text-align: right;"><?php echo number_format($cuve['capacite'], 0, ',', ' '); ?></td>
                     <td style="text-align: center;"><?php echo htmlspecialchars($cuve['nombre']); ?></td>
                 </tr>
                 <?php endforeach; ?>
@@ -545,7 +545,7 @@ function displayCheckbox($value) {
                         ?>
                     </td>
                     <td><?php echo displayValue($pompe['marque']); ?></td>
-                    <td style="text-align: right;"><?php echo displayValue($pompe['debit_nominal'] ? number_format($pompe['debit_nominal'], 2, ',', ' ') : ''); ?></td>
+                    <td style="text-align: right;"><?php echo displayValue($pompe['debit_nominal'] ? number_format($pompe['debit_nominal'], 0, ',', ' ') : ''); ?></td>
                     <td style="text-align: center;"><?php echo htmlspecialchars($pompe['nombre']); ?></td>
                 </tr>
                 <?php endforeach; ?>

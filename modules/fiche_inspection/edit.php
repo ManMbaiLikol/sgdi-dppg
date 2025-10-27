@@ -635,7 +635,7 @@ include '../../includes/header.php';
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Besoins moyens mensuels en produits pétroliers</label>
                                 <div class="input-group">
-                                    <input type="number" step="0.01" name="besoins_mensuels_litres" class="form-control" value="<?php echo htmlspecialchars($fiche['besoins_mensuels_litres'] ?? ''); ?>" placeholder="0.00">
+                                    <input type="number" step="1" name="besoins_mensuels_litres" class="form-control" value="<?php echo htmlspecialchars($fiche['besoins_mensuels_litres'] ? round($fiche['besoins_mensuels_litres']) : ''); ?>" placeholder="0">
                                     <span class="input-group-text">litres</span>
                                 </div>
                             </div>
@@ -649,7 +649,7 @@ include '../../includes/header.php';
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Superficie du site</label>
                                 <div class="input-group">
-                                    <input type="number" step="0.01" name="superficie_site" class="form-control" value="<?php echo htmlspecialchars($fiche['superficie_site'] ?? ''); ?>" placeholder="0.00">
+                                    <input type="number" step="1" name="superficie_site" class="form-control" value="<?php echo htmlspecialchars($fiche['superficie_site'] ? round($fiche['superficie_site']) : ''); ?>" placeholder="0">
                                     <span class="input-group-text">m²</span>
                                 </div>
                             </div>
@@ -893,7 +893,7 @@ include '../../includes/header.php';
                                         <div class="col-md-2">
                                             <label class="form-label">Capacité</label>
                                             <div class="input-group">
-                                                <input type="number" step="0.01" name="cuve_capacite[]" class="form-control" value="<?php echo htmlspecialchars($cuve['capacite'] ?? ''); ?>">
+                                                <input type="number" step="1" name="cuve_capacite[]" class="form-control" value="<?php echo htmlspecialchars($cuve['capacite'] ? round($cuve['capacite']) : ''); ?>">
                                                 <span class="input-group-text">L</span>
                                             </div>
                                         </div>
