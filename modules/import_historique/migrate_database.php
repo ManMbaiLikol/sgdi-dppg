@@ -71,7 +71,25 @@ $pageTitle = "Migration de la base de données";
                     echo '<hr>';
 
                     $migrations = [
-                        // 1. Modifier l'ENUM statut
+                        // 0. Vérifier si les colonnes existent déjà
+                        "SELECT 1",
+
+                        // 1. Ajouter les colonnes manquantes (ignore si existent déjà)
+                        "ALTER TABLE dossiers
+                        ADD COLUMN est_historique BOOLEAN DEFAULT FALSE,
+                        ADD COLUMN importe_le DATETIME NULL,
+                        ADD COLUMN importe_par INT NULL,
+                        ADD COLUMN source_import VARCHAR(100) NULL,
+                        ADD COLUMN numero_decision_ministerielle VARCHAR(100) NULL,
+                        ADD COLUMN date_decision_ministerielle DATE NULL",
+
+                        // 2. Ajouter les index
+                        "ALTER TABLE dossiers
+                        ADD INDEX idx_est_historique (est_historique),
+                        ADD INDEX idx_importe_par (importe_par),
+                        ADD INDEX idx_numero_decision (numero_decision_ministerielle)",
+
+                        // 3. Modifier l'ENUM statut
                         "ALTER TABLE dossiers MODIFY COLUMN statut ENUM(
                             'brouillon','cree','en_cours','note_transmise','paye','en_huitaine',
                             'analyse_daj','inspecte','validation_commission','visa_chef_service',
@@ -79,7 +97,7 @@ $pageTitle = "Migration de la base de données";
                             'rejete','ferme','suspendu','historique_autorise'
                         ) DEFAULT 'brouillon'",
 
-                        // 2. Créer table entreprises_beneficiaires
+                        // 4. Créer table entreprises_beneficiaires
                         "CREATE TABLE IF NOT EXISTS entreprises_beneficiaires (
                             id INT PRIMARY KEY AUTO_INCREMENT,
                             dossier_id INT NOT NULL,
@@ -90,7 +108,7 @@ $pageTitle = "Migration de la base de données";
                             INDEX idx_dossier (dossier_id)
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
 
-                        // 3. Créer table logs_import_historique
+                        // 5. Créer table logs_import_historique
                         "CREATE TABLE IF NOT EXISTS logs_import_historique (
                             id INT PRIMARY KEY AUTO_INCREMENT,
                             user_id INT NOT NULL,
