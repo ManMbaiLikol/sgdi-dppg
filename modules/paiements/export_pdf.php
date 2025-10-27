@@ -232,9 +232,9 @@ echo '<!DOCTYPE html>
 
 // En-tête officiel
 echo '<div class="header">
-    <h1>République du Cameroun</h1>
-    <div class="ministry">Ministère de l\'Eau et de l\'Energie (MINEE)</div>
-    <div class="direction">Direction des Produits Pétroliers et du Gaz (DPPG)</div>
+    <h1>RÉPUBLIQUE DU CAMEROUN</h1>
+    <div class="ministry">MINISTÈRE DE L\'EAU ET DE L\'ENERGIE (MINEE)</div>
+    <div class="direction">DIRECTION DES PRODUITS PÉTROLIERS ET DU GAZ (DPPG)</div>
 </div>';
 
 // Titre du document
