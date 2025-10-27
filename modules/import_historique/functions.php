@@ -253,78 +253,84 @@ function insererDossierHistorique($data, $user_id) {
             $numero = $data['numero_dossier'];
         }
 
-        // Récupérer l'ID du type d'infrastructure
-        $sql = "SELECT id FROM types_infrastructure WHERE nom = ?";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([$data['type_infrastructure']]);
-        $type_id = $stmt->fetchColumn();
+        // Mapper le type d'infrastructure au format ENUM
+        $type_map = [
+            'Implantation station-service' => ['type' => 'station_service', 'sous_type' => 'implantation'],
+            'Reprise station-service' => ['type' => 'station_service', 'sous_type' => 'reprise'],
+            'Implantation point consommateur' => ['type' => 'point_consommateur', 'sous_type' => 'implantation'],
+            'Reprise point consommateur' => ['type' => 'point_consommateur', 'sous_type' => 'reprise'],
+            'Implantation dépôt GPL' => ['type' => 'depot_gpl', 'sous_type' => 'implantation'],
+            'Implantation centre emplisseur' => ['type' => 'centre_emplisseur', 'sous_type' => 'implantation']
+        ];
 
-        if (!$type_id) {
-            throw new Exception("Type d'infrastructure introuvable : " . $data['type_infrastructure']);
+        if (!isset($type_map[$data['type_infrastructure']])) {
+            throw new Exception("Type d'infrastructure non mappé : " . $data['type_infrastructure']);
         }
 
-        // Récupérer l'ID du statut HISTORIQUE_AUTORISE
-        $sql = "SELECT id FROM statuts_dossier WHERE code = 'HISTORIQUE_AUTORISE'";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute();
-        $statut_id = $stmt->fetchColumn();
-
-        if (!$statut_id) {
-            // Créer le statut s'il n'existe pas
-            $sql = "INSERT INTO statuts_dossier (code, libelle, description, ordre)
-                    VALUES ('HISTORIQUE_AUTORISE', 'Dossier Historique Autorisé',
-                           'Dossier autorisé avant mise en place du SGDI', 100)";
-            $pdo->exec($sql);
-            $statut_id = $pdo->lastInsertId();
-        }
+        $type_infra = $type_map[$data['type_infrastructure']]['type'];
+        $sous_type = $type_map[$data['type_infrastructure']]['sous_type'];
 
         // Insérer le dossier
         $sql = "INSERT INTO dossiers (
-                    numero, type_infrastructure_id, statut_id,
+                    numero, type_infrastructure, sous_type, statut,
                     nom_demandeur, region, ville,
-                    latitude, longitude,
+                    coordonnees_gps,
                     numero_decision_ministerielle,
                     date_decision_ministerielle,
-                    observations,
+                    lieu_dit,
                     est_historique,
                     importe_par,
                     importe_le,
-                    created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), ?)";
+                    source_import,
+                    user_id,
+                    date_creation
+                ) VALUES (?, ?, ?, 'historique_autorise', ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), ?, ?, NOW())";
+
+        $coords_gps = null;
+        if (!empty($data['latitude']) && !empty($data['longitude'])) {
+            $coords_gps = $data['latitude'] . ',' . $data['longitude'];
+        }
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
             $numero,
-            $type_id,
-            $statut_id,
+            $type_infra,
+            $sous_type,
             $data['nom_demandeur'],
             $data['region'],
             $data['ville'],
-            $data['latitude'] ?? null,
-            $data['longitude'] ?? null,
+            $coords_gps,
             $data['numero_decision'],
             $date_autorisation,
             $data['observations'] ?? null,
             $user_id,
-            $date_autorisation
+            $data['source_import'] ?? 'Import manuel',
+            $user_id
         ]);
 
         $dossier_id = $pdo->lastInsertId();
 
         // Ajouter l'entrée dans l'historique
-        $sql = "INSERT INTO historique_dossier (dossier_id, statut_id, user_id, commentaire, date_modification)
-                VALUES (?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO historique (dossier_id, action, description, user_id, date_action)
+                VALUES (?, 'import', ?, ?, NOW())";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
             $dossier_id,
-            $statut_id,
-            $user_id,
             "Dossier historique importé - Décision N° " . $data['numero_decision'],
-            $date_autorisation
+            $user_id
         ]);
 
         // Si point consommateur, ajouter l'entreprise bénéficiaire
         if (strpos($data['type_infrastructure'], 'point consommateur') !== false && !empty($data['entreprise_beneficiaire'])) {
+            // Remplir aussi le champ entreprise_beneficiaire de la table dossiers
+            $sql = "UPDATE dossiers SET entreprise_beneficiaire = ? WHERE id = ?";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                $data['entreprise_beneficiaire'],
+                $dossier_id
+            ]);
+
+            // Et créer l'entrée dans la table dédiée
             $sql = "INSERT INTO entreprises_beneficiaires (dossier_id, nom, activite)
                     VALUES (?, ?, ?)";
             $stmt = $pdo->prepare($sql);
