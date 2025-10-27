@@ -574,7 +574,7 @@ function displayCheckbox($value) {
                 <tr>
                     <td><strong><?php echo getDirectionLabel($direction); ?></strong></td>
                     <td><?php echo displayValue($edifice['description_edifice'] ?? '', ''); ?></td>
-                    <td style="text-align: right;"><?php echo displayValue($edifice['distance_metres'] ?? '', ''); ?></td>
+                    <td style="text-align: right;"><?php echo displayValue($edifice['distance_metres'] ? number_format($edifice['distance_metres'], 2, ',', ' ') : ''); ?></td>
                 </tr>
             <?php endforeach; ?>
         </tbody>
@@ -596,7 +596,7 @@ function displayCheckbox($value) {
                 <tr>
                     <td><strong><?php echo getDirectionLabel($direction); ?></strong></td>
                     <td><?php echo displayValue($station['nom_station'] ?? '', ''); ?></td>
-                    <td style="text-align: right;"><?php echo displayValue($station['distance_metres'] ?? '', ''); ?></td>
+                    <td style="text-align: right;"><?php echo displayValue($station['distance_metres'] ? number_format($station['distance_metres'], 2, ',', ' ') : ''); ?></td>
                 </tr>
             <?php endforeach; ?>
         </tbody>

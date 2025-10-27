@@ -355,7 +355,7 @@ function sauvegarderDistancesEdifices($fiche_id, $distances) {
         foreach ($distances as $direction => $data) {
             $stmt->execute([
                 $data['description'] ?? null,
-                !empty($data['distance']) ? round(floatval($data['distance'])) : null,
+                !empty($data['distance']) ? round(floatval($data['distance']), 2) : null,
                 $fiche_id,
                 $direction
             ]);
@@ -383,7 +383,7 @@ function sauvegarderDistancesStations($fiche_id, $distances) {
         foreach ($distances as $direction => $data) {
             $stmt->execute([
                 $data['nom'] ?? null,
-                !empty($data['distance']) ? round(floatval($data['distance'])) : null,
+                !empty($data['distance']) ? round(floatval($data['distance']), 2) : null,
                 $fiche_id,
                 $direction
             ]);

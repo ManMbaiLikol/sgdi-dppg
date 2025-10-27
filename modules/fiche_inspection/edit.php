@@ -993,7 +993,7 @@ include '../../includes/header.php';
                                         <div class="col-md-2">
                                             <label class="form-label">Débit nominal</label>
                                             <div class="input-group">
-                                                <input type="number" step="1" name="pompe_debit[]" class="form-control" value="<?php echo htmlspecialchars($pompe['debit_nominal'] ?? ''); ?>">
+                                                <input type="number" step="1" name="pompe_debit[]" class="form-control" value="<?php echo htmlspecialchars($pompe['debit_nominal'] ? round($pompe['debit_nominal']) : ''); ?>">
                                                 <span class="input-group-text">L/min</span>
                                             </div>
                                         </div>
@@ -1044,7 +1044,7 @@ include '../../includes/header.php';
                                             <input type="text" name="edifice_description_<?php echo $direction; ?>" class="form-control" value="<?php echo htmlspecialchars($edifice['description_edifice'] ?? ''); ?>">
                                         </td>
                                         <td>
-                                            <input type="number" step="0.01" name="edifice_distance_<?php echo $direction; ?>" class="form-control" value="<?php echo htmlspecialchars($edifice['distance_metres'] ?? ''); ?>">
+                                            <input type="number" step="0.01" name="edifice_distance_<?php echo $direction; ?>" class="form-control" value="<?php echo htmlspecialchars($edifice['distance_metres'] ? round($edifice['distance_metres'], 2) : ''); ?>">
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -1073,7 +1073,7 @@ include '../../includes/header.php';
                                             <input type="text" name="station_nom_<?php echo $direction; ?>" class="form-control" value="<?php echo htmlspecialchars($station['nom_station'] ?? ''); ?>">
                                         </td>
                                         <td>
-                                            <input type="number" step="0.01" name="station_distance_<?php echo $direction; ?>" class="form-control" value="<?php echo htmlspecialchars($station['distance_metres'] ?? ''); ?>">
+                                            <input type="number" step="0.01" name="station_distance_<?php echo $direction; ?>" class="form-control" value="<?php echo htmlspecialchars($station['distance_metres'] ? round($station['distance_metres'], 2) : ''); ?>">
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
