@@ -158,7 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_fiche'])) {
             'longitude_degres' => $_POST['longitude_degres'] ?? null,
             'longitude_minutes' => $_POST['longitude_minutes'] ?? null,
             'longitude_secondes' => $_POST['longitude_secondes'] ?? null,
-            'date_mise_service' => $_POST['date_mise_service'] ?? null,
+            'date_mise_service' => !empty($_POST['date_mise_service']) ? $_POST['date_mise_service'] : null,
             'autorisation_minee' => $_POST['autorisation_minee'] ?? '',
             'autorisation_minmidt' => $_POST['autorisation_minmidt'] ?? '',
             'type_gestion' => $_POST['type_gestion'] ?? 'libre',
@@ -178,7 +178,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_fiche'])) {
             'observations_generales' => $_POST['observations_generales'] ?? '',
             'recommandations' => $_POST['recommandations'] ?? '',
             'lieu_etablissement' => $_POST['lieu_etablissement'] ?? '',
-            'date_etablissement' => $_POST['date_etablissement'] ?? null,
+            'date_etablissement' => !empty($_POST['date_etablissement']) ? $_POST['date_etablissement'] : null,
             // Champs spécifiques aux points consommateurs
             'numero_contrat_approvisionnement' => $_POST['numero_contrat_approvisionnement'] ?? '',
             'societe_contractante' => $_POST['societe_contractante'] ?? '',
