@@ -5,7 +5,7 @@
  * Vérifie si l'utilisateur peut accéder au module d'import historique
  */
 function peutImporterHistorique($role) {
-    return in_array($role, ['admin_systeme', 'chef_service_sdtd']);
+    return in_array($role, ['admin', 'admin_systeme', 'chef_service', 'chef_service_sdtd']);
 }
 
 /**
