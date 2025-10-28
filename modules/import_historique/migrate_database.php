@@ -70,6 +70,15 @@ $pageTitle = "Migration de la base de données";
                     echo '<h4>📋 Exécution de la migration...</h4>';
                     echo '<hr>';
 
+                    // Vérifier d'abord si on utilise ENUM ou table statuts_dossier
+                    $useEnum = false;
+                    try {
+                        $checkTable = $pdo->query("SHOW TABLES LIKE 'statuts_dossier'");
+                        $useEnum = ($checkTable->rowCount() == 0);
+                    } catch (Exception $e) {
+                        $useEnum = true;
+                    }
+
                     // Étapes de migration
                     $steps = [
                         [
@@ -127,14 +136,6 @@ $pageTitle = "Migration de la base de données";
                                      FOREIGN KEY (importe_par) REFERENCES users(id) ON DELETE SET NULL"
                         ],
                         [
-                            'name' => 'Création statut HISTORIQUE_AUTORISE',
-                            'check' => "SELECT COUNT(*) FROM statuts_dossier WHERE code = 'HISTORIQUE_AUTORISE'",
-                            'sql' => "INSERT INTO statuts_dossier (code, libelle, description, ordre, created_at)
-                                     VALUES ('HISTORIQUE_AUTORISE', 'Dossier Historique Autorisé',
-                                     'Dossier d''autorisation traité et approuvé avant la mise en place du SGDI',
-                                     100, NOW())"
-                        ],
-                        [
                             'name' => 'Création table entreprises_beneficiaires',
                             'check' => "SHOW TABLES LIKE 'entreprises_beneficiaires'",
                             'sql' => "CREATE TABLE IF NOT EXISTS entreprises_beneficiaires (
@@ -166,8 +167,76 @@ $pageTitle = "Migration de la base de données";
                                 INDEX idx_user (user_id),
                                 INDEX idx_date (created_at)
                             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
-                        ],
-                        [
+                        ]
+                    ];
+
+                    // Ajouter l'étape pour le statut selon la structure de la BDD
+                    if ($useEnum) {
+                        // Structure avec ENUM : modifier la colonne statut
+                        echo '<div class="alert alert-info">';
+                        echo 'ℹ️ Structure détectée : ENUM pour les statuts (ancienne version)';
+                        echo '</div>';
+
+                        $steps[] = [
+                            'name' => 'Ajout statut historique_autorise dans ENUM',
+                            'check' => "SHOW COLUMNS FROM dossiers LIKE 'statut'",
+                            'sql' => "ALTER TABLE dossiers MODIFY COLUMN statut ENUM(
+                                'brouillon','cree','en_cours','note_transmise','paye','en_huitaine',
+                                'analyse_daj','inspecte','validation_commission','visa_chef_service',
+                                'visa_sous_directeur','visa_directeur','valide','decide','autorise',
+                                'rejete','ferme','suspendu','historique_autorise'
+                            ) DEFAULT 'brouillon'"
+                        ];
+
+                        // Vue simplifiée sans la table statuts_dossier
+                        $steps[] = [
+                            'name' => 'Création vue v_dossiers_historiques',
+                            'check' => "SELECT COUNT(*) FROM information_schema.VIEWS
+                                       WHERE TABLE_SCHEMA = DATABASE()
+                                       AND TABLE_NAME = 'v_dossiers_historiques'",
+                            'sql' => "CREATE OR REPLACE VIEW v_dossiers_historiques AS
+                                SELECT
+                                    d.id,
+                                    d.numero,
+                                    d.nom_demandeur,
+                                    ti.nom as type_infrastructure,
+                                    d.region,
+                                    d.ville,
+                                    d.latitude,
+                                    d.longitude,
+                                    d.numero_decision_ministerielle,
+                                    d.date_decision_ministerielle,
+                                    d.observations,
+                                    d.importe_le,
+                                    d.source_import,
+                                    CONCAT(u.prenom, ' ', u.nom) as importe_par_nom,
+                                    d.statut,
+                                    eb.nom as entreprise_beneficiaire,
+                                    eb.activite as activite_entreprise,
+                                    d.created_at
+                                FROM dossiers d
+                                LEFT JOIN types_infrastructure ti ON d.type_infrastructure_id = ti.id
+                                LEFT JOIN users u ON d.importe_par = u.id
+                                LEFT JOIN entreprises_beneficiaires eb ON d.id = eb.dossier_id
+                                WHERE d.est_historique = TRUE
+                                ORDER BY d.importe_le DESC, d.numero"
+                        ];
+                    } else {
+                        // Structure avec table statuts_dossier
+                        echo '<div class="alert alert-info">';
+                        echo 'ℹ️ Structure détectée : Table statuts_dossier (nouvelle version)';
+                        echo '</div>';
+
+                        $steps[] = [
+                            'name' => 'Création statut HISTORIQUE_AUTORISE',
+                            'check' => "SELECT COUNT(*) FROM statuts_dossier WHERE code = 'HISTORIQUE_AUTORISE'",
+                            'sql' => "INSERT INTO statuts_dossier (code, libelle, description, ordre, created_at)
+                                     VALUES ('HISTORIQUE_AUTORISE', 'Dossier Historique Autorisé',
+                                     'Dossier d''autorisation traité et approuvé avant la mise en place du SGDI',
+                                     100, NOW())"
+                        ];
+
+                        $steps[] = [
                             'name' => 'Création vue v_dossiers_historiques',
                             'check' => "SELECT COUNT(*) FROM information_schema.VIEWS
                                        WHERE TABLE_SCHEMA = DATABASE()
@@ -199,8 +268,8 @@ $pageTitle = "Migration de la base de données";
                                 LEFT JOIN entreprises_beneficiaires eb ON d.id = eb.dossier_id
                                 WHERE d.est_historique = TRUE
                                 ORDER BY d.importe_le DESC, d.numero"
-                        ]
-                    ];
+                        ];
+                    }
 
                     $success = 0;
                     $errors = 0;

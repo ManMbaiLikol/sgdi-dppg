@@ -51,19 +51,39 @@ echo "<br><br>";
 echo "<h3>3. Vérification du statut 'HISTORIQUE_AUTORISE' :</h3>";
 
 try {
-    $sql = "SELECT * FROM statuts_dossier WHERE code = 'HISTORIQUE_AUTORISE'";
-    $result = $pdo->query($sql);
-    $statut = $result->fetch();
+    // Vérifier si on utilise ENUM ou table statuts_dossier
+    $checkTable = $pdo->query("SHOW TABLES LIKE 'statuts_dossier'");
+    $useEnum = ($checkTable->rowCount() == 0);
 
-    if ($statut) {
-        echo "✅ Le statut existe<br>";
-        echo "<ul>";
-        echo "<li>ID : " . $statut['id'] . "</li>";
-        echo "<li>Code : " . $statut['code'] . "</li>";
-        echo "<li>Libellé : " . $statut['libelle'] . "</li>";
-        echo "</ul>";
+    if ($useEnum) {
+        // Structure avec ENUM
+        echo "ℹ️ Structure : ENUM (ancienne version)<br>";
+        $sql = "SHOW COLUMNS FROM dossiers LIKE 'statut'";
+        $result = $pdo->query($sql);
+        $column = $result->fetch();
+
+        if ($column && strpos($column['Type'], 'historique_autorise') !== false) {
+            echo "✅ Le statut 'historique_autorise' existe dans l'ENUM<br>";
+        } else {
+            echo "❌ <strong>LE STATUT 'historique_autorise' N'EXISTE PAS dans l'ENUM</strong>";
+        }
     } else {
-        echo "❌ <strong>LE STATUT N'EXISTE PAS</strong>";
+        // Structure avec table statuts_dossier
+        echo "ℹ️ Structure : Table statuts_dossier (nouvelle version)<br>";
+        $sql = "SELECT * FROM statuts_dossier WHERE code = 'HISTORIQUE_AUTORISE'";
+        $result = $pdo->query($sql);
+        $statut = $result->fetch();
+
+        if ($statut) {
+            echo "✅ Le statut existe<br>";
+            echo "<ul>";
+            echo "<li>ID : " . $statut['id'] . "</li>";
+            echo "<li>Code : " . $statut['code'] . "</li>";
+            echo "<li>Libellé : " . $statut['libelle'] . "</li>";
+            echo "</ul>";
+        } else {
+            echo "❌ <strong>LE STATUT N'EXISTE PAS</strong>";
+        }
     }
 } catch (Exception $e) {
     echo "❌ <strong>ERREUR : " . $e->getMessage() . "</strong>";
