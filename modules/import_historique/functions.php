@@ -284,7 +284,7 @@ function insererDossierHistorique($data, $user_id) {
                     source_import,
                     user_id,
                     date_creation
-                ) VALUES (?, ?, ?, 'historique_autorise', ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), ?, ?, NOW())";
+                ) VALUES (?, ?, ?, 'historique_autorise', ?, ?, ?, ?, ?, ?, ?, TRUE, ?, NOW(), ?, ?, NOW())";
 
         $coords_gps = null;
         if (!empty($data['latitude']) && !empty($data['longitude'])) {
@@ -310,8 +310,15 @@ function insererDossierHistorique($data, $user_id) {
 
         $dossier_id = $pdo->lastInsertId();
 
-        // Ajouter l'entrée dans l'historique
-        $sql = "INSERT INTO historique (dossier_id, action, description, user_id, date_action)
+        // Ajouter l'entrée dans l'historique_dossier (ou historique selon votre table)
+        // Vérifier quelle table existe
+        $table_historique = 'historique_dossier';
+        $check_table = $pdo->query("SHOW TABLES LIKE 'historique_dossier'")->fetch();
+        if (!$check_table) {
+            $table_historique = 'historique'; // fallback à l'ancien nom
+        }
+
+        $sql = "INSERT INTO {$table_historique} (dossier_id, action, description, user_id, date_action)
                 VALUES (?, 'import', ?, ?, NOW())";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
