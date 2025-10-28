@@ -129,18 +129,43 @@ $pageTitle = "Migration de la base de données";
                     $errors = 0;
 
                     foreach ($migrations as $index => $sql) {
+                        $stepNum = $index + 1;
+                        $stepName = [
+                            'Vérification',
+                            'Ajout des colonnes',
+                            'Ajout des index',
+                            'Modification du statut ENUM',
+                            'Création table entreprises',
+                            'Création table logs'
+                        ][$index] ?? 'Étape ' . $stepNum;
+
                         try {
                             $pdo->exec($sql);
                             echo '<div class="alert alert-success">';
-                            echo '✅ Étape ' . ($index + 1) . ' : Réussie';
+                            echo '✅ Étape ' . $stepNum . ' (' . $stepName . ') : Réussie';
                             echo '</div>';
                             $success++;
                         } catch (PDOException $e) {
-                            echo '<div class="alert alert-danger">';
-                            echo '❌ Étape ' . ($index + 1) . ' : Erreur<br>';
-                            echo '<small>' . htmlspecialchars($e->getMessage()) . '</small>';
-                            echo '</div>';
-                            $errors++;
+                            $errorMsg = $e->getMessage();
+                            $code = $e->getCode();
+
+                            // Ignorer certaines erreurs non critiques
+                            if (strpos($errorMsg, 'Duplicate column') !== false ||
+                                strpos($errorMsg, 'already exists') !== false ||
+                                $code == '42S21') {
+                                echo '<div class="alert alert-info">';
+                                echo 'ℹ️ Étape ' . $stepNum . ' (' . $stepName . ') : Déjà effectuée (ignorée)';
+                                echo '</div>';
+                                $success++;
+                            } else {
+                                echo '<div class="alert alert-danger">';
+                                echo '❌ Étape ' . $stepNum . ' (' . $stepName . ') : Erreur<br>';
+                                echo '<strong>Code :</strong> ' . htmlspecialchars($code) . '<br>';
+                                echo '<strong>Message :</strong> ' . htmlspecialchars($errorMsg) . '<br>';
+                                echo '<small><strong>SQL :</strong> ' . htmlspecialchars(substr($sql, 0, 200)) . '...</small>';
+                                echo '</div>';
+                                $errors++;
+                            }
                         }
                     }
 
