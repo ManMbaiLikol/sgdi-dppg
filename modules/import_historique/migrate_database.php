@@ -202,38 +202,73 @@ $pageTitle = "Migration de la base de données";
                             ) DEFAULT 'brouillon'"
                         ];
 
-                        // Vue simplifiée sans la table statuts_dossier
+                        // Vue simplifiée sans les tables manquantes
+                        // Vérifier d'abord quelles tables existent
+                        $tablesExistantes = [];
+                        $checkTables = ['types_infrastructure', 'users', 'entreprises_beneficiaires'];
+                        foreach ($checkTables as $tableName) {
+                            $result = $pdo->query("SHOW TABLES LIKE '$tableName'");
+                            if ($result->rowCount() > 0) {
+                                $tablesExistantes[] = $tableName;
+                            }
+                        }
+
+                        // Construire la requête SQL en fonction des tables disponibles
+                        $selectFields = [
+                            'd.id',
+                            'd.numero',
+                            'd.nom_demandeur',
+                            'd.region',
+                            'd.ville',
+                            'd.latitude',
+                            'd.longitude',
+                            'd.numero_decision_ministerielle',
+                            'd.date_decision_ministerielle',
+                            'd.observations',
+                            'd.importe_le',
+                            'd.source_import',
+                            'd.statut',
+                            'd.created_at'
+                        ];
+
+                        $joins = [];
+
+                        if (in_array('types_infrastructure', $tablesExistantes)) {
+                            $selectFields[] = "ti.nom as type_infrastructure";
+                            $joins[] = "LEFT JOIN types_infrastructure ti ON d.type_infrastructure_id = ti.id";
+                        } else {
+                            $selectFields[] = "d.type_infrastructure_id as type_infrastructure";
+                        }
+
+                        if (in_array('users', $tablesExistantes)) {
+                            $selectFields[] = "CONCAT(u.prenom, ' ', u.nom) as importe_par_nom";
+                            $joins[] = "LEFT JOIN users u ON d.importe_par = u.id";
+                        } else {
+                            $selectFields[] = "d.importe_par as importe_par_nom";
+                        }
+
+                        if (in_array('entreprises_beneficiaires', $tablesExistantes)) {
+                            $selectFields[] = "eb.nom as entreprise_beneficiaire";
+                            $selectFields[] = "eb.activite as activite_entreprise";
+                            $joins[] = "LEFT JOIN entreprises_beneficiaires eb ON d.id = eb.dossier_id";
+                        } else {
+                            $selectFields[] = "NULL as entreprise_beneficiaire";
+                            $selectFields[] = "NULL as activite_entreprise";
+                        }
+
+                        $viewSql = "CREATE OR REPLACE VIEW v_dossiers_historiques AS
+                            SELECT " . implode(", ", $selectFields) . "
+                            FROM dossiers d
+                            " . implode(" ", $joins) . "
+                            WHERE d.est_historique = TRUE
+                            ORDER BY d.importe_le DESC, d.numero";
+
                         $steps[] = [
                             'name' => 'Création vue v_dossiers_historiques',
                             'check' => "SELECT COUNT(*) FROM information_schema.VIEWS
                                        WHERE TABLE_SCHEMA = DATABASE()
                                        AND TABLE_NAME = 'v_dossiers_historiques'",
-                            'sql' => "CREATE OR REPLACE VIEW v_dossiers_historiques AS
-                                SELECT
-                                    d.id,
-                                    d.numero,
-                                    d.nom_demandeur,
-                                    ti.nom as type_infrastructure,
-                                    d.region,
-                                    d.ville,
-                                    d.latitude,
-                                    d.longitude,
-                                    d.numero_decision_ministerielle,
-                                    d.date_decision_ministerielle,
-                                    d.observations,
-                                    d.importe_le,
-                                    d.source_import,
-                                    CONCAT(u.prenom, ' ', u.nom) as importe_par_nom,
-                                    d.statut,
-                                    eb.nom as entreprise_beneficiaire,
-                                    eb.activite as activite_entreprise,
-                                    d.created_at
-                                FROM dossiers d
-                                LEFT JOIN types_infrastructure ti ON d.type_infrastructure_id = ti.id
-                                LEFT JOIN users u ON d.importe_par = u.id
-                                LEFT JOIN entreprises_beneficiaires eb ON d.id = eb.dossier_id
-                                WHERE d.est_historique = TRUE
-                                ORDER BY d.importe_le DESC, d.numero"
+                            'sql' => $viewSql
                         ];
                     } else {
                         // Structure avec table statuts_dossier
