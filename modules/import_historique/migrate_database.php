@@ -31,22 +31,36 @@ $pageTitle = "Migration de la base de données";
         </div>
         <div class="card-body">
             <?php
-            // Vérifier si la migration a déjà été exécutée
-            $sql = "SHOW TABLES LIKE 'entreprises_beneficiaires'";
-            $result = $pdo->query($sql);
-            $table_existe = $result->fetch();
+            // Vérifier si la migration a déjà été exécutée (vérifier les colonnes critiques)
+            $colonnes_critiques = ['est_historique', 'importe_le', 'importe_par', 'numero_decision_ministerielle'];
+            $migration_complete = true;
 
-            if ($table_existe && !isset($_POST['force_migration'])) {
-                echo '<div class="alert alert-info">';
+            foreach ($colonnes_critiques as $col) {
+                $sql = "SHOW COLUMNS FROM dossiers LIKE '$col'";
+                $result = $pdo->query($sql);
+                if ($result->rowCount() == 0) {
+                    $migration_complete = false;
+                    break;
+                }
+            }
+
+            if ($migration_complete && !isset($_POST['force_migration'])) {
+                echo '<div class="alert alert-success">';
                 echo '<h4>✅ Migration déjà exécutée</h4>';
-                echo '<p>La table <code>entreprises_beneficiaires</code> existe déjà.</p>';
-                echo '<p>Si vous voulez ré-exécuter la migration, cliquez ci-dessous :</p>';
+                echo '<p>Toutes les colonnes nécessaires existent déjà.</p>';
+                echo '<p>Si vous voulez ré-exécuter la migration quand même, cliquez ci-dessous :</p>';
                 echo '<form method="POST">';
                 echo '<input type="hidden" name="force_migration" value="1">';
                 echo '<button type="submit" class="btn btn-warning">Forcer la ré-exécution</button>';
                 echo '</form>';
                 echo '</div>';
             } else {
+                if (!$migration_complete) {
+                    echo '<div class="alert alert-warning">';
+                    echo '<h4>⚠️ Migration incomplète détectée</h4>';
+                    echo '<p>Certaines colonnes sont manquantes. La migration va être exécutée.</p>';
+                    echo '</div>';
+                }
                 // Exécuter la migration
                 echo '<div class="alert alert-warning">';
                 echo '<h4>⚠️ Attention</h4>';
