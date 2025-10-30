@@ -21,7 +21,7 @@ $sql = "SELECT d.numero, d.type_infrastructure, d.sous_type, d.nom_demandeur,
         DATE_FORMAT(d.date_creation, '%d/%m/%Y') as date_creation
         FROM dossiers d
         LEFT JOIN decisions dec ON d.id = dec.dossier_id
-        WHERE d.statut IN ('autorise', 'refuse', 'ferme')";
+        WHERE d.statut IN ('autorise', 'refuse', 'ferme', 'historique_autorise')";
 
 $params = [];
 

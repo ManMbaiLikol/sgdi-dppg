@@ -1,0 +1,83 @@
+{
+  "station_service_1": {
+    "type_infrastructure": "implantation_station_service",
+    "numero_dossier": "SS20251024120000",
+    "nom_demandeur": "Société Pétrolière du Cameroun SA",
+    "localisation": "Yaoundé, Quartier Bastos, Avenue Kennedy",
+    "commune": "Yaoundé 1er",
+    "departement": "Mfoundi",
+    "region": "Centre",
+    "operateur": "TOTAL Cameroun",
+    "latitude": 3.8480,
+    "longitude": 11.5021,
+    "statut": "brouillon"
+  },
+  "point_consommateur_1": {
+    "type_infrastructure": "implantation_point_consommateur",
+    "numero_dossier": "PC20251024120001",
+    "nom_demandeur": "Cimenterie du Cameroun SA",
+    "localisation": "Douala, Zone Industrielle Bonaberi",
+    "commune": "Douala 5ème",
+    "departement": "Wouri",
+    "region": "Littoral",
+    "operateur": "OILIBYA Cameroun",
+    "entreprise_beneficiaire": "Cimenterie du Cameroun SA",
+    "latitude": 4.0511,
+    "longitude": 9.7679,
+    "statut": "brouillon"
+  },
+  "depot_gpl_1": {
+    "type_infrastructure": "implantation_depot_gpl",
+    "numero_dossier": "DG20251024120002",
+    "nom_demandeur": "Tradex Cameroun",
+    "localisation": "Garoua, Zone Industrielle",
+    "commune": "Garoua 1er",
+    "departement": "Bénoué",
+    "region": "Nord",
+    "entreprise_installatrice": "Tradex Cameroun SARL",
+    "latitude": 9.3012,
+    "longitude": 13.3964,
+    "statut": "brouillon"
+  },
+  "centre_emplisseur_1": {
+    "type_infrastructure": "implantation_centre_emplisseur",
+    "numero_dossier": "CE20251024120003",
+    "nom_demandeur": "SCTM Gas",
+    "localisation": "Bafoussam, Route de Bamenda",
+    "commune": "Bafoussam 1er",
+    "departement": "Mifi",
+    "region": "Ouest",
+    "operateur_gaz": "SCTM Gas Cameroun",
+    "latitude": 5.4781,
+    "longitude": 10.4189,
+    "statut": "brouillon"
+  },
+  "reprise_station_1": {
+    "type_infrastructure": "reprise_station_service",
+    "numero_dossier": "RS20251024120004",
+    "nom_demandeur": "Neptune Oil & Gas",
+    "localisation": "Limbé, Boulevard de la Réunification",
+    "commune": "Limbé",
+    "departement": "Fako",
+    "region": "Sud-Ouest",
+    "operateur": "Neptune Oil & Gas",
+    "ancien_proprietaire": "BOCOM Petroleum",
+    "latitude": 4.0181,
+    "longitude": 9.2064,
+    "statut": "brouillon"
+  },
+  "test_workflow_complet": {
+    "type_infrastructure": "implantation_station_service",
+    "numero_dossier": "SS20251024999999",
+    "nom_demandeur": "Test Workflow E2E",
+    "localisation": "Yaoundé Test",
+    "commune": "Yaoundé 3ème",
+    "departement": "Mfoundi",
+    "region": "Centre",
+    "operateur": "TOTAL Cameroun",
+    "latitude": 3.8667,
+    "longitude": 11.5167,
+    "statut": "brouillon",
+    "description": "Dossier de test pour le workflow complet E2E"
+  }
+}

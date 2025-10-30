@@ -7,17 +7,26 @@ requireRole('sous_directeur');
 
 $page_title = 'Tableau de bord - Sous-Directeur';
 
+$user_id = $_SESSION['user_id'];
+
 // Statistiques
 $stats = [
-    'en_attente' => 0,
+    'en_attente_visa' => 0,
+    'dossiers_commission' => 0,
     'approuves_mois' => 0,
     'rejetes_mois' => 0,
     'total_vises' => 0
 ];
 
-// Dossiers en attente de visa sous-directeur
+// 1. Dossiers en attente de visa sous-directeur (après visa chef service)
 $sql_attente = "SELECT COUNT(*) FROM dossiers WHERE statut = 'visa_chef_service'";
-$stats['en_attente'] = $pdo->query($sql_attente)->fetchColumn();
+$stats['en_attente_visa'] = $pdo->query($sql_attente)->fetchColumn();
+
+// 2. Dossiers où je suis chef de commission
+$sql_commission = "SELECT COUNT(*) FROM commissions WHERE chef_commission_id = ?";
+$stmt = $pdo->prepare($sql_commission);
+$stmt->execute([$user_id]);
+$stats['dossiers_commission'] = $stmt->fetchColumn();
 
 // Mes visas ce mois
 $sql_mois = "SELECT COUNT(*) FROM visas
@@ -42,16 +51,51 @@ while ($row = $stmt->fetch()) {
 $sql_total = "SELECT COUNT(*) FROM visas WHERE role = 'sous_directeur'";
 $stats['total_vises'] = $pdo->query($sql_total)->fetchColumn();
 
-// Dossiers à viser
-$sql = "SELECT d.*,
+// Dossiers à viser (après Chef Service)
+$sql_viser = "SELECT d.*,
         DATE_FORMAT(d.date_creation, '%d/%m/%Y') as date_creation_format,
         u.nom as createur_nom, u.prenom as createur_prenom
         FROM dossiers d
         LEFT JOIN users u ON d.user_id = u.id
         WHERE d.statut = 'visa_chef_service'
         ORDER BY d.date_creation ASC";
+$dossiers_viser = $pdo->query($sql_viser)->fetchAll();
 
-$dossiers = $pdo->query($sql)->fetchAll();
+// Dossiers où je suis chef de commission
+$sql_commission = "SELECT d.*,
+               c.id as commission_id,
+               i.id as inspection_id,
+               i.conforme,
+               i.valide_par_chef_commission,
+               i.date_inspection,
+               u_dppg.nom as nom_cadre_dppg,
+               u_dppg.prenom as prenom_cadre_dppg,
+               u_daj.nom as nom_cadre_daj,
+               u_daj.prenom as prenom_cadre_daj,
+               DATE_FORMAT(d.date_creation, '%d/%m/%Y') as date_creation_format
+        FROM dossiers d
+        INNER JOIN commissions c ON d.id = c.dossier_id
+        LEFT JOIN inspections i ON d.id = i.dossier_id
+        LEFT JOIN users u_dppg ON c.cadre_dppg_id = u_dppg.id
+        LEFT JOIN users u_daj ON c.cadre_daj_id = u_daj.id
+        WHERE c.chef_commission_id = ?
+        ORDER BY d.date_modification DESC";
+$stmt = $pdo->prepare($sql_commission);
+$stmt->execute([$user_id]);
+$dossiers_commission = $stmt->fetchAll();
+
+// Mes dossiers visés (avec statut visa_sous_directeur ou ultérieur)
+$sql_vises = "SELECT d.*,
+        v.date_visa,
+        v.action as visa_action,
+        v.observations as visa_commentaire,
+        DATE_FORMAT(d.date_creation, '%d/%m/%Y') as date_creation_format,
+        u.nom as createur_nom, u.prenom as createur_prenom
+        FROM dossiers d
+        INNER JOIN visas v ON d.id = v.dossier_id AND v.role = 'sous_directeur'
+        LEFT JOIN users u ON d.user_id = u.id
+        ORDER BY v.date_visa DESC";
+$dossiers_vises = $pdo->query($sql_vises)->fetchAll();
 
 require_once '../../includes/header.php';
 ?>
@@ -89,10 +133,26 @@ require_once '../../includes/header.php';
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="text-muted mb-1">En attente de visa</h6>
-                            <h3 class="mb-0"><?php echo $stats['en_attente']; ?></h3>
+                            <h3 class="mb-0"><?php echo $stats['en_attente_visa']; ?></h3>
                         </div>
                         <div class="text-warning">
                             <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Dossiers commission</h6>
+                            <h3 class="mb-0 text-primary"><?php echo $stats['dossiers_commission']; ?></h3>
+                        </div>
+                        <div class="text-primary">
+                            <i class="fas fa-users fa-2x"></i>
                         </div>
                     </div>
                 </div>
@@ -109,22 +169,6 @@ require_once '../../includes/header.php';
                         </div>
                         <div class="text-success">
                             <i class="fas fa-check-circle fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card border-danger">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-1">Rejetés ce mois</h6>
-                            <h3 class="mb-0 text-danger"><?php echo $stats['rejetes_mois']; ?></h3>
-                        </div>
-                        <div class="text-danger">
-                            <i class="fas fa-times-circle fa-2x"></i>
                         </div>
                     </div>
                 </div>
@@ -152,26 +196,98 @@ require_once '../../includes/header.php';
     <div class="row mb-4">
         <div class="col">
             <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bolt"></i> Actions rapides
+                    </h5>
+                </div>
                 <div class="card-body">
-                    <h5 class="card-title">Actions rapides</h5>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <a href="#dossiers-viser" class="btn btn-warning btn-lg w-100 mb-2">
-                                <i class="fas fa-stamp"></i><br>
-                                Viser les dossiers<br>
-                                <small>(<?php echo $stats['en_attente']; ?> en attente)</small>
+                    <div class="row g-3">
+                        <!-- Viser les dossiers -->
+                        <div class="col-md-3">
+                            <a href="<?php echo url('modules/sous_directeur/liste_a_viser.php'); ?>"
+                               class="btn btn-warning w-100 p-3 text-start position-relative"
+                               style="min-height: 120px;">
+                                <div class="d-flex flex-column h-100">
+                                    <div class="mb-2">
+                                        <i class="fas fa-stamp fa-2x"></i>
+                                    </div>
+                                    <h6 class="mb-1">Viser les dossiers</h6>
+                                    <small class="text-white opacity-75">
+                                        Apposer votre visa niveau 2/3
+                                    </small>
+                                    <div class="mt-auto pt-2">
+                                        <span class="badge bg-white text-warning">
+                                            <?php echo $stats['en_attente_visa']; ?> en attente
+                                        </span>
+                                    </div>
+                                </div>
                             </a>
                         </div>
-                        <div class="col-md-4">
-                            <a href="<?php echo url('modules/carte/index.php'); ?>" class="btn btn-success btn-lg w-100 mb-2">
-                                <i class="fas fa-map-marked-alt"></i><br>
-                                Carte des infrastructures
+
+                        <!-- Mes commissions -->
+                        <div class="col-md-3">
+                            <a href="<?php echo url('modules/sous_directeur/mes_commissions.php'); ?>"
+                               class="btn btn-primary w-100 p-3 text-start position-relative"
+                               style="min-height: 120px;">
+                                <div class="d-flex flex-column h-100">
+                                    <div class="mb-2">
+                                        <i class="fas fa-users fa-2x"></i>
+                                    </div>
+                                    <h6 class="mb-1">Mes commissions</h6>
+                                    <small class="text-white opacity-75">
+                                        Dossiers en tant que chef
+                                    </small>
+                                    <div class="mt-auto pt-2">
+                                        <span class="badge bg-white text-primary">
+                                            <?php echo $stats['dossiers_commission']; ?> dossier(s)
+                                        </span>
+                                    </div>
+                                </div>
                             </a>
                         </div>
-                        <div class="col-md-4">
-                            <a href="<?php echo url('modules/dossiers/list.php'); ?>" class="btn btn-primary btn-lg w-100 mb-2">
-                                <i class="fas fa-folder-open"></i><br>
-                                Mes dossiers visés
+
+                        <!-- Mes dossiers visés -->
+                        <div class="col-md-3">
+                            <a href="<?php echo url('modules/sous_directeur/mes_dossiers_vises.php'); ?>"
+                               class="btn btn-info w-100 p-3 text-start position-relative"
+                               style="min-height: 120px;">
+                                <div class="d-flex flex-column h-100">
+                                    <div class="mb-2">
+                                        <i class="fas fa-history fa-2x"></i>
+                                    </div>
+                                    <h6 class="mb-1">Mes dossiers visés</h6>
+                                    <small class="text-white opacity-75">
+                                        Historique de vos visas
+                                    </small>
+                                    <div class="mt-auto pt-2">
+                                        <span class="badge bg-white text-info">
+                                            <?php echo count($dossiers_vises); ?> dossier(s)
+                                        </span>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+
+                        <!-- Carte des infrastructures -->
+                        <div class="col-md-3">
+                            <a href="<?php echo url('modules/carte/index.php'); ?>"
+                               class="btn btn-success w-100 p-3 text-start position-relative"
+                               style="min-height: 120px;">
+                                <div class="d-flex flex-column h-100">
+                                    <div class="mb-2">
+                                        <i class="fas fa-map-marked-alt fa-2x"></i>
+                                    </div>
+                                    <h6 class="mb-1">Carte interactive</h6>
+                                    <small class="text-white opacity-75">
+                                        Visualisation géographique
+                                    </small>
+                                    <div class="mt-auto pt-2">
+                                        <span class="badge bg-white text-success">
+                                            <i class="fas fa-globe"></i> Voir la carte
+                                        </span>
+                                    </div>
+                                </div>
                             </a>
                         </div>
                     </div>
@@ -180,63 +296,6 @@ require_once '../../includes/header.php';
         </div>
     </div>
 
-    <!-- Dossiers à viser -->
-    <div class="card">
-        <div class="card-header bg-warning text-white">
-            <h5 class="mb-0">
-                <i class="fas fa-folder-open"></i>
-                Dossiers en attente de votre visa (après Chef Service)
-            </h5>
-        </div>
-        <div class="card-body">
-            <?php if (empty($dossiers)): ?>
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle"></i>
-                    Aucun dossier en attente de votre visa actuellement.
-                </div>
-            <?php else: ?>
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Numéro</th>
-                                <th>Type</th>
-                                <th>Demandeur</th>
-                                <th>Localisation</th>
-                                <th>Créé le</th>
-                                <th>Créé par</th>
-                                <th width="150">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($dossiers as $dossier): ?>
-                            <tr>
-                                <td>
-                                    <strong><?php echo sanitize($dossier['numero']); ?></strong>
-                                </td>
-                                <td>
-                                    <span class="badge bg-secondary">
-                                        <?php echo sanitize(getTypeInfrastructureLabel($dossier['type_infrastructure'])); ?>
-                                    </span>
-                                </td>
-                                <td><?php echo sanitize($dossier['nom_demandeur']); ?></td>
-                                <td><?php echo sanitize($dossier['ville'] ?? 'N/A'); ?></td>
-                                <td><?php echo $dossier['date_creation_format']; ?></td>
-                                <td><?php echo sanitize($dossier['createur_prenom'] . ' ' . $dossier['createur_nom']); ?></td>
-                                <td>
-                                    <a href="viser.php?id=<?php echo $dossier['id']; ?>"
-                                       class="btn btn-sm btn-warning">
-                                        <i class="fas fa-stamp"></i> Viser
-                                    </a>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            <?php endif; ?>
-        </div>
-    </div>
 </div>
 
 

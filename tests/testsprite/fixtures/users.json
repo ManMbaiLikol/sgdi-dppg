@@ -1,0 +1,112 @@
+{
+  "admin": {
+    "id": 1,
+    "nom": "Administrateur",
+    "prenom": "Système",
+    "email": "admin@minee.cm",
+    "password": "Admin@2025",
+    "password_hash": "$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+    "role": "admin_systeme",
+    "telephone": "+237 600 000 001",
+    "actif": true
+  },
+  "chef_service": {
+    "id": 2,
+    "nom": "Chef",
+    "prenom": "Service SDTD",
+    "email": "chef.sdtd@minee.cm",
+    "password": "Chef@2025",
+    "password_hash": "$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+    "role": "chef_service",
+    "telephone": "+237 600 000 002",
+    "actif": true
+  },
+  "billeteur": {
+    "id": 3,
+    "nom": "Billeteur",
+    "prenom": "DPPG",
+    "email": "billeteur@minee.cm",
+    "password": "Billet@2025",
+    "password_hash": "$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+    "role": "billeteur",
+    "telephone": "+237 600 000 003",
+    "actif": true
+  },
+  "chef_commission": {
+    "id": 4,
+    "nom": "Chef",
+    "prenom": "Commission",
+    "email": "chef.commission@minee.cm",
+    "password": "ChefCom@2025",
+    "password_hash": "$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+    "role": "chef_commission",
+    "telephone": "+237 600 000 004",
+    "actif": true
+  },
+  "cadre_daj": {
+    "id": 5,
+    "nom": "Cadre",
+    "prenom": "DAJ",
+    "email": "daj@minee.cm",
+    "password": "DAJ@2025",
+    "password_hash": "$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+    "role": "cadre_daj",
+    "telephone": "+237 600 000 005",
+    "actif": true
+  },
+  "sous_directeur": {
+    "id": 6,
+    "nom": "Sous-Directeur",
+    "prenom": "SDTD",
+    "email": "sous.directeur@minee.cm",
+    "password": "SousDir@2025",
+    "password_hash": "$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+    "role": "sous_directeur",
+    "telephone": "+237 600 000 006",
+    "actif": true
+  },
+  "directeur": {
+    "id": 7,
+    "nom": "Directeur",
+    "prenom": "DPPG",
+    "email": "directeur.dppg@minee.cm",
+    "password": "Directeur@2025",
+    "password_hash": "$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+    "role": "directeur",
+    "telephone": "+237 600 000 007",
+    "actif": true
+  },
+  "ministre": {
+    "id": 8,
+    "nom": "Cabinet",
+    "prenom": "Ministre",
+    "email": "cabinet.ministre@minee.cm",
+    "password": "Ministre@2025",
+    "password_hash": "$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+    "role": "ministre",
+    "telephone": "+237 600 000 008",
+    "actif": true
+  },
+  "salomon_mai": {
+    "id": 16,
+    "nom": "MAÏ",
+    "prenom": "Salomon",
+    "email": "salomon.mai@minee.cm",
+    "password": "Salomon@2025",
+    "password_hash": "$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+    "role": "cadre_dppg",
+    "telephone": "+237 600 000 016",
+    "actif": true
+  },
+  "christian_abanda": {
+    "id": 27,
+    "nom": "ABANDA",
+    "prenom": "Christian",
+    "email": "christian.abanda@minee.cm",
+    "password": "Christian@2025",
+    "password_hash": "$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+    "role": "cadre_dppg",
+    "telephone": "+237 600 000 027",
+    "actif": true
+  }
+}

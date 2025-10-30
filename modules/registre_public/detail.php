@@ -14,7 +14,7 @@ $sql = "SELECT d.*, dec.decision, dec.date_decision, dec.reference_decision, dec
         DATE_FORMAT(d.date_creation, '%d/%m/%Y') as date_creation_format
         FROM dossiers d
         LEFT JOIN decisions dec ON d.id = dec.dossier_id
-        WHERE d.numero = :numero AND d.statut IN ('autorise', 'refuse', 'ferme')";
+        WHERE d.numero = :numero AND d.statut IN ('autorise', 'refuse', 'ferme', 'historique_autorise')";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute(['numero' => $numero]);

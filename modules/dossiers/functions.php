@@ -914,10 +914,18 @@ function canAccessDossier($dossier_id, $user_id, $user_role) {
         return true;
     }
 
-    // Sous-directeur: peut voir les dossiers qu'il a visés
+    // Sous-directeur: peut voir les dossiers qu'il a visés OU où il est chef de commission
     if ($user_role === 'sous_directeur') {
+        // Vérifier si visé
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM visas WHERE dossier_id = ? AND role = 'sous_directeur'");
         $stmt->execute([$dossier_id]);
+        if ($stmt->fetchColumn() > 0) {
+            return true;
+        }
+
+        // Vérifier si chef de commission
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM commissions WHERE dossier_id = ? AND chef_commission_id = ?");
+        $stmt->execute([$dossier_id, $user_id]);
         return $stmt->fetchColumn() > 0;
     }
 

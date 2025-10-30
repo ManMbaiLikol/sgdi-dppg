@@ -6,9 +6,9 @@ require_once '../../includes/map_functions.php';
 
 $page_title = 'Carte des Infrastructures Pétrolières';
 
-// Récupérer uniquement les infrastructures autorisées avec coordonnées GPS
+// Récupérer les infrastructures autorisées avec coordonnées GPS (incluant historique_autorise)
 $filters = [
-    'statut' => 'autorise',
+    'statuts' => ['autorise', 'historique_autorise'],
     'type_infrastructure' => sanitize($_GET['type'] ?? ''),
     'region' => sanitize($_GET['region'] ?? '')
 ];
@@ -16,7 +16,7 @@ $filters = [
 $infrastructures = getAllInfrastructuresForMap($filters);
 
 // Récupérer les régions
-$regions = $pdo->query("SELECT DISTINCT region FROM dossiers WHERE region IS NOT NULL AND region != '' AND statut = 'autorise' ORDER BY region")->fetchAll(PDO::FETCH_COLUMN);
+$regions = $pdo->query("SELECT DISTINCT region FROM dossiers WHERE region IS NOT NULL AND region != '' AND statut IN ('autorise', 'historique_autorise') ORDER BY region")->fetchAll(PDO::FETCH_COLUMN);
 
 // Statistiques
 $stats = [

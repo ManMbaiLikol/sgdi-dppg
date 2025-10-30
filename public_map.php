@@ -6,9 +6,9 @@ require_once 'includes/map_functions.php';
 
 $page_title = 'Registre public - Carte des infrastructures';
 
-// Récupérer les infrastructures avec statuts avancés (payé, inspecté, validé, autorisé)
+// Récupérer les infrastructures avec statuts avancés (incluant historique_autorise)
 $filters = [
-    'statuts' => ['paye', 'inspecte', 'valide', 'autorise'], // Statuts affichables publiquement
+    'statuts' => ['paye', 'inspecte', 'valide', 'autorise', 'historique_autorise'], // Statuts affichables publiquement
     'type_infrastructure' => sanitize($_GET['type'] ?? ''),
     'region' => sanitize($_GET['region'] ?? '')
 ];
@@ -23,7 +23,7 @@ $infrastructures = getAllInfrastructuresForMap($filters);
 // Récupérer les régions
 $sql = "SELECT DISTINCT region FROM dossiers
         WHERE region IS NOT NULL AND region != ''
-        AND statut IN ('paye', 'inspecte', 'valide', 'autorise')
+        AND statut IN ('paye', 'inspecte', 'valide', 'autorise', 'historique_autorise')
         ORDER BY region";
 $stmt = $pdo->query($sql);
 $regions = $stmt->fetchAll(PDO::FETCH_COLUMN);

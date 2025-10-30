@@ -591,8 +591,8 @@ infrastructures.forEach(function(infra) {
             radius: 500,
             color: '#ff6b6b',
             fillColor: '#ff6b6b',
-            fillOpacity: 0.05,
-            opacity: 0.3,
+            fillOpacity: 0.15,  // Augmenté de 0.05 à 0.15 (3x plus visible)
+            opacity: 0.5,       // Augmenté de 0.3 à 0.5 pour la bordure
             weight: 2,
             dashArray: '5, 10'
         });
