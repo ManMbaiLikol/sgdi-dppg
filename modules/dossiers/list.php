@@ -41,6 +41,9 @@ require_once '../../includes/header.php';
     </div>
     <?php if (hasRole('chef_service')): ?>
     <div class="col-auto">
+        <a href="<?php echo url('modules/dossiers/viser_inspections.php'); ?>" class="btn btn-warning me-2">
+            <i class="fas fa-stamp"></i> Viser les dossiers inspectés
+        </a>
         <a href="<?php echo url('modules/dossiers/create.php'); ?>" class="btn btn-primary">
             <i class="fas fa-plus"></i> Nouveau dossier
         </a>
