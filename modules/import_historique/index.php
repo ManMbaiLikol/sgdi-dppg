@@ -24,6 +24,9 @@ include '../../includes/header.php';
                     <p class="text-muted">Importer les dossiers autorisés avant la mise en place du SGDI</p>
                 </div>
                 <div>
+                    <a href="<?= url('modules/import_historique/guide.php') ?>" class="btn btn-success me-2">
+                        <i class="fas fa-book"></i> Guide d'utilisation
+                    </a>
                     <a href="<?= url('modules/import_historique/dashboard.php') ?>" class="btn btn-info">
                         <i class="fas fa-chart-bar"></i> Tableau de bord
                     </a>
