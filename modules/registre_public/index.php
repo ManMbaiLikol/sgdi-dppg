@@ -35,7 +35,7 @@ if ($statut && $statut !== 'tous') {
     $params['statut'] = $statut;
 } else {
     // "Tous les statuts" = uniquement les statuts publics (pas les brouillons, en_cours, etc.)
-    $sql .= " AND d.statut IN ('autorise', 'refuse', 'ferme', 'historique_autorise')";
+    $sql .= " AND d.statut IN ('autorise', 'refuse', 'ferme', 'historique_autorise', 'approuve')";
 }
 
 if ($search) {
