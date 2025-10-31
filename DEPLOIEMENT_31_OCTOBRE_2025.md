@@ -328,12 +328,12 @@ railway up
 
 - [x] Code poussé sur GitHub
 - [x] Déploiement Railway lancé
-- [ ] Migrations SQL exécutées sur Railway
+- [x] Migrations SQL exécutées sur Railway ✅
 - [ ] Tests fonctionnels validés
 - [ ] Emails de notification testés
 - [ ] Registre public accessible
 - [ ] Circuit visa testé de bout en bout
-- [ ] Documentation à jour
+- [x] Documentation à jour
 
 ### Après validation
 
