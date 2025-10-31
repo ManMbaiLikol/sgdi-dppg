@@ -40,16 +40,17 @@ echo "<h1>🧹 Nettoyage des données de test</h1>";
 echo "<h2>📊 Étape 1: Identification des dossiers de test</h2>";
 
 try {
-    // Recherche plus précise avec LIKE sur observations
-    $sql = "SELECT id, numero, nom_demandeur, ville, region, type_infrastructure, observations, date_creation
+    // Rechercher les dossiers de test via source_import
+    $sql = "SELECT id, numero, nom_demandeur, ville, region, type_infrastructure, source_import, date_creation, latitude, longitude
             FROM dossiers
-            WHERE observations LIKE '%Test pilote%' OR observations LIKE '%test pilote%'
+            WHERE source_import LIKE '%test%' OR source_import LIKE '%Import manuel%'
             ORDER BY id";
 
     $stmt = $pdo->query($sql);
     $test_dossiers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     echo "<p><strong>Requête exécutée:</strong> " . count($test_dossiers) . " résultat(s) trouvé(s)</p>";
+    echo "<p><small>Critères: source_import contient 'test' ou 'Import manuel'</small></p>";
 
 } catch (Exception $e) {
     echo "<div class='error'>";
@@ -65,7 +66,7 @@ if (count($test_dossiers) === 0) {
     echo "<div class='success'>";
     echo "<h3>✅ Aucun dossier de test trouvé</h3>";
     echo "<p>La base de données est propre. Aucune donnée de test à supprimer.</p>";
-    echo "<p><small>Recherche effectuée sur la colonne 'observations' avec le terme 'Test pilote'</small></p>";
+    echo "<p><small>Recherche effectuée sur la colonne 'source_import' avec les termes 'test' et 'Import manuel'</small></p>";
     echo "</div>";
     echo "<a href='dashboard.php' class='btn btn-secondary'>🏠 Retour Dashboard</a>";
     echo "</div></body></html>";
@@ -78,7 +79,7 @@ echo "<p>Ces dossiers ont été créés à partir du fichier <strong>TEST_PILOTE
 echo "</div>";
 
 echo "<table>";
-echo "<tr><th>ID</th><th>Numéro</th><th>Demandeur</th><th>Type</th><th>Ville</th><th>Région</th><th>Date</th><th>Observations</th></tr>";
+echo "<tr><th>ID</th><th>Numéro</th><th>Demandeur</th><th>Type</th><th>Ville</th><th>Région</th><th>Date</th><th>Source Import</th><th>GPS</th></tr>";
 
 foreach ($test_dossiers as $d) {
     echo "<tr>";
@@ -88,8 +89,9 @@ foreach ($test_dossiers as $d) {
     echo "<td>" . htmlspecialchars($d['type_infrastructure'] ?? 'N/A') . "</td>";
     echo "<td>" . htmlspecialchars($d['ville'] ?? 'N/A') . "</td>";
     echo "<td>" . htmlspecialchars($d['region'] ?? 'N/A') . "</td>";
-    echo "<td>" . ($d['date_creation'] ? date('d/m/Y', strtotime($d['date_creation'])) : 'N/A') . "</td>";
-    echo "<td><small>" . htmlspecialchars(substr($d['observations'] ?? '', 0, 50)) . "...</small></td>";
+    echo "<td>" . ($d['date_creation'] ? date('d/m/Y H:i', strtotime($d['date_creation'])) : 'N/A') . "</td>";
+    echo "<td><small>" . htmlspecialchars($d['source_import'] ?? 'N/A') . "</small></td>";
+    echo "<td><small>" . ($d['latitude'] ? number_format($d['latitude'], 4) . ',' . number_format($d['longitude'], 4) : 'N/A') . "</small></td>";
     echo "</tr>";
 }
 echo "</table>";
