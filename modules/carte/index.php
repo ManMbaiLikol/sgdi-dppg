@@ -255,25 +255,33 @@ require_once '../../includes/header.php';
                 <strong class="d-block mb-2">Types d'infrastructure:</strong>
                 <div class="legend-item">
                     <div class="legend-marker" style="background: #ff6b6b;">
-                        <i class="fas fa-gas-pump"></i>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                            <path d="M18,10a1,1,0,0,0-1,1v3a1,1,0,0,1-1,1,1,1,0,0,1-1-1V6a2,2,0,0,0-2-2H6A2,2,0,0,0,4,6v9a2,2,0,0,0,2,2v4h2V17h4v4h2V17a2,2,0,0,0,2-2V13h1a3,3,0,0,0,3-3V11A1,1,0,0,0,18,10ZM12,10H6V6h6Z"/>
+                        </svg>
                     </div>
                     <span>Station-service</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-marker" style="background: #4ecdc4;">
-                        <i class="fas fa-industry"></i>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                            <path d="M17,10h3v11h-3ZM13,2h-2L8.5,7l-3-4L4,5v14h5V9h4V19h4Z"/>
+                        </svg>
                     </div>
                     <span>Point consommateur</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-marker" style="background: #f7b731;">
-                        <i class="fas fa-warehouse"></i>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                            <path d="M18,15H16V17H8V15H6v5h12ZM20,3H4A2,2,0,0,0,2,5V15a2,2,0,0,0,2,2h4V14h8v3h4a2,2,0,0,0,2-2V5A2,2,0,0,0,20,3ZM10,10H8V5h2Zm6,0H14V5h2Z"/>
+                        </svg>
                     </div>
                     <span>Dépôt GPL</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-marker" style="background: #5f27cd;">
-                        <i class="fas fa-fire"></i>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                            <path d="M16,6V4a2,2,0,0,0-2-2H10A2,2,0,0,0,8,4V6a2,2,0,0,0-2,2V20a2,2,0,0,0,2,2h8a2,2,0,0,0,2-2V8A2,2,0,0,0,16,6ZM10,4h4V6H10Zm0,14V10h4v8Z"/>
+                        </svg>
                     </div>
                     <span>Centre emplisseur</span>
                 </div>
@@ -359,20 +367,63 @@ const iconNames = {
     'centre_emplisseur': 'fire'
 };
 
+// Créer des icônes SVG réalistes selon le type d'infrastructure
+function createCustomIcon(type, color) {
+    let iconSvg = '';
+
+    switch(type) {
+        case 'station_service':
+            // Icône pompe à essence réaliste (style Google Maps)
+            iconSvg = `
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                    <path d="M18,10a1,1,0,0,0-1,1v3a1,1,0,0,1-1,1,1,1,0,0,1-1-1V6a2,2,0,0,0-2-2H6A2,2,0,0,0,4,6v9a2,2,0,0,0,2,2v4h2V17h4v4h2V17a2,2,0,0,0,2-2V13h1a3,3,0,0,0,3-3V11A1,1,0,0,0,18,10ZM12,10H6V6h6Z"/>
+                </svg>`;
+            break;
+        case 'point_consommateur':
+            // Icône usine/industrie
+            iconSvg = `
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                    <path d="M17,10h3v11h-3ZM13,2h-2L8.5,7l-3-4L4,5v14h5V9h4V19h4Z"/>
+                </svg>`;
+            break;
+        case 'depot_gpl':
+            // Icône réservoir/entrepôt
+            iconSvg = `
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                    <path d="M18,15H16V17H8V15H6v5h12ZM20,3H4A2,2,0,0,0,2,5V15a2,2,0,0,0,2,2h4V14h8v3h4a2,2,0,0,0,2-2V5A2,2,0,0,0,20,3ZM10,10H8V5h2Zm6,0H14V5h2Z"/>
+                </svg>`;
+            break;
+        case 'centre_emplisseur':
+            // Icône bouteille de gaz
+            iconSvg = `
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                    <path d="M16,6V4a2,2,0,0,0-2-2H10A2,2,0,0,0,8,4V6a2,2,0,0,0-2,2V20a2,2,0,0,0,2,2h8a2,2,0,0,0,2-2V8A2,2,0,0,0,16,6ZM10,4h4V6H10Zm0,14V10h4v8Z"/>
+                </svg>`;
+            break;
+        default:
+            // Icône générique marker
+            iconSvg = `
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                    <path d="M12,2A7,7,0,0,0,5,9c0,5.25,7,13,7,13s7-7.75,7-13A7,7,0,0,0,12,2Zm0,9.5A2.5,2.5,0,1,1,14.5,9,2.5,2.5,0,0,1,12,11.5Z"/>
+                </svg>`;
+    }
+
+    return L.divIcon({
+        html: `<div style="background: ${color}; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: 3px solid white; box-shadow: 0 3px 8px rgba(0,0,0,0.4); position: relative;">
+                ${iconSvg}
+                <div style="position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid ${color}; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));"></div>
+               </div>`,
+        className: 'custom-marker',
+        iconSize: [36, 44],
+        iconAnchor: [18, 44],
+        popupAnchor: [0, -44]
+    });
+}
+
 // Ajouter les marqueurs
 infrastructures.forEach(function(infra) {
     const color = iconColors[infra.type_infrastructure] || '#6c757d';
-    const iconName = iconNames[infra.type_infrastructure] || 'map-marker';
-
-    // Créer une icône personnalisée avec Font Awesome
-    const icon = L.divIcon({
-        html: `<div style="background: ${color}; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">
-                <i class="fas fa-${iconName}" style="font-size: 14px;"></i>
-               </div>`,
-        className: 'custom-marker',
-        iconSize: [32, 32],
-        iconAnchor: [16, 16]
-    });
+    const icon = createCustomIcon(infra.type_infrastructure, color);
 
     const marker = L.marker([infra.latitude, infra.longitude], { icon: icon });
 
