@@ -50,8 +50,8 @@ if (isset($_GET['check'])) {
     exit(0);
 }
 
-// Lire le fichier SQL
-$sql_file = __DIR__ . '/database/migrations/007_create_decisions_and_registre.sql';
+// Lire le fichier SQL (version simplifiée sans clés étrangères)
+$sql_file = __DIR__ . '/database/migrations/007_create_decisions_and_registre_simple.sql';
 
 if (!file_exists($sql_file)) {
     echo "<span class='error'>❌ Erreur: Fichier migration introuvable: $sql_file</span>\n";
@@ -65,7 +65,7 @@ if ($sql === false) {
     exit(1);
 }
 
-echo "<span class='info'>📄 Fichier de migration chargé: 007_create_decisions_and_registre.sql</span>\n";
+echo "<span class='info'>📄 Fichier de migration chargé: 007_create_decisions_and_registre_simple.sql</span>\n";
 echo "<span class='info'>📊 Taille: " . strlen($sql) . " octets</span>\n\n";
 
 // Séparer les commandes SQL (en ignorant les commentaires)
