@@ -11,7 +11,7 @@ $search = sanitize($_GET['search'] ?? '');
 $type_infrastructure = sanitize($_GET['type_infrastructure'] ?? '');
 $region = sanitize($_GET['region'] ?? '');
 $ville = sanitize($_GET['ville'] ?? '');
-$statut = sanitize($_GET['statut'] ?? 'autorise'); // Par défaut, uniquement autorisées
+$statut = sanitize($_GET['statut'] ?? 'tous'); // Par défaut, tous les statuts publics
 $annee = sanitize($_GET['annee'] ?? '');
 $page = max(1, intval($_GET['page'] ?? 1)); // Pagination
 $par_page = 20; // 20 résultats par page
@@ -92,18 +92,32 @@ $stmt->execute();
 $dossiers = $stmt->fetchAll();
 
 // Récupérer les options de filtres
-$regions = $pdo->query("SELECT DISTINCT region FROM dossiers WHERE region IS NOT NULL AND region != '' ORDER BY region")->fetchAll(PDO::FETCH_COLUMN);
+// Liste complète des 10 régions du Cameroun (affichées même sans dossiers)
+$regions = [
+    'Adamaoua',
+    'Centre',
+    'Est',
+    'Extrême-Nord',
+    'Littoral',
+    'Nord',
+    'Nord-Ouest',
+    'Ouest',
+    'Sud',
+    'Sud-Ouest'
+];
+
 $villes = $pdo->query("SELECT DISTINCT ville FROM dossiers WHERE ville IS NOT NULL AND ville != '' ORDER BY ville")->fetchAll(PDO::FETCH_COLUMN);
 $annees = $pdo->query("SELECT DISTINCT YEAR(date_creation) as annee FROM dossiers WHERE date_creation IS NOT NULL ORDER BY annee DESC")->fetchAll(PDO::FETCH_COLUMN);
 
-// Statistiques publiques
+// Statistiques publiques (tous les statuts publics)
 $stats_sql = "SELECT
     COUNT(DISTINCT d.id) as total_autorise,
     COUNT(DISTINCT CASE WHEN d.type_infrastructure = 'station_service' THEN d.id END) as stations,
     COUNT(DISTINCT CASE WHEN d.type_infrastructure = 'point_consommateur' THEN d.id END) as points,
     COUNT(DISTINCT CASE WHEN d.type_infrastructure = 'depot_gpl' THEN d.id END) as depots,
     COUNT(DISTINCT CASE WHEN d.type_infrastructure = 'centre_emplisseur' THEN d.id END) as centres
-    FROM dossiers d WHERE d.statut = 'autorise'";
+    FROM dossiers d
+    WHERE d.statut IN ('autorise', 'refuse', 'ferme', 'historique_autorise', 'approuve')";
 $stats = $pdo->query($stats_sql)->fetch();
 ?>
 <!DOCTYPE html>
@@ -214,23 +228,27 @@ $stats = $pdo->query($stats_sql)->fetch();
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Ville</label>
-                        <select class="form-select" name="ville">
-                            <option value="">Toutes les villes</option>
+                        <input type="text"
+                               class="form-control"
+                               name="ville"
+                               list="villes-list"
+                               placeholder="Ex: Douala, Yaoundé..."
+                               value="<?php echo htmlspecialchars($ville); ?>">
+                        <datalist id="villes-list">
                             <?php foreach($villes as $v): ?>
-                                <option value="<?php echo htmlspecialchars($v); ?>"
-                                        <?php echo $ville === $v ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($v); ?>
-                                </option>
+                                <option value="<?php echo htmlspecialchars($v); ?>">
                             <?php endforeach; ?>
-                        </select>
+                        </datalist>
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Statut</label>
                         <select class="form-select" name="statut">
-                            <option value="autorise" <?php echo $statut === 'autorise' ? 'selected' : ''; ?>>Autorisées</option>
+                            <option value="tous" <?php echo $statut === 'tous' ? 'selected' : ''; ?>>Toutes</option>
+                            <option value="historique_autorise" <?php echo $statut === 'historique_autorise' ? 'selected' : ''; ?>>Autorisations historiques</option>
+                            <option value="autorise" <?php echo $statut === 'autorise' ? 'selected' : ''; ?>>Autorisées (nouvelles)</option>
+                            <option value="approuve" <?php echo $statut === 'approuve' ? 'selected' : ''; ?>>Approuvées (ministre)</option>
                             <option value="refuse" <?php echo $statut === 'refuse' ? 'selected' : ''; ?>>Refusées</option>
                             <option value="ferme" <?php echo $statut === 'ferme' ? 'selected' : ''; ?>>Fermées</option>
-                            <option value="tous" <?php echo $statut === 'tous' ? 'selected' : ''; ?>>Tous (Autorisées + Refusées + Fermées)</option>
                         </select>
                     </div>
                     <div class="col-md-3 mb-3">
@@ -312,9 +330,16 @@ $stats = $pdo->query($stats_sql)->fetch();
                         </div>
                         <div class="col-md-4 text-end">
                             <h6 class="mb-2">Dossier N° <strong><?php echo htmlspecialchars($dossier['numero']); ?></strong></h6>
-                            <?php if ($dossier['statut'] === 'autorise'): ?>
+                            <?php if ($dossier['statut'] === 'autorise' || $dossier['statut'] === 'historique_autorise'): ?>
                                 <span class="badge bg-success fs-6 mb-2">
                                     <i class="fas fa-check-circle"></i> AUTORISÉE
+                                </span>
+                                <?php if ($dossier['statut'] === 'historique_autorise'): ?>
+                                    <br><small class="text-muted"><i class="fas fa-history"></i> Historique</small>
+                                <?php endif; ?>
+                            <?php elseif ($dossier['statut'] === 'approuve'): ?>
+                                <span class="badge bg-primary fs-6 mb-2">
+                                    <i class="fas fa-stamp"></i> APPROUVÉE
                                 </span>
                             <?php elseif ($dossier['statut'] === 'refuse'): ?>
                                 <span class="badge bg-danger fs-6 mb-2">
