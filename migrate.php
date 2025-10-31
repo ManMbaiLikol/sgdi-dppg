@@ -50,6 +50,22 @@ if (isset($_GET['check'])) {
     exit(0);
 }
 
+// Mode affichage du SQL: voir le contenu exact du fichier
+if (isset($_GET['showsql'])) {
+    echo "<h2>📄 CONTENU DU FICHIER SQL</h2>\n";
+    $sql_file = __DIR__ . '/database/migrations/007_create_decisions_and_registre_simple.sql';
+    if (file_exists($sql_file)) {
+        $content = file_get_contents($sql_file);
+        echo "<span class='info'>Fichier: $sql_file</span>\n";
+        echo "<span class='info'>Taille: " . strlen($content) . " octets</span>\n\n";
+        echo htmlspecialchars($content);
+    } else {
+        echo "<span class='error'>❌ Fichier introuvable: $sql_file</span>\n";
+    }
+    echo "</pre></body></html>";
+    exit(0);
+}
+
 // Lire le fichier SQL (version simplifiée sans clés étrangères)
 $sql_file = __DIR__ . '/database/migrations/007_create_decisions_and_registre_simple.sql';
 
