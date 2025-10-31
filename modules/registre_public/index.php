@@ -38,7 +38,7 @@ if ($statut && $statut !== 'tous') {
     $sql .= " AND d.statut IN ('autorise', 'refuse', 'ferme', 'historique_autorise', 'approuve')";
 }
 
-if ($search) {
+if ($search && $search !== '') {
     $sql .= " AND (d.numero LIKE :search
               OR d.nom_demandeur LIKE :search
               OR d.operateur_proprietaire LIKE :search
@@ -46,24 +46,24 @@ if ($search) {
     $params['search'] = "%$search%";
 }
 
-if ($type_infrastructure) {
+if ($type_infrastructure && $type_infrastructure !== '') {
     $sql .= " AND d.type_infrastructure = :type";
     $params['type'] = $type_infrastructure;
 }
 
-if ($region) {
+if ($region && $region !== '') {
     $sql .= " AND d.region = :region";
     $params['region'] = $region;
 }
 
-if ($ville) {
+if ($ville && $ville !== '') {
     $sql .= " AND d.ville = :ville";
     $params['ville'] = $ville;
 }
 
-if ($annee) {
+if ($annee && $annee !== '' && is_numeric($annee)) {
     $sql .= " AND YEAR(d.date_creation) = :annee";
-    $params['annee'] = $annee;
+    $params['annee'] = intval($annee);
 }
 
 // Compter le total pour la pagination
