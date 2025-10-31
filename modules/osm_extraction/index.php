@@ -37,7 +37,7 @@ require_once '../../includes/header.php';
             <!-- Cartes des options -->
             <div class="row g-4">
                 <!-- Carte 1: Extraction complète -->
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <div class="card h-100 shadow-sm">
                         <div class="card-body">
                             <div class="d-flex align-items-center mb-3">
@@ -73,7 +73,7 @@ require_once '../../includes/header.php';
                 </div>
 
                 <!-- Carte 2: Filtrage intelligent -->
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <div class="card h-100 shadow-sm border-success">
                         <div class="card-body">
                             <div class="d-flex align-items-center mb-3">
@@ -111,6 +111,46 @@ require_once '../../includes/header.php';
                         </div>
                     </div>
                 </div>
+
+                <!-- Carte 3: Conversion pour import -->
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm border-warning">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-file-export fa-3x text-warning"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h5 class="card-title mb-0">Conversion pour import</h5>
+                                    <p class="text-muted small mb-0">Format Import Historique</p>
+                                </div>
+                            </div>
+
+                            <p class="card-text">
+                                Convertit le CSV filtré OSM au <strong>format du module Import Historique</strong>
+                                pour faciliter l'import dans le SGDI.
+                            </p>
+
+                            <div class="alert alert-warning small mb-3">
+                                <strong>🔧 Préparation:</strong>
+                                <ul class="mb-0 mt-2">
+                                    <li>Conversion automatique format</li>
+                                    <li>Mapping colonnes OSM → SGDI</li>
+                                    <li>Prêt pour enrichissement Excel</li>
+                                    <li>Compatible import direct</li>
+                                </ul>
+                            </div>
+
+                            <a href="convert_for_import.php" class="btn btn-warning w-100">
+                                <i class="fas fa-file-export"></i> Convertir pour import
+                            </a>
+                            <p class="text-muted small mt-2 mb-0">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Nécessite d'avoir filtré les stations
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Workflow recommandé -->
@@ -122,7 +162,7 @@ require_once '../../includes/header.php';
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="text-center mb-3">
                                 <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center"
                                      style="width: 50px; height: 50px; font-size: 1.5em; font-weight: bold;">
@@ -132,35 +172,57 @@ require_once '../../includes/header.php';
                                 <p class="small text-muted">Récupérer toutes les stations (~700)</p>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="text-center mb-3">
                                 <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center"
                                      style="width: 50px; height: 50px; font-size: 1.5em; font-weight: bold;">
                                     2
                                 </div>
                                 <h6 class="mt-2">Filtrage qualité</h6>
-                                <p class="small text-muted">Ne garder que les meilleures (~320)</p>
+                                <p class="small text-muted">Garder les meilleures (~320)</p>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="text-center mb-3">
                                 <div class="bg-warning text-white rounded-circle d-inline-flex align-items-center justify-content-center"
                                      style="width: 50px; height: 50px; font-size: 1.5em; font-weight: bold;">
                                     3
                                 </div>
-                                <h6 class="mt-2">Enrichissement</h6>
-                                <p class="small text-muted">Ajouter N° autorisation (Excel)</p>
+                                <h6 class="mt-2">Conversion</h6>
+                                <p class="small text-muted">Format Import SGDI</p>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
+                            <div class="text-center mb-3">
+                                <div class="bg-secondary text-white rounded-circle d-inline-flex align-items-center justify-content-center"
+                                     style="width: 50px; height: 50px; font-size: 1.5em; font-weight: bold;">
+                                    4
+                                </div>
+                                <h6 class="mt-2">Enrichissement</h6>
+                                <p class="small text-muted">N° autorisation (Excel)</p>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
                             <div class="text-center mb-3">
                                 <div class="bg-info text-white rounded-circle d-inline-flex align-items-center justify-content-center"
                                      style="width: 50px; height: 50px; font-size: 1.5em; font-weight: bold;">
-                                    4
+                                    5
                                 </div>
                                 <h6 class="mt-2">Import SGDI</h6>
                                 <p class="small text-muted">
                                     <a href="../import_historique/">Module Import</a>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-center mb-3">
+                                <div class="bg-dark text-white rounded-circle d-inline-flex align-items-center justify-content-center"
+                                     style="width: 50px; height: 50px; font-size: 1.5em; font-weight: bold;">
+                                    6
+                                </div>
+                                <h6 class="mt-2">Visualisation</h6>
+                                <p class="small text-muted">
+                                    <a href="../carte/">Carte interactive</a>
                                 </p>
                             </div>
                         </div>
