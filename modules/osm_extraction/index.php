@@ -19,6 +19,9 @@ require_once '../../includes/header.php';
         Extraction Stations OpenStreetMap
     </h1>
     <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="guide_import.php" class="btn btn-sm btn-success me-2">
+            <i class="fas fa-book"></i> Guide Complet
+        </a>
         <a href="../../dashboard.php" class="btn btn-sm btn-outline-secondary">
             <i class="fas fa-arrow-left"></i> Retour Dashboard
         </a>
