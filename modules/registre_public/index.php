@@ -17,29 +17,22 @@ $page = max(1, intval($_GET['page'] ?? 1)); // Pagination
 $par_page = 20; // 20 résultats par page
 
 // Construction de la requête
-$sql = "SELECT d.*,
-        d.numero, d.type_infrastructure, d.sous_type, d.region, d.ville,
-        d.nom_demandeur, d.operateur_proprietaire, d.entreprise_beneficiaire,
-        DATE_FORMAT(d.date_creation, '%d/%m/%Y') as date_decision_format,
-        NULL as decision,
-        d.date_creation as date_decision,
-        d.numero as reference_decision
-        FROM dossiers d
-        WHERE 1=1";
+$where_clause = "WHERE 1=1";
+$from_clause = "FROM dossiers d";
 
 $params = [];
 
 // IMPORTANT : Limiter aux statuts publics uniquement
 if ($statut && $statut !== 'tous') {
-    $sql .= " AND d.statut = :statut";
+    $where_clause .= " AND d.statut = :statut";
     $params['statut'] = $statut;
 } else {
     // "Tous les statuts" = uniquement les statuts publics (pas les brouillons, en_cours, etc.)
-    $sql .= " AND d.statut IN ('autorise', 'refuse', 'ferme', 'historique_autorise', 'approuve')";
+    $where_clause .= " AND d.statut IN ('autorise', 'refuse', 'ferme', 'historique_autorise', 'approuve')";
 }
 
 if ($search && $search !== '') {
-    $sql .= " AND (d.numero LIKE :search
+    $where_clause .= " AND (d.numero LIKE :search
               OR d.nom_demandeur LIKE :search
               OR d.operateur_proprietaire LIKE :search
               OR d.ville LIKE :search)";
@@ -47,35 +40,47 @@ if ($search && $search !== '') {
 }
 
 if ($type_infrastructure && $type_infrastructure !== '') {
-    $sql .= " AND d.type_infrastructure = :type";
+    $where_clause .= " AND d.type_infrastructure = :type";
     $params['type'] = $type_infrastructure;
 }
 
 if ($region && $region !== '') {
-    $sql .= " AND d.region = :region";
+    $where_clause .= " AND d.region = :region";
     $params['region'] = $region;
 }
 
 if ($ville && $ville !== '') {
-    $sql .= " AND d.ville = :ville";
+    $where_clause .= " AND d.ville = :ville";
     $params['ville'] = $ville;
 }
 
 if ($annee && $annee !== '' && is_numeric($annee)) {
-    $sql .= " AND YEAR(d.date_creation) = :annee";
+    $where_clause .= " AND YEAR(d.date_creation) = :annee";
     $params['annee'] = intval($annee);
 }
 
 // Compter le total pour la pagination
-$count_sql = "SELECT COUNT(*) " . substr($sql, strpos($sql, 'FROM'));
+$count_sql = "SELECT COUNT(*) $from_clause $where_clause";
 $count_stmt = $pdo->prepare($count_sql);
 $count_stmt->execute($params);
 $total_resultats = $count_stmt->fetchColumn();
 $total_pages = ceil($total_resultats / $par_page);
 
+// Construire la requête complète avec SELECT
+$sql = "SELECT d.*,
+        d.numero, d.type_infrastructure, d.sous_type, d.region, d.ville,
+        d.nom_demandeur, d.operateur_proprietaire, d.entreprise_beneficiaire,
+        DATE_FORMAT(d.date_creation, '%d/%m/%Y') as date_decision_format,
+        NULL as decision,
+        d.date_creation as date_decision,
+        d.numero as reference_decision
+        $from_clause
+        $where_clause
+        ORDER BY d.date_creation DESC, d.numero DESC
+        LIMIT :limit OFFSET :offset";
+
 // Ajouter la pagination
 $offset = ($page - 1) * $par_page;
-$sql .= " ORDER BY d.date_creation DESC, d.numero DESC LIMIT :limit OFFSET :offset";
 
 $stmt = $pdo->prepare($sql);
 foreach ($params as $key => $value) {
