@@ -24,6 +24,32 @@ echo ".success{color:#4ec9b0;}.error{color:#f48771;}.info{color:#569cd6;}</style
 echo "<h1>🔧 EXÉCUTION MIGRATION SQL</h1>";
 echo "<pre>";
 
+// Mode diagnostic: lister les tables existantes
+if (isset($_GET['check'])) {
+    echo "<h2>📊 TABLES EXISTANTES DANS LA BASE DE DONNÉES</h2>\n";
+    try {
+        $stmt = $pdo->query("SHOW TABLES");
+        $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        echo "<span class='info'>Nombre total de tables: " . count($tables) . "</span>\n\n";
+
+        if (count($tables) === 0) {
+            echo "<span class='error'>⚠️ AUCUNE TABLE TROUVÉE!</span>\n";
+            echo "La base de données est complètement vide.\n";
+            echo "Il faut exécuter toutes les migrations depuis le début.\n";
+        } else {
+            foreach ($tables as $table) {
+                $count_stmt = $pdo->query("SELECT COUNT(*) FROM `$table`");
+                $row_count = $count_stmt->fetchColumn();
+                echo "  <span class='success'>✅ $table</span> ($row_count lignes)\n";
+            }
+        }
+    } catch (PDOException $e) {
+        echo "<span class='error'>❌ Erreur: " . htmlspecialchars($e->getMessage()) . "</span>\n";
+    }
+    echo "</pre></body></html>";
+    exit(0);
+}
+
 // Lire le fichier SQL
 $sql_file = __DIR__ . '/database/migrations/007_create_decisions_and_registre.sql';
 
