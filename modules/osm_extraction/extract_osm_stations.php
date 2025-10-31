@@ -343,8 +343,8 @@ echo "</div>";
 
 echo "<div style='text-align:center;margin-top:30px;'>";
 echo "<a href='extract_osm_stations.php' class='btn'>🔄 Relancer l'extraction</a>";
-echo "<a href='modules/import_historique/' class='btn'>📥 Aller au module Import</a>";
-echo "<a href='dashboard.php' class='btn'>🏠 Retour Dashboard</a>";
+echo "<a href='../../modules/import_historique/' class='btn'>📥 Aller au module Import</a>";
+echo "<a href='../../dashboard.php' class='btn'>🏠 Retour Dashboard</a>";
 echo "</div>";
 
 echo "</div>"; // container

@@ -318,7 +318,8 @@ if (isset($_POST['export'])) {
 echo "<div style='text-align:center;margin-top:30px;'>";
 echo "<a href='filter_osm_stations.php' class='btn'>🔄 Réinitialiser</a>";
 echo "<a href='extract_osm_stations.php' class='btn'>🗺️ Nouvelle extraction</a>";
-echo "<a href='modules/import_historique/' class='btn'>📥 Module Import</a>";
+echo "<a href='../../modules/import_historique/' class='btn'>📥 Module Import</a>";
+echo "<a href='../../dashboard.php' class='btn'>🏠 Retour Dashboard</a>";
 echo "</div>";
 
 echo "</div>"; // container
