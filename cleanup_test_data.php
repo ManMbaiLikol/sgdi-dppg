@@ -41,7 +41,7 @@ echo "<h2>📊 Étape 1: Identification des dossiers de test</h2>";
 
 try {
     // Rechercher les dossiers de test via source_import
-    $sql = "SELECT id, numero, nom_demandeur, ville, region, type_infrastructure, source_import, date_creation, latitude, longitude
+    $sql = "SELECT id, numero, nom_demandeur, ville, region, type_infrastructure, source_import, date_creation, coordonnees_gps
             FROM dossiers
             WHERE source_import LIKE '%test%' OR source_import LIKE '%Import manuel%'
             ORDER BY id";
@@ -91,7 +91,7 @@ foreach ($test_dossiers as $d) {
     echo "<td>" . htmlspecialchars($d['region'] ?? 'N/A') . "</td>";
     echo "<td>" . ($d['date_creation'] ? date('d/m/Y H:i', strtotime($d['date_creation'])) : 'N/A') . "</td>";
     echo "<td><small>" . htmlspecialchars($d['source_import'] ?? 'N/A') . "</small></td>";
-    echo "<td><small>" . ($d['latitude'] ? number_format($d['latitude'], 4) . ',' . number_format($d['longitude'], 4) : 'N/A') . "</small></td>";
+    echo "<td><small>" . htmlspecialchars($d['coordonnees_gps'] ?? 'N/A') . "</small></td>";
     echo "</tr>";
 }
 echo "</table>";
