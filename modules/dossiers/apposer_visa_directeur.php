@@ -1,40 +1,64 @@
 <?php
-// Apposer visa Chef Service - SGDI MVP
+// Apposer visa Directeur DPPG - SGDI MVP
 require_once '../../includes/auth.php';
 require_once 'functions.php';
 
-requireRole('chef_service');
+requireRole('directeur');
 
 $dossier_id = $_GET['id'] ?? null;
 
 if (!$dossier_id || !is_numeric($dossier_id)) {
-    redirect(url('modules/dossiers/viser_inspections.php'), 'Dossier non spécifié', 'error');
+    redirect(url('modules/dossiers/viser_directeur.php'), 'Dossier non spécifié', 'error');
 }
 
 // Récupérer les détails du dossier
 $dossier = getDossierDetails($dossier_id);
 
 if (!$dossier) {
-    redirect(url('modules/dossiers/viser_inspections.php'), 'Dossier non trouvé', 'error');
+    redirect(url('modules/dossiers/viser_directeur.php'), 'Dossier non trouvé', 'error');
 }
 
-// Vérifier que le dossier est bien au statut 'inspecte'
-if ($dossier['statut'] !== 'inspecte') {
-    redirect(url('modules/dossiers/viser_inspections.php'),
-        'Ce dossier n\'est pas au statut "inspecté"', 'error');
+// Vérifier que le dossier est bien au statut 'visa_sous_directeur'
+if ($dossier['statut'] !== 'visa_sous_directeur') {
+    redirect(url('modules/dossiers/viser_directeur.php'),
+        'Ce dossier n\'est pas au statut "visa sous-directeur"', 'error');
 }
 
-// Récupérer l'inspection si elle existe (même si pas validée)
+// Récupérer l'inspection
 $sql = "SELECT * FROM inspections WHERE dossier_id = ?";
 $stmt = $pdo->prepare($sql);
 $stmt->execute([$dossier_id]);
 $inspection = $stmt->fetch();
 
-// Note: On permet de viser même si l'inspection n'est pas validée par le chef de commission
-// Le Chef Service a l'autorité pour viser directement
+// Récupérer le visa du chef service
+$sql = "SELECT v.*, u.nom, u.prenom, u.email
+        FROM visas v
+        JOIN users u ON v.user_id = u.id
+        WHERE v.dossier_id = ? AND v.role = 'chef_service'
+        ORDER BY v.date_visa DESC
+        LIMIT 1";
+$stmt = $pdo->prepare($sql);
+$stmt->execute([$dossier_id]);
+$visa_chef = $stmt->fetch();
 
-// Vérifier qu'il n'y a pas déjà un visa chef service
-$sql = "SELECT * FROM visas WHERE dossier_id = ? AND role = 'chef_service'";
+// Récupérer le visa du sous-directeur
+$sql = "SELECT v.*, u.nom, u.prenom, u.email
+        FROM visas v
+        JOIN users u ON v.user_id = u.id
+        WHERE v.dossier_id = ? AND v.role = 'sous_directeur'
+        ORDER BY v.date_visa DESC
+        LIMIT 1";
+$stmt = $pdo->prepare($sql);
+$stmt->execute([$dossier_id]);
+$visa_sd = $stmt->fetch();
+
+if (!$visa_sd) {
+    redirect(url('modules/dossiers/viser_directeur.php'),
+        'Le visa du Sous-Directeur est introuvable pour ce dossier', 'error');
+}
+
+// Vérifier qu'il n'y a pas déjà un visa directeur
+$sql = "SELECT * FROM visas WHERE dossier_id = ? AND role = 'directeur'";
 $stmt = $pdo->prepare($sql);
 $stmt->execute([$dossier_id]);
 $visa_existant = $stmt->fetch();
@@ -58,29 +82,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Insérer le visa
         $sql = "INSERT INTO visas (dossier_id, user_id, role, action, observations, date_visa)
-                VALUES (?, ?, 'chef_service', ?, ?, NOW())";
+                VALUES (?, ?, 'directeur', ?, ?, NOW())";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$dossier_id, $_SESSION['user_id'], $action, $observations]);
 
         // Mettre à jour le statut du dossier
         if ($action === 'approuve') {
-            // Transmettre au sous-directeur
-            $nouveau_statut = 'visa_chef_service';
+            // Transmettre au ministre/cabinet
+            $nouveau_statut = 'visa_directeur';
             $sql = "UPDATE dossiers SET statut = ?, date_modification = NOW() WHERE id = ?";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([$nouveau_statut, $dossier_id]);
 
             // Ajouter dans l'historique
             $sql = "INSERT INTO historique_dossier (dossier_id, user_id, action, commentaire, date_action)
-                    VALUES (?, ?, 'visa_chef_service', ?, NOW())";
+                    VALUES (?, ?, 'visa_directeur', ?, NOW())";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
                 $dossier_id,
                 $_SESSION['user_id'],
-                'Visa Chef Service SDTD approuvé - Transmission au Sous-Directeur SDTD'
+                'Visa Directeur DPPG approuvé (3/3) - Transmission au Cabinet/Secrétariat du Ministre pour décision finale'
             ]);
 
-            $message = 'Votre visa a été apposé avec succès. Le dossier a été transmis au Sous-Directeur SDTD.';
+            $message = 'Votre visa final a été apposé avec succès. Le dossier a été transmis au Cabinet/Secrétariat du Ministre pour la décision ministérielle finale.';
             $type = 'success';
 
         } elseif ($action === 'rejete') {
@@ -92,49 +116,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Ajouter dans l'historique
             $sql = "INSERT INTO historique_dossier (dossier_id, user_id, action, commentaire, date_action)
-                    VALUES (?, ?, 'visa_chef_service_rejete', ?, NOW())";
+                    VALUES (?, ?, 'visa_directeur_rejete', ?, NOW())";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
                 $dossier_id,
                 $_SESSION['user_id'],
-                'Visa Chef Service SDTD rejeté : ' . $observations
+                'Visa Directeur DPPG rejeté : ' . $observations
             ]);
 
             $message = 'Le dossier a été rejeté.';
             $type = 'warning';
 
         } else { // demande_modification
-            // Retourner à l'inspection
-            $nouveau_statut = 'analyse_daj';
+            // Retourner au sous-directeur
+            $nouveau_statut = 'visa_chef_service';
             $sql = "UPDATE dossiers SET statut = ?, date_modification = NOW() WHERE id = ?";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([$nouveau_statut, $dossier_id]);
 
             // Ajouter dans l'historique
             $sql = "INSERT INTO historique_dossier (dossier_id, user_id, action, commentaire, date_action)
-                    VALUES (?, ?, 'demande_modification_visa', ?, NOW())";
+                    VALUES (?, ?, 'demande_modification_directeur', ?, NOW())";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
                 $dossier_id,
                 $_SESSION['user_id'],
-                'Demande de modification par Chef Service SDTD : ' . $observations
+                'Demande de modification par Directeur DPPG : ' . $observations
             ]);
 
-            $message = 'Demande de modification enregistrée. Le dossier retourne à la commission.';
+            $message = 'Demande de modification enregistrée. Le dossier retourne au Sous-Directeur SDTD.';
             $type = 'info';
         }
 
         $pdo->commit();
-        redirect(url('modules/dossiers/viser_inspections.php'), $message, $type);
+        redirect(url('modules/dossiers/viser_directeur.php'), $message, $type);
 
     } catch (Exception $e) {
         $pdo->rollBack();
-        redirect(url('modules/dossiers/apposer_visa.php?id=' . $dossier_id),
+        redirect(url('modules/dossiers/apposer_visa_directeur.php?id=' . $dossier_id),
             'Erreur lors de l\'enregistrement du visa : ' . $e->getMessage(), 'error');
     }
 }
 
-$page_title = 'Apposer visa - ' . $dossier['numero'];
+$page_title = 'Apposer visa (3/3) - ' . $dossier['numero'];
 require_once '../../includes/header.php';
 ?>
 
@@ -150,12 +174,12 @@ require_once '../../includes/header.php';
                         </a>
                     </li>
                     <li class="breadcrumb-item">
-                        <a href="<?php echo url('modules/dossiers/viser_inspections.php'); ?>">
+                        <a href="<?php echo url('modules/dossiers/viser_directeur.php'); ?>">
                             <i class="fas fa-stamp"></i> Viser les dossiers
                         </a>
                     </li>
                     <li class="breadcrumb-item active" aria-current="page">
-                        Apposer visa - <?php echo sanitize($dossier['numero']); ?>
+                        Apposer visa (3/3) - <?php echo sanitize($dossier['numero']); ?>
                     </li>
                 </ol>
             </nav>
@@ -163,8 +187,9 @@ require_once '../../includes/header.php';
     </div>
 
     <div class="row">
-        <!-- Informations du dossier -->
+        <!-- Colonne gauche : Informations -->
         <div class="col-md-4">
+            <!-- Informations du dossier -->
             <div class="card mb-4">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">
@@ -206,6 +231,7 @@ require_once '../../includes/header.php';
             </div>
 
             <!-- Informations de l'inspection -->
+            <?php if ($inspection): ?>
             <div class="card mb-4">
                 <div class="card-header bg-success text-white">
                     <h5 class="mb-0">
@@ -214,55 +240,125 @@ require_once '../../includes/header.php';
                     </h5>
                 </div>
                 <div class="card-body">
-                    <?php if ($inspection): ?>
-                        <dl class="row mb-0">
-                            <dt class="col-sm-5">Conformité :</dt>
-                            <dd class="col-sm-7">
-                                <?php if ($inspection['conforme']): ?>
-                                    <span class="badge bg-success">
-                                        <i class="fas fa-check-circle"></i> Conforme
-                                    </span>
-                                <?php else: ?>
-                                    <span class="badge bg-warning">
-                                        <i class="fas fa-exclamation-triangle"></i> Non conforme
-                                    </span>
-                                <?php endif; ?>
-                            </dd>
-
-                            <dt class="col-sm-5">Date :</dt>
-                            <dd class="col-sm-7">
-                                <?php echo formatDate($inspection['date_inspection'], 'd/m/Y'); ?>
-                            </dd>
-
-                            <dt class="col-sm-5">Validée :</dt>
-                            <dd class="col-sm-7">
-                                <?php if ($inspection['valide_par_chef_commission']): ?>
-                                    <span class="badge bg-success">
-                                        <i class="fas fa-check"></i> Oui
-                                    </span>
-                                <?php else: ?>
-                                    <span class="badge bg-warning">
-                                        <i class="fas fa-clock"></i> En attente validation chef commission
-                                    </span>
-                                <?php endif; ?>
-                            </dd>
-
-                            <?php if ($inspection['observations']): ?>
-                            <dt class="col-sm-12 mt-2">Observations :</dt>
-                            <dd class="col-sm-12">
-                                <div class="alert alert-info mb-0">
-                                    <?php echo nl2br(sanitize($inspection['observations'])); ?>
-                                </div>
-                            </dd>
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Conformité :</dt>
+                        <dd class="col-sm-7">
+                            <?php if ($inspection['conforme']): ?>
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check-circle"></i> Conforme
+                                </span>
+                            <?php else: ?>
+                                <span class="badge bg-warning">
+                                    <i class="fas fa-exclamation-triangle"></i> Non conforme
+                                </span>
                             <?php endif; ?>
-                        </dl>
-                    <?php else: ?>
-                        <div class="alert alert-warning mb-0">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <strong>Aucune inspection enregistrée</strong><br>
-                            Ce dossier a le statut "inspecté" mais aucune fiche d'inspection n'a été trouvée dans la base de données.
-                        </div>
-                    <?php endif; ?>
+                        </dd>
+
+                        <dt class="col-sm-5">Date :</dt>
+                        <dd class="col-sm-7">
+                            <?php echo formatDate($inspection['date_inspection'], 'd/m/Y'); ?>
+                        </dd>
+
+                        <?php if ($inspection['observations']): ?>
+                        <dt class="col-sm-12 mt-2">Observations :</dt>
+                        <dd class="col-sm-12">
+                            <div class="alert alert-info mb-0">
+                                <?php echo nl2br(sanitize($inspection['observations'])); ?>
+                            </div>
+                        </dd>
+                        <?php endif; ?>
+                    </dl>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <!-- Visa Chef Service -->
+            <?php if ($visa_chef): ?>
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-stamp"></i>
+                        Visa Chef Service (1/3)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Par :</dt>
+                        <dd class="col-sm-7">
+                            <strong><?php echo sanitize($visa_chef['prenom'] . ' ' . $visa_chef['nom']); ?></strong>
+                        </dd>
+
+                        <dt class="col-sm-5">Date :</dt>
+                        <dd class="col-sm-7">
+                            <?php echo formatDate($visa_chef['date_visa'], 'd/m/Y H:i'); ?>
+                        </dd>
+
+                        <dt class="col-sm-5">Décision :</dt>
+                        <dd class="col-sm-7">
+                            <span class="badge bg-success">
+                                <i class="fas fa-check-circle"></i> Approuvé
+                            </span>
+                        </dd>
+
+                        <?php if ($visa_chef['observations']): ?>
+                        <dt class="col-sm-12 mt-2">Observations :</dt>
+                        <dd class="col-sm-12">
+                            <div class="alert alert-secondary mb-0 small">
+                                <?php echo nl2br(sanitize($visa_chef['observations'])); ?>
+                            </div>
+                        </dd>
+                        <?php endif; ?>
+                    </dl>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <!-- Visa Sous-Directeur -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-stamp"></i>
+                        Visa Sous-Directeur (2/3)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Par :</dt>
+                        <dd class="col-sm-7">
+                            <strong><?php echo sanitize($visa_sd['prenom'] . ' ' . $visa_sd['nom']); ?></strong>
+                        </dd>
+
+                        <dt class="col-sm-5">Date :</dt>
+                        <dd class="col-sm-7">
+                            <?php echo formatDate($visa_sd['date_visa'], 'd/m/Y H:i'); ?>
+                        </dd>
+
+                        <dt class="col-sm-5">Décision :</dt>
+                        <dd class="col-sm-7">
+                            <?php if ($visa_sd['action'] === 'approuve'): ?>
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check-circle"></i> Approuvé
+                                </span>
+                            <?php elseif ($visa_sd['action'] === 'rejete'): ?>
+                                <span class="badge bg-danger">
+                                    <i class="fas fa-times-circle"></i> Rejeté
+                                </span>
+                            <?php else: ?>
+                                <span class="badge bg-warning">
+                                    <i class="fas fa-edit"></i> Modification demandée
+                                </span>
+                            <?php endif; ?>
+                        </dd>
+
+                        <?php if ($visa_sd['observations']): ?>
+                        <dt class="col-sm-12 mt-2">Observations :</dt>
+                        <dd class="col-sm-12">
+                            <div class="alert alert-secondary mb-0 small">
+                                <?php echo nl2br(sanitize($visa_sd['observations'])); ?>
+                            </div>
+                        </dd>
+                        <?php endif; ?>
+                    </dl>
 
                     <a href="<?php echo url('modules/dossiers/view.php?id=' . $dossier_id); ?>"
                        class="btn btn-outline-primary btn-sm w-100 mt-3"
@@ -273,20 +369,21 @@ require_once '../../includes/header.php';
             </div>
         </div>
 
-        <!-- Formulaire de visa -->
+        <!-- Colonne droite : Formulaire de visa -->
         <div class="col-md-8">
-            <div class="card border-warning">
-                <div class="card-header bg-warning text-white">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
                     <h4 class="mb-0">
                         <i class="fas fa-stamp"></i>
-                        Apposer votre visa - Chef Service SDTD (Niveau 1/3)
+                        Apposer votre visa final - Directeur DPPG (Niveau 3/3)
                     </h4>
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-warning">
+                    <div class="alert alert-danger">
                         <i class="fas fa-exclamation-triangle"></i>
-                        <strong>Important :</strong> En apposant votre visa, vous validez le rapport d'inspection
-                        et autorisez la transmission du dossier au Sous-Directeur SDTD pour le visa de niveau 2/3.
+                        <strong>Important :</strong> En apposant votre visa final, vous validez définitivement le dossier
+                        et autorisez sa transmission au Cabinet/Secrétariat du Ministre pour la décision ministérielle finale.
+                        <strong>C'est le dernier visa avant la décision du Ministre.</strong>
                     </div>
 
                     <form method="POST" id="visaForm">
@@ -303,7 +400,7 @@ require_once '../../includes/header.php';
                                             <label class="form-check-label ms-2" for="action_approuve">
                                                 <i class="fas fa-check-circle text-success"></i>
                                                 <strong>Approuver</strong>
-                                                <br><small class="text-muted">Transmettre au Sous-Directeur</small>
+                                                <br><small class="text-muted">Transmettre au Ministre</small>
                                             </label>
                                         </div>
                                     </div>
@@ -315,7 +412,7 @@ require_once '../../includes/header.php';
                                             <label class="form-check-label ms-2" for="action_modification">
                                                 <i class="fas fa-edit text-warning"></i>
                                                 <strong>Demander modification</strong>
-                                                <br><small class="text-muted">Retour à la commission</small>
+                                                <br><small class="text-muted">Retour au Sous-Directeur</small>
                                             </label>
                                         </div>
                                     </div>
@@ -343,6 +440,9 @@ require_once '../../includes/header.php';
                             </label>
                             <textarea class="form-control" id="observations" name="observations" rows="5"
                                       placeholder="Indiquez vos observations, remarques ou justifications..."></textarea>
+                            <small class="text-muted">
+                                Ces observations seront transmises au Cabinet du Ministre en cas d'approbation.
+                            </small>
                         </div>
 
                         <!-- Confirmation -->
@@ -351,7 +451,7 @@ require_once '../../includes/header.php';
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="confirmation" required>
                                     <label class="form-check-label" for="confirmation">
-                                        <strong>Je confirme avoir examiné le dossier et le rapport d'inspection, et j'appose mon visa en tant que Chef Service SDTD.</strong>
+                                        <strong>Je confirme avoir examiné l'ensemble du dossier, les visas précédents, et j'appose mon visa final en tant que Directeur DPPG (niveau 3/3).</strong>
                                     </label>
                                 </div>
                             </div>
@@ -359,11 +459,11 @@ require_once '../../includes/header.php';
 
                         <!-- Boutons -->
                         <div class="d-flex justify-content-between">
-                            <a href="<?php echo url('modules/dossiers/viser_inspections.php'); ?>" class="btn btn-outline-secondary">
+                            <a href="<?php echo url('modules/dossiers/viser_directeur.php'); ?>" class="btn btn-outline-secondary">
                                 <i class="fas fa-arrow-left"></i> Retour
                             </a>
-                            <button type="submit" class="btn btn-warning btn-lg">
-                                <i class="fas fa-stamp"></i> Apposer mon visa
+                            <button type="submit" class="btn btn-danger btn-lg">
+                                <i class="fas fa-stamp"></i> Apposer mon visa final (3/3)
                             </button>
                         </div>
                     </form>
@@ -386,10 +486,10 @@ require_once '../../includes/header.php';
                             <ol class="small">
                                 <li><del>Inspection terrain (Cadre DPPG)</del></li>
                                 <li><del>Validation inspection (Chef Commission)</del></li>
-                                <li><strong class="text-warning">→ Visa Chef Service (Vous êtes ici)</strong></li>
-                                <li>Visa Sous-Directeur SDTD (Niveau 2/3)</li>
-                                <li>Visa Directeur DPPG (Niveau 3/3)</li>
-                                <li>Décision ministérielle</li>
+                                <li><del>Visa Chef Service SDTD (Niveau 1/3)</del></li>
+                                <li><del>Visa Sous-Directeur SDTD (Niveau 2/3)</del></li>
+                                <li><strong class="text-danger">→ Visa Directeur DPPG (Vous êtes ici - Niveau 3/3)</strong></li>
+                                <li>Décision ministérielle finale</li>
                             </ol>
                         </div>
                         <div class="col-md-6">
@@ -397,10 +497,10 @@ require_once '../../includes/header.php';
                                 <i class="fas fa-lightbulb"></i> Conseils
                             </h6>
                             <ul class="small mb-0">
-                                <li>Vérifiez attentivement le rapport d'inspection</li>
-                                <li>Consultez les documents uploadés</li>
+                                <li>Vérifiez tous les visas précédents</li>
+                                <li>Consultez le rapport d'inspection complet</li>
                                 <li>En cas de doute, demandez une modification</li>
-                                <li>Vos observations seront visibles par les niveaux suivants</li>
+                                <li><strong>Votre visa est le dernier avant le Ministre</strong></li>
                             </ul>
                         </div>
                     </div>
@@ -438,10 +538,10 @@ document.getElementById('visaForm').addEventListener('submit', function(e) {
     }
 
     // Confirmation finale
-    const actionText = action.value === 'approuve' ? 'approuver et transmettre au Sous-Directeur' :
+    const actionText = action.value === 'approuve' ? 'approuver et transmettre au Cabinet du Ministre' :
                       action.value === 'rejete' ? 'rejeter' : 'demander une modification pour';
 
-    if (!confirm('Confirmez-vous vouloir ' + actionText + ' ce dossier ?\n\nCette action est irréversible.')) {
+    if (!confirm('ATTENTION : Vous allez ' + actionText + ' ce dossier en apposant votre visa final (3/3).\n\nCette action est irréversible.\n\nConfirmez-vous ?')) {
         e.preventDefault();
         return false;
     }
@@ -460,7 +560,7 @@ document.querySelectorAll('input[name="action"]').forEach(radio => {
         } else {
             observations.required = false;
             observations.parentElement.querySelector('label').innerHTML =
-                '<strong>Observations</strong> <small class="text-muted">(Facultatif)</small>';
+                '<strong>Observations</strong> <small class="text-muted">(Recommandé - sera transmis au Cabinet du Ministre)</small>';
         }
     });
 });
