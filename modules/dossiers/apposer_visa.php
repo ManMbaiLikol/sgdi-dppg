@@ -2,6 +2,7 @@
 // Apposer visa Chef Service - SGDI MVP
 require_once '../../includes/auth.php';
 require_once 'functions.php';
+require_once '../../includes/notifications.php';
 
 requireRole('chef_service');
 
@@ -122,6 +123,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $message = 'Demande de modification enregistrée. Le dossier retourne à la commission.';
             $type = 'info';
+        }
+
+        // Envoyer notifications si approuvé
+        if ($action === 'approuve') {
+            notifierVisa($dossier_id, 'chef_service', 'approuve');
         }
 
         $pdo->commit();
