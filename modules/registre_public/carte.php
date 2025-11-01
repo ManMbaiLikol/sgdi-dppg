@@ -123,6 +123,51 @@ $stats = [
         .marker-point { background-color: #10b981; }
         .marker-depot { background-color: #f59e0b; }
         .marker-centre { background-color: #ef4444; }
+
+        /* Style pour les marqueurs personnalisés type Google Maps */
+        .custom-map-marker {
+            background: none !important;
+            border: none !important;
+        }
+
+        .marker-pin {
+            width: 30px;
+            height: 30px;
+            border-radius: 50% 50% 50% 0;
+            background: #c30b82;
+            position: absolute;
+            transform: rotate(-45deg);
+            left: 50%;
+            top: 50%;
+            margin: -15px 0 0 -15px;
+            animation-fill-mode: both;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        }
+
+        .marker-pin::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            margin: 5px 0 0 5px;
+            background: white;
+            position: absolute;
+            border-radius: 50%;
+        }
+
+        .marker-icon {
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            left: 50%;
+            top: 50%;
+            margin-left: -9px;
+            margin-top: -9px;
+            font-size: 14px;
+            color: white;
+            text-align: center;
+            transform: rotate(45deg);
+            z-index: 1;
+        }
     </style>
 </head>
 <body>
@@ -208,22 +253,27 @@ $stats = [
 
     <!-- Légende -->
     <div class="legend">
-        <h6 class="mb-2">Légende</h6>
+        <h6 class="mb-2"><i class="fas fa-info-circle"></i> Légende</h6>
         <div class="legend-item">
-            <div class="legend-icon marker-station"></div>
+            <i class="fas fa-gas-pump" style="color: #3b82f6; font-size: 16px; width: 20px;"></i>
             <small>Station-service</small>
         </div>
         <div class="legend-item">
-            <div class="legend-icon marker-point"></div>
+            <i class="fas fa-industry" style="color: #10b981; font-size: 16px; width: 20px;"></i>
             <small>Point consommateur</small>
         </div>
         <div class="legend-item">
-            <div class="legend-icon marker-depot"></div>
+            <i class="fas fa-warehouse" style="color: #f59e0b; font-size: 16px; width: 20px;"></i>
             <small>Dépôt GPL</small>
         </div>
         <div class="legend-item">
-            <div class="legend-icon marker-centre"></div>
+            <i class="fas fa-fill-drip" style="color: #ef4444; font-size: 16px; width: 20px;"></i>
             <small>Centre emplisseur</small>
+        </div>
+        <hr style="margin: 10px 0;">
+        <div class="legend-item">
+            <div style="display: inline-block; width: 20px; height: 20px; border: 2px solid #dc3545; border-radius: 50%; background: rgba(220, 53, 69, 0.1);"></div>
+            <small>Zone de contrainte (500m)</small>
         </div>
     </div>
 
@@ -250,6 +300,10 @@ $stats = [
             showCoverageOnHover: false
         });
 
+        // Créer un LayerGroup pour les cercles de contrainte (optimisation performance)
+        const circlesLayer = L.layerGroup();
+        const circles = []; // Stockage des cercles
+
         // Données des infrastructures
         const infrastructures = <?php echo json_encode($infrastructures); ?>;
         console.log('Nombre d\'infrastructures:', infrastructures.length);
@@ -266,18 +320,47 @@ $stats = [
             return colors[type] || '#6b7280';
         }
 
-        // Fonction pour créer une icône personnalisée
+        // Fonction pour obtenir l'icône selon le type
+        function getIconForType(type) {
+            const icons = {
+                'station_service': 'fa-gas-pump',      // Pompe à essence
+                'point_consommateur': 'fa-industry',   // Usine/Industrie
+                'depot_gpl': 'fa-warehouse',           // Entrepôt
+                'centre_emplisseur': 'fa-fill-drip'    // Remplissage
+            };
+            return icons[type] || 'fa-map-marker';
+        }
+
+        // Fonction pour créer une icône personnalisée type Google Maps
         function createCustomIcon(type) {
             const color = getMarkerColor(type);
+            const iconClass = getIconForType(type);
+
             return L.divIcon({
-                className: 'custom-marker',
-                html: `<div style="background-color: ${color}; width: 25px; height: 25px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
-                iconSize: [25, 25],
-                iconAnchor: [12, 12]
+                className: 'custom-map-marker',
+                html: `
+                    <div style="position: relative; width: 35px; height: 45px;">
+                        <!-- Pin style Google Maps -->
+                        <svg width="35" height="45" viewBox="0 0 35 45" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Ombre -->
+                            <ellipse cx="17.5" cy="42" rx="8" ry="3" fill="rgba(0,0,0,0.2)"/>
+                            <!-- Pin -->
+                            <path d="M17.5 0C10.5 0 5 5.5 5 12.5c0 8.75 12.5 27.5 12.5 27.5S30 21.25 30 12.5C30 5.5 24.5 0 17.5 0z"
+                                  fill="${color}" stroke="white" stroke-width="1.5"/>
+                            <!-- Cercle intérieur -->
+                            <circle cx="17.5" cy="12.5" r="6" fill="white"/>
+                        </svg>
+                        <!-- Icône FontAwesome -->
+                        <i class="fas ${iconClass}" style="position: absolute; top: 7px; left: 50%; transform: translateX(-50%); font-size: 11px; color: ${color};"></i>
+                    </div>
+                `,
+                iconSize: [35, 45],
+                iconAnchor: [17.5, 42],  // Point d'ancrage à la pointe du pin
+                popupAnchor: [0, -42]     // Position du popup au-dessus du pin
             });
         }
 
-        // Ajouter les marqueurs
+        // Ajouter les marqueurs avec cercles de contrainte de 500m
         console.log('Début ajout des marqueurs...');
         let markersAdded = 0;
         infrastructures.forEach(infra => {
@@ -296,6 +379,8 @@ $stats = [
                         <p class="mb-1"><small><i class="fas fa-map-marker-alt"></i> ${infra.ville}, ${infra.region}</small></p>
                         ${infra.operateur_proprietaire ? `<p class="mb-1"><small><i class="fas fa-building"></i> ${infra.operateur_proprietaire}</small></p>` : ''}
                         <hr class="my-2">
+                        <p class="mb-0"><small><i class="fas fa-shield-alt"></i> Zone de contrainte: 500m</small></p>
+                        <hr class="my-2">
                         <a href="detail.php?numero=${encodeURIComponent(infra.numero)}" class="btn btn-primary btn-sm w-100">
                             <i class="fas fa-eye"></i> Voir détails
                         </a>
@@ -304,7 +389,27 @@ $stats = [
 
                 marker.bindPopup(popupContent);
                 markerCluster.addLayer(marker);
-                console.log('Marqueur ajouté au cluster');
+
+                // Créer un cercle de contrainte de 500m (ne pas l'ajouter immédiatement pour optimisation)
+                const circle = L.circle([infra.latitude, infra.longitude], {
+                    color: '#dc3545',
+                    fillColor: '#dc3545',
+                    fillOpacity: 0.1,
+                    radius: 500, // 500 mètres
+                    weight: 1,
+                    opacity: 0.5
+                });
+
+                // Tooltip pour le cercle
+                circle.bindTooltip(`Zone de contrainte 500m<br>${infra.nom_demandeur}`, {
+                    permanent: false,
+                    direction: 'center'
+                });
+
+                // Stocker le cercle pour l'afficher conditionnellement
+                circles.push(circle);
+
+                console.log('Marqueur créé');
             }
         });
         console.log('Total marqueurs ajoutés:', markersAdded);
@@ -322,6 +427,33 @@ $stats = [
             };
             return types[type] || type;
         }
+
+        // Gestion optimisée des cercles de contrainte selon le niveau de zoom
+        let circlesVisible = false;
+        const ZOOM_THRESHOLD = 12; // Afficher les cercles à partir du zoom 12
+
+        function toggleCircles() {
+            const currentZoom = map.getZoom();
+
+            if (currentZoom >= ZOOM_THRESHOLD && !circlesVisible) {
+                // Afficher les cercles quand on zoome suffisamment
+                console.log('Affichage des cercles de contrainte');
+                circles.forEach(circle => circle.addTo(circlesLayer));
+                circlesLayer.addTo(map);
+                circlesVisible = true;
+            } else if (currentZoom < ZOOM_THRESHOLD && circlesVisible) {
+                // Cacher les cercles quand on dézoome
+                console.log('Masquage des cercles de contrainte');
+                map.removeLayer(circlesLayer);
+                circlesVisible = false;
+            }
+        }
+
+        // Écouter les changements de zoom
+        map.on('zoomend', toggleCircles);
+
+        // Vérifier le zoom initial
+        toggleCircles();
 
         // Ajuster la vue pour afficher tous les marqueurs
         if (infrastructures.length > 0) {
