@@ -220,4 +220,130 @@ function toggleUserStatus($user_id) {
     $stmt = $pdo->prepare($sql);
     return $stmt->execute([$user_id]);
 }
+
+// ============================================
+// SYSTEME DE PERMISSIONS GRANULAIRES
+// ============================================
+
+/**
+ * Vérifier si l'utilisateur connecté a une permission spécifique
+ * Les admins ont automatiquement toutes les permissions
+ *
+ * @param string $permission_code Code de la permission (ex: 'dossiers.create')
+ * @return bool
+ */
+function hasPermission($permission_code) {
+    if (!isLoggedIn()) {
+        return false;
+    }
+
+    // Les admins ont toutes les permissions automatiquement
+    if ($_SESSION['user_role'] === 'admin') {
+        return true;
+    }
+
+    return userHasPermission($_SESSION['user_id'], $permission_code);
+}
+
+/**
+ * Vérifier si un utilisateur a une permission (query DB)
+ *
+ * @param int $user_id ID de l'utilisateur
+ * @param string $permission_code Code de la permission
+ * @return bool
+ */
+function userHasPermission($user_id, $permission_code) {
+    global $pdo;
+
+    $sql = "SELECT COUNT(*) as count
+            FROM user_permissions up
+            INNER JOIN permissions p ON up.permission_id = p.id
+            WHERE up.user_id = ? AND p.code = ?";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$user_id, $permission_code]);
+    $result = $stmt->fetch();
+
+    return $result['count'] > 0;
+}
+
+/**
+ * Vérifier si l'utilisateur a au moins une des permissions listées (OU logique)
+ *
+ * @param array $permission_codes Tableau de codes de permissions
+ * @return bool
+ */
+function hasAnyPermission($permission_codes) {
+    if (!isLoggedIn()) {
+        return false;
+    }
+
+    // Les admins ont toutes les permissions
+    if ($_SESSION['user_role'] === 'admin') {
+        return true;
+    }
+
+    foreach ($permission_codes as $code) {
+        if (userHasPermission($_SESSION['user_id'], $code)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Vérifier si l'utilisateur a toutes les permissions listées (ET logique)
+ *
+ * @param array $permission_codes Tableau de codes de permissions
+ * @return bool
+ */
+function hasAllPermissions($permission_codes) {
+    if (!isLoggedIn()) {
+        return false;
+    }
+
+    // Les admins ont toutes les permissions
+    if ($_SESSION['user_role'] === 'admin') {
+        return true;
+    }
+
+    foreach ($permission_codes as $code) {
+        if (!userHasPermission($_SESSION['user_id'], $code)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Forcer une permission (rediriger si l'utilisateur ne l'a pas)
+ *
+ * @param string $permission_code Code de la permission requise
+ * @param string $redirect_url URL de redirection (par défaut: dashboard)
+ */
+function requirePermission($permission_code, $redirect_url = null) {
+    requireLogin();
+
+    if (!hasPermission($permission_code)) {
+        $url = $redirect_url ?? url('dashboard.php');
+        redirect($url, 'Vous n\'avez pas la permission nécessaire pour accéder à cette page', 'error');
+    }
+}
+
+/**
+ * Forcer au moins une des permissions (rediriger si aucune)
+ *
+ * @param array $permission_codes Tableau de codes de permissions
+ * @param string $redirect_url URL de redirection (par défaut: dashboard)
+ */
+function requireAnyPermission($permission_codes, $redirect_url = null) {
+    requireLogin();
+
+    if (!hasAnyPermission($permission_codes)) {
+        $url = $redirect_url ?? url('dashboard.php');
+        redirect($url, 'Vous n\'avez pas les permissions nécessaires pour accéder à cette page', 'error');
+    }
+}
 ?>

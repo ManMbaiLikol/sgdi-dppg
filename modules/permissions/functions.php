@@ -83,39 +83,8 @@ function userHasPermission($user_id, $permission_code) {
     return $stmt->fetchColumn() > 0;
 }
 
-// Vérifier si l'utilisateur connecté a une permission
-function hasPermission($permission_code) {
-    if (!isset($_SESSION['user_id'])) {
-        return false;
-    }
-
-    // Les admins ont toutes les permissions
-    if ($_SESSION['user_role'] === 'admin') {
-        return true;
-    }
-
-    return userHasPermission($_SESSION['user_id'], $permission_code);
-}
-
-// Vérifier si l'utilisateur a l'une des permissions listées
-function hasAnyPermission($permission_codes) {
-    if (!isset($_SESSION['user_id'])) {
-        return false;
-    }
-
-    // Les admins ont toutes les permissions
-    if ($_SESSION['user_role'] === 'admin') {
-        return true;
-    }
-
-    foreach ($permission_codes as $code) {
-        if (userHasPermission($_SESSION['user_id'], $code)) {
-            return true;
-        }
-    }
-
-    return false;
-}
+// NOTE: Les fonctions hasPermission() et hasAnyPermission() sont définies dans includes/auth.php
+// Elles sont disponibles globalement via l'inclusion de auth.php
 
 // Attribuer une permission à un utilisateur
 function assignPermission($user_id, $permission_id, $assigned_by) {

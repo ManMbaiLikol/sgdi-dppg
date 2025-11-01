@@ -5,6 +5,9 @@ require_once 'functions.php';
 
 requireLogin();
 
+// Vérifier que l'utilisateur a la permission de lister les dossiers
+requireAnyPermission(['dossiers.list', 'dossiers.view_all']);
+
 $page_title = 'Liste des dossiers';
 
 // Filtres
@@ -39,14 +42,18 @@ require_once '../../includes/header.php';
             <small class="text-muted">(<?php echo $total_dossiers; ?> dossier<?php echo $total_dossiers > 1 ? 's' : ''; ?>)</small>
         </h2>
     </div>
-    <?php if (hasRole('chef_service')): ?>
+    <?php if (hasPermission('dossiers.create') || hasPermission('visa.chef_service')): ?>
     <div class="col-auto">
+        <?php if (hasPermission('visa.chef_service')): ?>
         <a href="<?php echo url('modules/dossiers/viser_inspections.php'); ?>" class="btn btn-warning me-2">
             <i class="fas fa-stamp"></i> Viser les dossiers inspectés
         </a>
+        <?php endif; ?>
+        <?php if (hasPermission('dossiers.create')): ?>
         <a href="<?php echo url('modules/dossiers/create.php'); ?>" class="btn btn-primary">
             <i class="fas fa-plus"></i> Nouveau dossier
         </a>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
 </div>
@@ -227,6 +234,10 @@ require_once '../../includes/header.php';
 
                         <?php if ($dossier['quartier']): ?>
                         <br><small class="text-muted"><i class="fas fa-home"></i> <?php echo sanitize($dossier['quartier']); ?></small>
+                        <?php endif; ?>
+
+                        <?php if ($dossier['lieu_dit']): ?>
+                        <br><small class="text-muted" style="font-style: italic;"><i class="fas fa-map-pin"></i> <?php echo sanitize($dossier['lieu_dit']); ?></small>
                         <?php endif; ?>
 
                         <?php else: ?>

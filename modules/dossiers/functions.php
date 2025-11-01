@@ -66,8 +66,8 @@ function modifierDossier($dossier_id, $data) {
     $sql = "UPDATE dossiers SET
                 type_infrastructure = ?, sous_type = ?, nom_demandeur = ?, contact_demandeur = ?,
                 telephone_demandeur = ?, email_demandeur = ?, adresse_precise = ?,
-                region = ?, ville = ?, arrondissement = ?, quartier = ?, lieu_dit = ?,
-                coordonnees_gps = ?,
+                region = ?, departement = ?, ville = ?, arrondissement = ?, quartier = ?, zone_type = ?, lieu_dit = ?,
+                coordonnees_gps = ?, annee_mise_en_service = ?,
                 operateur_proprietaire = ?, entreprise_beneficiaire = ?, entreprise_installatrice = ?,
                 contrat_livraison = ?, operateur_gaz = ?, entreprise_constructrice = ?,
                 capacite_enfutage = ?, date_modification = NOW()
@@ -84,11 +84,14 @@ function modifierDossier($dossier_id, $data) {
             $data['email_demandeur'],
             $data['adresse_precise'],
             $data['region'],
+            $data['departement'] ?? null,
             $data['ville'],
             $data['arrondissement'] ?? null,
             $data['quartier'] ?? null,
+            $data['zone_type'] ?? 'urbaine',
             $data['lieu_dit'] ?? null,
             $data['coordonnees_gps'] ?? null,
+            $data['annee_mise_en_service'] ?? null,
             $data['operateur_proprietaire'],
             $data['entreprise_beneficiaire'],
             $data['entreprise_installatrice'],
@@ -435,13 +438,17 @@ function getDossiers($filters = [], $limit = 20, $offset = 0) {
         $params[] = $search; // entreprise_constructrice
     }
 
-    // Permissions selon le rôle
+    // Permissions selon le rôle et les permissions granulaires
     if (!empty($filters['user_role'])) {
-        switch ($filters['user_role']) {
-            case 'chef_service':
-            case 'admin':
-                // Voir tous les dossiers
-                break;
+        // Si l'utilisateur a la permission dossiers.view_all, il voit tous les dossiers
+        if (hasPermission('dossiers.view_all')) {
+            // Pas de filtre, voir tous les dossiers
+        } else {
+            switch ($filters['user_role']) {
+                case 'chef_service':
+                case 'admin':
+                    // Voir tous les dossiers
+                    break;
 
             case 'sous_directeur':
                 // Voir seulement les dossiers qu'il a visés
@@ -500,10 +507,11 @@ function getDossiers($filters = [], $limit = 20, $offset = 0) {
                 $params[] = $_SESSION['user_id'];
                 break;
 
-            case 'billeteur':
-                // Voir les dossiers en cours (pour paiement)
-                $where_conditions[] = "d.statut = 'en_cours'";
-                break;
+                case 'billeteur':
+                    // Voir les dossiers en cours (pour paiement)
+                    $where_conditions[] = "d.statut = 'en_cours'";
+                    break;
+            }
         }
     }
 
@@ -568,10 +576,19 @@ function countDossiers($filters = []) {
         $params[] = $search; // entreprise_constructrice
     }
 
-    // Permissions selon le rôle
+    // Permissions selon le rôle et les permissions granulaires
     if (!empty($filters['user_role'])) {
-        switch ($filters['user_role']) {
-            case 'cadre_dppg':
+        // Si l'utilisateur a la permission dossiers.view_all, il voit tous les dossiers
+        if (hasPermission('dossiers.view_all')) {
+            // Pas de filtre, compter tous les dossiers
+        } else {
+            switch ($filters['user_role']) {
+                case 'chef_service':
+                case 'admin':
+                    // Voir tous les dossiers
+                    break;
+
+                case 'cadre_dppg':
                 // Voir SEULEMENT les dossiers dont il est membre de la commission
                 // Règle stricte: accès uniquement aux membres de la commission (cadre_dppg, cadre_daj, chef_commission)
                 $where_conditions[] = "EXISTS (
@@ -605,9 +622,30 @@ function countDossiers($filters = []) {
                 $params[] = $_SESSION['user_id'];
                 break;
 
-            case 'billeteur':
-                $where_conditions[] = "d.statut = 'en_cours'";
-                break;
+                case 'billeteur':
+                    $where_conditions[] = "d.statut = 'en_cours'";
+                    break;
+
+                case 'sous_directeur':
+                    $where_conditions[] = "EXISTS (
+                        SELECT 1 FROM visas v
+                        WHERE v.dossier_id = d.id
+                        AND v.role = 'sous_directeur'
+                    )";
+                    break;
+
+                case 'directeur':
+                    $where_conditions[] = "EXISTS (
+                        SELECT 1 FROM visas v
+                        WHERE v.dossier_id = d.id
+                        AND v.role = 'directeur'
+                    )";
+                    break;
+
+                case 'ministre':
+                    $where_conditions[] = "(d.statut IN ('visa_directeur', 'decide', 'autorise', 'rejete'))";
+                    break;
+            }
         }
     }
 

@@ -39,7 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Synchroniser les permissions
         if (syncUserPermissions($user_id, $permission_ids, $_SESSION['user_id'])) {
-            setFlashMessage('Permissions mises à jour avec succès', 'success');
+            $_SESSION['flash_message'] = 'Permissions mises à jour avec succès';
+            $_SESSION['flash_type'] = 'success';
             redirect(url('modules/permissions/manage.php?user_id=' . $user_id));
         } else {
             $error = 'Erreur lors de la mise à jour des permissions';

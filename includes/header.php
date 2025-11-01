@@ -92,18 +92,24 @@ if (isLoggedIn() && file_exists(__DIR__ . '/../includes/huitaine_functions.php')
                     </a>
                 </li>
 
-                <?php if (hasAnyRole(['chef_service', 'admin'])): ?>
+                <?php if (hasAnyPermission(['dossiers.list', 'dossiers.view_all', 'dossiers.create', 'carte.view'])): ?>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="dossiersDropdown" role="button" data-bs-toggle="dropdown">
                         <i class="fas fa-folder"></i> Dossiers
                     </a>
                     <ul class="dropdown-menu">
+                        <?php if (hasPermission('dossiers.create')): ?>
                         <li><a class="dropdown-item" href="<?php echo url('modules/dossiers/create.php'); ?>">Créer un dossier</a></li>
+                        <?php endif; ?>
+                        <?php if (hasAnyPermission(['dossiers.list', 'dossiers.view_all'])): ?>
                         <li><a class="dropdown-item" href="<?php echo url('modules/dossiers/list.php'); ?>">Liste des dossiers</a></li>
+                        <?php endif; ?>
+                        <?php if (hasPermission('carte.view')): ?>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="<?php echo url('modules/carte/index.php'); ?>">
                             <i class="fas fa-map-marked-alt"></i> Carte des infrastructures
                         </a></li>
+                        <?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
