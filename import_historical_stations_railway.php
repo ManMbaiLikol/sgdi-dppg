@@ -53,23 +53,21 @@ if ($authorized && $db_connected && isset($_FILES['csv_file']) && $_FILES['csv_f
         $header = fgetcsv($file, 0, ',');
         $messages[] = "📋 En-tête CSV: " . implode(', ', $header);
 
-        // Préparer la requête d'insertion
+        // Créer un mapping des colonnes
+        $colMap = array_flip($header);
+        $messages[] = "🔍 Colonnes trouvées: " . count($header);
+
+        // Préparer la requête d'insertion (colonnes minimales requises)
         $sql = "INSERT INTO dossiers (
             numero, type_infrastructure, sous_type, nom_demandeur,
             contact_demandeur, telephone_demandeur, email_demandeur,
             region, departement, ville, arrondissement, quartier, lieu_dit,
-            coordonnees_gps,
-            operateur_proprietaire, entreprise_beneficiaire, contrat_livraison,
-            entreprise_installatrice, operateur_gaz, entreprise_constructrice,
-            capacite_enfutage, statut, date_creation, user_id
+            coordonnees_gps, statut, date_creation, user_id
         ) VALUES (
             ?, ?, ?, ?,
             ?, ?, ?,
             ?, ?, ?, ?, ?, ?,
-            ?,
-            ?, ?, ?,
-            ?, ?, ?,
-            ?, ?, ?, 1
+            ?, ?, ?, ?
         )";
 
         $stmt = $pdo->prepare($sql);
@@ -86,40 +84,45 @@ if ($authorized && $db_connected && isset($_FILES['csv_file']) && $_FILES['csv_f
             $lineNumber++;
 
             try {
+                // Fonction helper pour récupérer valeur par nom de colonne
+                $getCol = function($name) use ($row, $colMap) {
+                    return isset($colMap[$name]) ? ($row[$colMap[$name]] ?? null) : null;
+                };
+
+                $numero = $getCol('numero');
+                if (empty($numero)) {
+                    $skipped++;
+                    continue; // Pas de numéro
+                }
+
                 // Vérifier si le numéro existe déjà
                 $checkStmt = $pdo->prepare("SELECT id FROM dossiers WHERE numero = ?");
-                $checkStmt->execute([$row[0]]);
+                $checkStmt->execute([$numero]);
 
                 if ($checkStmt->fetch()) {
                     $skipped++;
                     continue; // Déjà existant
                 }
 
-                // Insérer le dossier
+                // Insérer le dossier avec les colonnes du CSV
                 $stmt->execute([
-                    $row[0],  // numero
-                    $row[1],  // type_infrastructure
-                    $row[2],  // sous_type
-                    $row[3],  // nom_demandeur
-                    $row[4] ?? null,  // contact_demandeur
-                    $row[5] ?? null,  // telephone_demandeur
-                    $row[6] ?? null,  // email_demandeur
-                    $row[7] ?? null,  // region
-                    $row[8] ?? null,  // departement
-                    $row[9] ?? null,  // ville
-                    $row[10] ?? null, // arrondissement
-                    $row[11] ?? null, // quartier
-                    $row[12] ?? null, // lieu_dit
-                    $row[13] ?? null, // coordonnees_gps
-                    $row[14] ?? null, // operateur_proprietaire
-                    $row[15] ?? null, // entreprise_beneficiaire
-                    $row[16] ?? null, // contrat_livraison
-                    $row[17] ?? null, // entreprise_installatrice
-                    $row[18] ?? null, // operateur_gaz
-                    $row[19] ?? null, // entreprise_constructrice
-                    $row[20] ?? null, // capacite_enfutage
-                    $row[21] ?? 'historique_autorise', // statut
-                    $row[22] ?? date('Y-m-d H:i:s')    // date_creation
+                    $numero,
+                    $getCol('type_infrastructure') ?? 'station_service',
+                    $getCol('sous_type') ?? 'implantation',
+                    $getCol('nom_demandeur'),
+                    $getCol('contact_demandeur'),
+                    $getCol('telephone_demandeur'),
+                    $getCol('email_demandeur'),
+                    $getCol('region'),
+                    $getCol('departement'),
+                    $getCol('ville'),
+                    $getCol('arrondissement'),
+                    $getCol('quartier'),
+                    $getCol('lieu_dit'),
+                    $getCol('coordonnees_gps'),
+                    $getCol('statut') ?? 'historique_autorise',
+                    $getCol('date_creation') ?? date('Y-m-d H:i:s'),
+                    $getCol('user_id') ?? 1
                 ]);
 
                 $imported++;
