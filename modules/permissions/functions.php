@@ -68,22 +68,13 @@ function getUserPermissionCodes($user_id) {
     return $stmt->fetchAll(PDO::FETCH_COLUMN);
 }
 
-// Vérifier si un utilisateur a une permission spécifique
-function userHasPermission($user_id, $permission_code) {
-    global $pdo;
-
-    $sql = "SELECT COUNT(*)
-            FROM user_permissions up
-            INNER JOIN permissions p ON up.permission_id = p.id
-            WHERE up.user_id = ? AND p.code = ?";
-
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([$user_id, $permission_code]);
-
-    return $stmt->fetchColumn() > 0;
-}
-
-// NOTE: Les fonctions hasPermission() et hasAnyPermission() sont définies dans includes/auth.php
+// NOTE: Les fonctions de vérification de permissions sont définies dans includes/auth.php
+// - userHasPermission($user_id, $permission_code)
+// - hasPermission($permission_code)
+// - hasAnyPermission($permission_codes)
+// - hasAllPermissions($permission_codes)
+// - requirePermission($permission_code)
+// - requireAnyPermission($permission_codes)
 // Elles sont disponibles globalement via l'inclusion de auth.php
 
 // Attribuer une permission à un utilisateur
