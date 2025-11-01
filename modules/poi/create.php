@@ -67,6 +67,8 @@ require_once '../../includes/header.php';
 ?>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<!-- Mobile Responsive pour cartes -->
+<link rel="stylesheet" href="../../assets/css/map-mobile-responsive.css">
 
 <style>
 #map {
@@ -235,8 +237,8 @@ map.on('click', function(e) {
     const lng = e.latlng.lng;
 
     // Mettre à jour les champs
-    document.getElementById('latitude').value = lat.toFixed(6);
-    document.getElementById('longitude').value = lng.toFixed(6);
+    document.getElementById('latitude').value = lat;
+    document.getElementById('longitude').value = lng;
 
     // Ajouter ou déplacer le marqueur
     if (marker) {
@@ -249,4 +251,6 @@ map.on('click', function(e) {
 });
 </script>
 
+<!-- Mobile Responsive pour cartes -->
+<script src="../../assets/js/map-mobile-responsive.js"></script>
 <?php require_once '../../includes/footer.php'; ?>

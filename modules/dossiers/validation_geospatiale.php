@@ -181,6 +181,8 @@ require_once '../../includes/header.php';
 </style>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<!-- Mobile Responsive pour cartes -->
+<link rel="stylesheet" href="../../assets/css/map-mobile-responsive.css">
 
 <div class="container-fluid">
     <div class="row mb-4">
@@ -553,4 +555,6 @@ violations.forEach(function(violation) {
 <?php endif; ?>
 </script>
 
+<!-- Mobile Responsive pour cartes -->
+<script src="../../assets/js/map-mobile-responsive.js"></script>
 <?php require_once '../../includes/footer.php'; ?>

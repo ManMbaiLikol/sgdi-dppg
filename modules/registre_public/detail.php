@@ -36,6 +36,8 @@ $page_title = 'Détail Infrastructure - ' . $dossier['numero'];
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Mobile Responsive pour cartes -->
+    <link rel="stylesheet" href="../../assets/css/map-mobile-responsive.css">
 
     <style>
         :root {
@@ -275,6 +277,8 @@ $page_title = 'Détail Infrastructure - ' . $dossier['numero'];
                 <?php echo htmlspecialchars($dossier['ville']); ?>
             `).openPopup();
         </script>
+        <!-- Mobile Responsive pour cartes -->
+        <script src="../../assets/js/map-mobile-responsive.js"></script>
     <?php endif; ?>
 </body>
 </html>

@@ -137,9 +137,23 @@ require_once '../../includes/header.php';
 .leaflet-tooltip::before {
     border-top-color: rgba(0, 0, 0, 0.85) !important;
 }
+
+/* Style pour marqueur principal type Google Maps */
+.custom-main-marker {
+    background: none !important;
+    border: none !important;
+}
+
+/* Style pour marqueur d'avertissement (infrastructures à proximité) */
+.custom-warning-marker {
+    background: none !important;
+    border: none !important;
+}
 </style>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<!-- Mobile Responsive pour cartes -->
+<link rel="stylesheet" href="../../assets/css/map-mobile-responsive.css">
 
 <div class="container-fluid">
     <div class="row mb-4">
@@ -353,13 +367,38 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 18
 }).addTo(map);
 
+// Fonction pour créer l'icône principale (style Google Maps)
+function createMainMarkerIcon() {
+    return L.divIcon({
+        className: 'custom-main-marker',
+        html: `
+            <div style="position: relative; width: 40px; height: 50px;">
+                <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Ombre -->
+                    <ellipse cx="20" cy="47" rx="9" ry="3" fill="rgba(0,0,0,0.25)"/>
+                    <!-- Pin -->
+                    <path d="M20 0C12 0 5.5 6.5 5.5 14.5c0 10 14.5 31 14.5 31S34.5 24.5 34.5 14.5C34.5 6.5 28 0 20 0z"
+                          fill="#dc3545" stroke="white" stroke-width="2"/>
+                    <!-- Cercle intérieur -->
+                    <circle cx="20" cy="14.5" r="7" fill="white"/>
+                </svg>
+                <i class="fas fa-map-marker-alt" style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); font-size: 13px; color: #dc3545;"></i>
+            </div>
+        `,
+        iconSize: [40, 50],
+        iconAnchor: [20, 47],
+        popupAnchor: [0, -47]
+    });
+}
+
 // Marqueur pour la position sélectionnée
 let marker = null;
 
 // Si des coordonnées existent, ajouter le marqueur
 <?php if ($current_coords): ?>
 marker = L.marker([defaultLat, defaultLng], {
-    draggable: false
+    draggable: false,
+    icon: createMainMarkerIcon()
 }).addTo(map);
 
 // Tooltip au survol
@@ -380,6 +419,23 @@ marker.bindTooltip(currentTooltip, {
 marker.bindPopup('<strong>Position actuelle</strong><br>Cliquez sur la carte pour modifier').openPopup();
 <?php endif; ?>
 
+// Ajouter un cercle de contrainte de 500m pour la position actuelle si elle existe
+<?php if ($current_coords): ?>
+const constraintCircle = L.circle([defaultLat, defaultLng], {
+    color: '#dc3545',
+    fillColor: '#dc3545',
+    fillOpacity: 0.15,
+    radius: 500, // 500 mètres
+    weight: 2,
+    opacity: 0.7
+}).addTo(map);
+
+constraintCircle.bindTooltip('Zone de contrainte: 500m', {
+    permanent: false,
+    direction: 'center'
+});
+<?php endif; ?>
+
 // Ajouter les infrastructures à proximité sur la carte
 <?php if (!empty($nearby_infrastructures)): ?>
 const nearbyInfrastructures = <?php echo json_encode($nearby_infrastructures); ?>;
@@ -387,12 +443,35 @@ const nearbyInfrastructures = <?php echo json_encode($nearby_infrastructures); ?
 nearbyInfrastructures.forEach(function(infra) {
     const nearbyMarker = L.marker([infra.parsed_coords.latitude, infra.parsed_coords.longitude], {
         icon: L.divIcon({
-            html: `<div style="background: #ffc107; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">
-                    <i class="fas fa-exclamation" style="font-size: 12px;"></i>
-                   </div>`,
-            className: 'nearby-marker',
-            iconSize: [24, 24]
+            className: 'custom-warning-marker',
+            html: `
+                <div style="position: relative; width: 32px; height: 40px;">
+                    <svg width="32" height="40" viewBox="0 0 32 40" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Ombre -->
+                        <ellipse cx="16" cy="37" rx="7" ry="2.5" fill="rgba(0,0,0,0.2)"/>
+                        <!-- Pin d'avertissement -->
+                        <path d="M16 0C10 0 5 5 5 11c0 7.5 11 24 11 24S27 18.5 27 11C27 5 22 0 16 0z"
+                              fill="#ffc107" stroke="white" stroke-width="1.5"/>
+                        <!-- Cercle intérieur -->
+                        <circle cx="16" cy="11" r="5.5" fill="white"/>
+                    </svg>
+                    <i class="fas fa-exclamation-triangle" style="position: absolute; top: 6px; left: 50%; transform: translateX(-50%); font-size: 10px; color: #ffc107;"></i>
+                </div>
+            `,
+            iconSize: [32, 40],
+            iconAnchor: [16, 37],
+            popupAnchor: [0, -37]
         })
+    }).addTo(map);
+
+    // Ajouter cercle de contrainte pour chaque infrastructure à proximité
+    L.circle([infra.parsed_coords.latitude, infra.parsed_coords.longitude], {
+        color: '#ffc107',
+        fillColor: '#ffc107',
+        fillOpacity: 0.08,
+        radius: 500,
+        weight: 1,
+        opacity: 0.4
     }).addTo(map);
 
     // Tooltip au survol
@@ -428,18 +507,26 @@ nearbyInfrastructures.forEach(function(infra) {
 });
 <?php endif; ?>
 
+// Variable pour le cercle de contrainte
+let currentConstraintCircle = <?php echo $current_coords ? 'constraintCircle' : 'null'; ?>;
+
 // Clic sur la carte pour placer le marqueur
 map.on('click', function(e) {
     const lat = e.latlng.lat;
     const lng = e.latlng.lng;
 
     // Mettre à jour les champs
-    document.getElementById('latitude').value = lat.toFixed(6);
-    document.getElementById('longitude').value = lng.toFixed(6);
+    document.getElementById('latitude').value = lat;
+    document.getElementById('longitude').value = lng;
 
     // Ajouter ou déplacer le marqueur
     if (marker) {
         marker.setLatLng([lat, lng]);
+
+        // Déplacer le cercle de contrainte
+        if (currentConstraintCircle) {
+            currentConstraintCircle.setLatLng([lat, lng]);
+        }
 
         // Mettre à jour le tooltip
         const newTooltip = `
@@ -447,12 +534,13 @@ map.on('click', function(e) {
             <small><i class="fas fa-map-marker-alt"></i> <?php echo sanitize($dossier['ville'] ?? 'Non spécifié'); ?></small><br>
             <small><i class="fas fa-map-pin"></i> <?php echo sanitize($dossier['adresse_precise'] ?? 'Non spécifié'); ?></small><br>
             <small><strong><?php echo sanitize($dossier['numero']); ?></strong></small><br>
-            <small><i class="fas fa-crosshairs"></i> ${lat.toFixed(6)}, ${lng.toFixed(6)}</small>
+            <small><i class="fas fa-crosshairs"></i> ${lat}, ${lng}</small>
         `;
         marker.setTooltipContent(newTooltip);
     } else {
         marker = L.marker([lat, lng], {
-            draggable: false
+            draggable: false,
+            icon: createMainMarkerIcon()
         }).addTo(map);
 
         const newTooltip = `
@@ -460,7 +548,7 @@ map.on('click', function(e) {
             <small><i class="fas fa-map-marker-alt"></i> <?php echo sanitize($dossier['ville'] ?? 'Non spécifié'); ?></small><br>
             <small><i class="fas fa-map-pin"></i> <?php echo sanitize($dossier['adresse_precise'] ?? 'Non spécifié'); ?></small><br>
             <small><strong><?php echo sanitize($dossier['numero']); ?></strong></small><br>
-            <small><i class="fas fa-crosshairs"></i> ${lat.toFixed(6)}, ${lng.toFixed(6)}</small>
+            <small><i class="fas fa-crosshairs"></i> ${lat}, ${lng}</small>
         `;
 
         marker.bindTooltip(newTooltip, {
@@ -470,6 +558,23 @@ map.on('click', function(e) {
         });
 
         marker.bindPopup('<strong>Nouvelle position</strong><br>Cliquez ailleurs pour modifier');
+
+        // Créer le cercle de contrainte
+        if (!currentConstraintCircle) {
+            currentConstraintCircle = L.circle([lat, lng], {
+                color: '#dc3545',
+                fillColor: '#dc3545',
+                fillOpacity: 0.15,
+                radius: 500,
+                weight: 2,
+                opacity: 0.7
+            }).addTo(map);
+
+            currentConstraintCircle.bindTooltip('Zone de contrainte: 500m', {
+                permanent: false,
+                direction: 'center'
+            });
+        }
     }
 
     marker.openPopup();
@@ -486,6 +591,7 @@ function updateMarkerFromInputs() {
     if (!isNaN(lat) && !isNaN(lng)) {
         if (marker) {
             marker.setLatLng([lat, lng]);
+            marker.setIcon(createMainMarkerIcon());
 
             // Mettre à jour le tooltip
             const updatedTooltip = `
@@ -493,12 +599,13 @@ function updateMarkerFromInputs() {
                 <small><i class="fas fa-map-marker-alt"></i> <?php echo sanitize($dossier['ville'] ?? 'Non spécifié'); ?></small><br>
                 <small><i class="fas fa-map-pin"></i> <?php echo sanitize($dossier['adresse_precise'] ?? 'Non spécifié'); ?></small><br>
                 <small><strong><?php echo sanitize($dossier['numero']); ?></strong></small><br>
-                <small><i class="fas fa-crosshairs"></i> ${lat.toFixed(6)}, ${lng.toFixed(6)}</small>
+                <small><i class="fas fa-crosshairs"></i> ${lat}, ${lng}</small>
             `;
             marker.setTooltipContent(updatedTooltip);
         } else {
             marker = L.marker([lat, lng], {
-                draggable: false
+                draggable: false,
+                icon: createMainMarkerIcon()
             }).addTo(map);
 
             const newTooltip = `
@@ -506,7 +613,7 @@ function updateMarkerFromInputs() {
                 <small><i class="fas fa-map-marker-alt"></i> <?php echo sanitize($dossier['ville'] ?? 'Non spécifié'); ?></small><br>
                 <small><i class="fas fa-map-pin"></i> <?php echo sanitize($dossier['adresse_precise'] ?? 'Non spécifié'); ?></small><br>
                 <small><strong><?php echo sanitize($dossier['numero']); ?></strong></small><br>
-                <small><i class="fas fa-crosshairs"></i> ${lat.toFixed(6)}, ${lng.toFixed(6)}</small>
+                <small><i class="fas fa-crosshairs"></i> ${lat}, ${lng}</small>
             `;
 
             marker.bindTooltip(newTooltip, {
@@ -520,4 +627,6 @@ function updateMarkerFromInputs() {
 }
 </script>
 
+<!-- Mobile Responsive pour cartes -->
+<script src="../../assets/js/map-mobile-responsive.js"></script>
 <?php require_once '../../includes/footer.php'; ?>

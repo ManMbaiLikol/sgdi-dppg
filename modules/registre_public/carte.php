@@ -40,6 +40,8 @@ $stats = [
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <link href="../../assets/css/registre_public.css" rel="stylesheet">
+    <!-- Mobile Responsive pour cartes -->
+    <link rel="stylesheet" href="../../assets/css/map-mobile-responsive.css">
 
     <style>
         body {
@@ -463,5 +465,7 @@ $stats = [
             }
         }
     </script>
+    <!-- Mobile Responsive pour cartes -->
+    <script src="../../assets/js/map-mobile-responsive.js"></script>
 </body>
 </html>

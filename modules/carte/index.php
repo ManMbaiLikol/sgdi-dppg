@@ -128,6 +128,8 @@ require_once '../../includes/header.php';
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<!-- Mobile Responsive pour cartes -->
+<link rel="stylesheet" href="../../assets/css/map-mobile-responsive.css">
 
 <div class="container-fluid">
     <div class="row mb-4">
@@ -463,7 +465,7 @@ infrastructures.forEach(function(infra) {
                 </tr>
                 <tr>
                     <td style="padding: 4px 0;"><i class="fas fa-crosshairs" style="width: 20px;"></i></td>
-                    <td><code style="font-size: 11px;">${infra.latitude.toFixed(6)}, ${infra.longitude.toFixed(6)}</code></td>
+                    <td><code style="font-size: 11px;">${infra.latitude}, ${infra.longitude}</code></td>
                 </tr>
                 <tr>
                     <td style="padding: 4px 0;"><i class="fas fa-calendar" style="width: 20px;"></i></td>
@@ -596,7 +598,7 @@ pois.forEach(function(poi) {
                 </tr>
                 <tr>
                     <td style="padding: 4px 0;"><i class="fas fa-crosshairs" style="width: 20px;"></i></td>
-                    <td><code style="font-size: 11px;">${poi.latitude.toFixed(6)}, ${poi.longitude.toFixed(6)}</code></td>
+                    <td><code style="font-size: 11px;">${poi.latitude}, ${poi.longitude}</code></td>
                 </tr>
             </table>
             ${poi.description ? '<p class="small mb-2">' + poi.description + '</p>' : ''}
@@ -690,4 +692,6 @@ document.getElementById('toggleZones').addEventListener('click', function() {
 });
 </script>
 
+<!-- Mobile Responsive pour cartes -->
+<script src="../../assets/js/map-mobile-responsive.js"></script>
 <?php require_once '../../includes/footer.php'; ?>
