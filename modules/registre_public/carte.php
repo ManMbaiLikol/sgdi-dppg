@@ -295,6 +295,13 @@ $stats = [
             maxZoom: 18
         }).addTo(map);
 
+        // Ajouter l'échelle pour vérification visuelle
+        L.control.scale({
+            imperial: false,  // Désactiver miles
+            metric: true,     // Activer mètres/km
+            position: 'bottomleft'
+        }).addTo(map);
+
         // Créer les groupes de clusters
         const markerCluster = L.markerClusterGroup({
             maxClusterRadius: 50,
@@ -392,12 +399,14 @@ $stats = [
                 marker.bindPopup(popupContent);
                 markerCluster.addLayer(marker);
 
-                // Créer un cercle de contrainte de 500m (ne pas l'ajouter immédiatement pour optimisation)
+                // Créer un cercle de contrainte de 500m en distance réelle
+                // NOTE: L.circle avec radius en mètres fonctionne correctement en Leaflet 1.9+
+                // Le rayon est interprété en mètres sur la surface terrestre
                 const circle = L.circle([infra.latitude, infra.longitude], {
                     color: '#dc3545',
                     fillColor: '#dc3545',
                     fillOpacity: 0.1,
-                    radius: 500, // 500 mètres
+                    radius: 500, // 500 mètres (distance réelle sur le terrain)
                     weight: 1,
                     opacity: 0.5
                 });
