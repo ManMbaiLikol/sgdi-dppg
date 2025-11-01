@@ -170,11 +170,27 @@ if (isLoggedIn() && file_exists(__DIR__ . '/../includes/huitaine_functions.php')
                 </li>
                 <?php endif; ?>
 
-                <?php if (hasRole('admin')): ?>
+                <?php if (hasAnyRole(['admin', 'chef_service'])): ?>
                 <li class="nav-item">
-                    <a class="nav-link" href="<?php echo url('modules/users/list.php'); ?>">
-                        <i class="fas fa-users"></i> Utilisateurs
+                    <a class="nav-link" href="<?php echo url('modules/admin_gps/index.php'); ?>">
+                        <i class="fas fa-map-marked-alt"></i> Gestion GPS
                     </a>
+                </li>
+                <?php endif; ?>
+
+                <?php if (hasRole('admin')): ?>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-cog"></i> Administration
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="<?php echo url('modules/users/list.php'); ?>">
+                            <i class="fas fa-users"></i> Utilisateurs
+                        </a></li>
+                        <li><a class="dropdown-item" href="<?php echo url('modules/permissions/index.php'); ?>">
+                            <i class="fas fa-shield-alt"></i> Permissions
+                        </a></li>
+                    </ul>
                 </li>
                 <?php endif; ?>
             </ul>

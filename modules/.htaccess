@@ -1,0 +1,27 @@
+# Protection des fichiers de fonctions et bibliothèques
+# Ces fichiers ne doivent jamais être accessibles directement via HTTP
+
+# Bloquer l'accès direct aux fichiers functions.php
+<FilesMatch "functions\.php$">
+    Require all denied
+</FilesMatch>
+
+# Bloquer l'accès aux fichiers check_structure.php (utilitaires)
+<FilesMatch "check_structure\.php$">
+    Require all denied
+</FilesMatch>
+
+# Headers de sécurité supplémentaires
+<IfModule mod_headers.c>
+    # Empêcher l'affichage dans une iframe (protection CLICKJACKING)
+    Header always set X-Frame-Options "SAMEORIGIN"
+
+    # Protection XSS
+    Header always set X-XSS-Protection "1; mode=block"
+
+    # Empêcher le sniffing de type MIME
+    Header always set X-Content-Type-Options "nosniff"
+
+    # Politique de référent
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
