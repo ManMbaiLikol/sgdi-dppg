@@ -82,6 +82,27 @@ require_once '../../includes/header.php';
     100% { transform: translateY(0); opacity: 1; }
 }
 
+/* Style de l'échelle métrique */
+.leaflet-control-scale {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 2px solid #3498db !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+    font-weight: bold !important;
+    font-size: 13px !important;
+}
+
+.leaflet-control-scale-line {
+    border: 2px solid #3498db !important;
+    border-top: none !important;
+    color: #2c3e50 !important;
+    font-weight: bold !important;
+    line-height: 1.5 !important;
+    padding: 4px 8px !important;
+    background: white !important;
+}
+
 .map-filters {
     background: white;
     padding: 20px;
@@ -150,6 +171,9 @@ require_once '../../includes/header.php';
             </button>
             <button class="btn btn-outline-warning" id="toggleZones">
                 <i class="fas fa-circle-notch"></i> Afficher les zones de contrainte
+            </button>
+            <button class="btn btn-outline-primary" id="btnMeasure">
+                <i class="fas fa-ruler"></i> Mesurer une distance
             </button>
         </div>
     </div>
@@ -241,6 +265,34 @@ require_once '../../includes/header.php';
                 <?php endif; ?>
             </div>
         </form>
+    </div>
+
+    <!-- Panneau de vérification GPS -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-map-marker-alt"></i> Vérification GPS - Zone de Contrainte 500m</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <label class="form-label">Latitude</label>
+                    <input type="text" class="form-control" id="test_latitude" placeholder="Ex: 3.8667">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Longitude</label>
+                    <input type="text" class="form-control" id="test_longitude" placeholder="Ex: 11.5167">
+                </div>
+            </div>
+            <div class="mt-3">
+                <button class="btn btn-primary" id="btnTestGPS">
+                    <i class="fas fa-map-pin"></i> Placer sur la carte et vérifier
+                </button>
+                <button class="btn btn-outline-secondary" id="btnClearTest">
+                    <i class="fas fa-times"></i> Effacer
+                </button>
+            </div>
+            <div id="testResult" class="mt-3" style="display: none;"></div>
+        </div>
     </div>
 
     <div class="row">
@@ -507,6 +559,53 @@ if (infrastructures.length > 0) {
     map.fitBounds(markers.getBounds(), { padding: [50, 50] });
 }
 
+// ========== Ajouter l'échelle métrique ==========
+L.control.scale({
+    position: 'bottomleft',
+    metric: true,
+    imperial: false,
+    maxWidth: 200
+}).addTo(map);
+
+// ========== Ajouter une règle de référence de 500m ==========
+const ReferenceScale = L.Control.extend({
+    onAdd: function(map) {
+        const div = L.DomUtil.create('div', 'reference-scale-control');
+
+        const updateScale = () => {
+            // Calculer la taille en pixels pour 500m
+            const centerPoint = map.getCenter();
+            const pointA = map.latLngToContainerPoint(centerPoint);
+            const pointB = map.latLngToContainerPoint(
+                map.containerPointToLatLng([pointA.x + 100, pointA.y])
+            );
+
+            const distance = map.distance(
+                map.containerPointToLatLng(pointA),
+                map.containerPointToLatLng(pointB)
+            );
+
+            const pixelsFor500m = (500 / distance) * 100;
+
+            div.innerHTML = `
+                <div style="background: rgba(220, 53, 69, 0.95); color: white; padding: 8px 12px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-weight: bold; font-size: 13px;">
+                    <div style="margin-bottom: 5px;">Zone de contrainte :</div>
+                    <div style="background: white; height: 4px; width: ${pixelsFor500m}px; border: 2px solid #dc3545; border-radius: 2px;"></div>
+                    <div style="margin-top: 5px; text-align: center;">500 mètres</div>
+                </div>
+            `;
+        };
+
+        updateScale();
+        map.on('zoomend', updateScale);
+
+        return div;
+    }
+});
+
+const referenceScale = new ReferenceScale({ position: 'bottomright' });
+map.addControl(referenceScale);
+
 // Fonctions helper pour le JavaScript
 function getTypeLabel(type, sousType) {
     const types = {
@@ -688,6 +787,277 @@ document.getElementById('toggleZones').addEventListener('click', function() {
         this.classList.remove('btn-outline-warning');
         this.classList.add('btn-warning');
         zonesVisible = true;
+    }
+});
+
+// ========== Vérification GPS ==========
+let testMarker = null;
+let testCircle = null;
+
+document.getElementById('btnTestGPS').addEventListener('click', function() {
+    const lat = parseFloat(document.getElementById('test_latitude').value);
+    const lng = parseFloat(document.getElementById('test_longitude').value);
+
+    // Validation
+    if (isNaN(lat) || isNaN(lng)) {
+        document.getElementById('testResult').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i> Veuillez entrer des coordonnées GPS valides
+            </div>
+        `;
+        document.getElementById('testResult').style.display = 'block';
+        return;
+    }
+
+    // Vérifier que les coordonnées sont au Cameroun (approximativement)
+    if (lat < 1.5 || lat > 13.5 || lng < 8.0 || lng > 16.5) {
+        document.getElementById('testResult').innerHTML = `
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-circle"></i> Ces coordonnées ne semblent pas être au Cameroun
+            </div>
+        `;
+        document.getElementById('testResult').style.display = 'block';
+    }
+
+    // Effacer les marqueurs précédents
+    if (testMarker) map.removeLayer(testMarker);
+    if (testCircle) map.removeLayer(testCircle);
+
+    // Créer un marqueur pour le point test (en bleu)
+    const testIcon = L.divIcon({
+        className: 'custom-div-icon',
+        html: `<div style="background: #2196F3; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-question" style="color: white; font-size: 14px;"></i>
+              </div>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
+    });
+
+    testMarker = L.marker([lat, lng], { icon: testIcon })
+        .addTo(map)
+        .bindPopup(`
+            <div style="padding: 10px;">
+                <strong>📍 Point à vérifier</strong><br>
+                <small>Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}</small>
+            </div>
+        `)
+        .openPopup();
+
+    // Cercle de 500m autour du point test
+    testCircle = L.circle([lat, lng], {
+        radius: 500,
+        color: '#2196F3',
+        fillColor: '#2196F3',
+        fillOpacity: 0.1,
+        weight: 2,
+        dashArray: '10, 5'
+    }).addTo(map);
+
+    // Centrer la carte sur le point
+    map.setView([lat, lng], 15);
+
+    // Vérifier les violations
+    const violations = [];
+    const minDistance = 500; // 500 mètres
+
+    <?php foreach ($infrastructures as $infra): ?>
+    <?php if (!empty($infra['latitude']) && !empty($infra['longitude']) && $infra['type_infrastructure'] === 'station_service'): ?>
+    {
+        const infraLat = <?php echo $infra['latitude']; ?>;
+        const infraLng = <?php echo $infra['longitude']; ?>;
+        const distance = map.distance([lat, lng], [infraLat, infraLng]);
+
+        if (distance < minDistance) {
+            violations.push({
+                nom: "<?php echo addslashes($infra['nom_demandeur']); ?>",
+                numero: "<?php echo addslashes($infra['numero']); ?>",
+                distance: Math.round(distance),
+                lat: infraLat,
+                lng: infraLng
+            });
+        }
+    }
+    <?php endif; ?>
+    <?php endforeach; ?>
+
+    // Afficher le résultat
+    let resultHTML = '';
+
+    if (violations.length === 0) {
+        resultHTML = `
+            <div class="alert alert-success">
+                <h5><i class="fas fa-check-circle"></i> ✅ CONFORME - Aucune violation détectée</h5>
+                <p class="mb-0">Ce point respecte la zone de contrainte de 500m autour des stations-service existantes.</p>
+                <p class="mb-0 mt-2"><strong>Vous pouvez créer un dossier avec ces coordonnées GPS.</strong></p>
+            </div>
+        `;
+    } else {
+        resultHTML = `
+            <div class="alert alert-danger">
+                <h5><i class="fas fa-times-circle"></i> ❌ VIOLATION - ${violations.length} station(s) trop proche(s)</h5>
+                <p class="mb-2">Ce point viole la contrainte de distance minimale de 500m.</p>
+                <div style="max-height: 200px; overflow-y: auto;">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Station</th>
+                                <th>Distance</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+        `;
+
+        violations.forEach(v => {
+            const deficit = 500 - v.distance;
+            resultHTML += `
+                <tr>
+                    <td><small><strong>${v.numero}</strong><br>${v.nom}</small></td>
+                    <td><span class="badge bg-danger">${v.distance}m</span><br><small class="text-danger">Manque ${deficit}m</small></td>
+                    <td><button class="btn btn-sm btn-outline-primary" onclick="map.setView([${v.lat}, ${v.lng}], 16)"><i class="fas fa-map-pin"></i></button></td>
+                </tr>
+            `;
+        });
+
+        resultHTML += `
+                        </tbody>
+                    </table>
+                </div>
+                <p class="mb-0 mt-2"><strong>⚠️ Ces coordonnées ne peuvent PAS être utilisées pour une nouvelle demande.</strong></p>
+            </div>
+        `;
+    }
+
+    document.getElementById('testResult').innerHTML = resultHTML;
+    document.getElementById('testResult').style.display = 'block';
+});
+
+document.getElementById('btnClearTest').addEventListener('click', function() {
+    if (testMarker) map.removeLayer(testMarker);
+    if (testCircle) map.removeLayer(testCircle);
+    document.getElementById('test_latitude').value = '';
+    document.getElementById('test_longitude').value = '';
+    document.getElementById('testResult').style.display = 'none';
+    document.getElementById('testResult').innerHTML = '';
+});
+
+// ========== Outil de mesure de distance ==========
+let measureMode = false;
+let measurePoints = [];
+let measureLine = null;
+let measureMarkers = [];
+
+document.getElementById('btnMeasure').addEventListener('click', function() {
+    if (!measureMode) {
+        // Activer le mode mesure
+        measureMode = true;
+        this.classList.remove('btn-outline-primary');
+        this.classList.add('btn-primary');
+        this.innerHTML = '<i class="fas fa-times"></i> Annuler la mesure';
+
+        alert('Mode mesure activé !\n\n1. Cliquez sur un premier point sur la carte\n2. Cliquez sur un second point\n3. La distance en mètres sera affichée\n\nParfait pour vérifier les 500m !');
+    } else {
+        // Désactiver le mode mesure
+        clearMeasure();
+        measureMode = false;
+        this.classList.remove('btn-primary');
+        this.classList.add('btn-outline-primary');
+        this.innerHTML = '<i class="fas fa-ruler"></i> Mesurer une distance';
+    }
+});
+
+function clearMeasure() {
+    if (measureLine) map.removeLayer(measureLine);
+    measureMarkers.forEach(m => map.removeLayer(m));
+    measurePoints = [];
+    measureMarkers = [];
+    measureLine = null;
+}
+
+map.on('click', function(e) {
+    if (!measureMode) return;
+
+    if (measurePoints.length === 0) {
+        // Premier point
+        measurePoints.push(e.latlng);
+
+        const marker = L.marker(e.latlng, {
+            icon: L.divIcon({
+                className: 'measure-marker',
+                html: '<div style="background: #4CAF50; width: 12px; height: 12px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
+                iconSize: [12, 12],
+                iconAnchor: [6, 6]
+            })
+        }).addTo(map);
+
+        marker.bindPopup('<strong>Point A</strong>').openPopup();
+        measureMarkers.push(marker);
+
+    } else if (measurePoints.length === 1) {
+        // Second point
+        measurePoints.push(e.latlng);
+
+        const marker = L.marker(e.latlng, {
+            icon: L.divIcon({
+                className: 'measure-marker',
+                html: '<div style="background: #F44336; width: 12px; height: 12px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
+                iconSize: [12, 12],
+                iconAnchor: [6, 6]
+            })
+        }).addTo(map);
+
+        marker.bindPopup('<strong>Point B</strong>').openPopup();
+        measureMarkers.push(marker);
+
+        // Calculer et afficher la distance
+        const distance = map.distance(measurePoints[0], measurePoints[1]);
+        const distanceRounded = Math.round(distance);
+
+        // Tracer la ligne
+        measureLine = L.polyline(measurePoints, {
+            color: '#2196F3',
+            weight: 3,
+            dashArray: '10, 5'
+        }).addTo(map);
+
+        // Popup avec la distance au milieu de la ligne
+        const midPoint = L.latLng(
+            (measurePoints[0].lat + measurePoints[1].lat) / 2,
+            (measurePoints[0].lng + measurePoints[1].lng) / 2
+        );
+
+        let resultClass = '';
+        let resultIcon = '';
+        let resultText = '';
+
+        if (distanceRounded < 500) {
+            resultClass = 'alert-danger';
+            resultIcon = '❌';
+            resultText = `VIOLATION ! Distance : <strong>${distanceRounded} mètres</strong><br>Manque ${500 - distanceRounded} m pour respecter la contrainte`;
+        } else if (distanceRounded >= 500 && distanceRounded < 550) {
+            resultClass = 'alert-success';
+            resultIcon = '✅';
+            resultText = `CONFORME ! Distance : <strong>${distanceRounded} mètres</strong><br>Contrainte de 500m respectée`;
+        } else {
+            resultClass = 'alert-success';
+            resultIcon = '✅';
+            resultText = `CONFORME ! Distance : <strong>${distanceRounded} mètres</strong><br>Large marge de sécurité`;
+        }
+
+        L.popup()
+            .setLatLng(midPoint)
+            .setContent(`
+                <div class="alert ${resultClass} mb-0" style="padding: 15px; min-width: 250px;">
+                    <h6>${resultIcon} Mesure de Distance</h6>
+                    <p class="mb-0">${resultText}</p>
+                </div>
+            `)
+            .openOn(map);
+
+        // Réinitialiser pour une nouvelle mesure
+        setTimeout(() => {
+            clearMeasure();
+        }, 100);
     }
 });
 </script>
