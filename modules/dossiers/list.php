@@ -42,9 +42,9 @@ require_once '../../includes/header.php';
             <small class="text-muted">(<?php echo $total_dossiers; ?> dossier<?php echo $total_dossiers > 1 ? 's' : ''; ?>)</small>
         </h2>
     </div>
-    <?php if (hasPermission('dossiers.create') || hasPermission('visa.chef_service')): ?>
+    <?php if (hasPermission('dossiers.create') || (hasPermission('visa.chef_service') && !hasRole('admin'))): ?>
     <div class="col-auto">
-        <?php if (hasPermission('visa.chef_service')): ?>
+        <?php if (hasPermission('visa.chef_service') && !hasRole('admin')): ?>
         <a href="<?php echo url('modules/dossiers/viser_inspections.php'); ?>" class="btn btn-warning me-2">
             <i class="fas fa-stamp"></i> Viser les dossiers inspectés
         </a>
