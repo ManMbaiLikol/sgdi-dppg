@@ -16,16 +16,24 @@ if (!file_exists($FICHIER_MINEE)) {
     die("❌ Fichier MINEE introuvable : $FICHIER_MINEE");
 }
 
-echo "🚀 Génération du script SQL pour Railway...\n\n";
+echo "🚀 Génération du script SQL pour Railway avec encodage UTF-8...\n\n";
 
-// Ouvrir le fichier de sortie SQL
+// Forcer l'encodage UTF-8
+mb_internal_encoding('UTF-8');
+
+// Ouvrir le fichier de sortie SQL en UTF-8
 $sql_output = fopen($FICHIER_SQL_OUTPUT, 'w');
+
+// Ajouter le BOM UTF-8 pour forcer l'encodage
+fwrite($sql_output, "\xEF\xBB\xBF");
 
 // En-tête du fichier SQL
 fwrite($sql_output, "-- ============================================\n");
-fwrite($sql_output, "-- Import des stations historiques MINEE\n");
+fwrite($sql_output, "-- Import des stations historiques MINEE (UTF-8)\n");
 fwrite($sql_output, "-- Généré le : " . date('Y-m-d H:i:s') . "\n");
 fwrite($sql_output, "-- ============================================\n\n");
+fwrite($sql_output, "SET NAMES utf8mb4;\n");
+fwrite($sql_output, "SET CHARACTER SET utf8mb4;\n\n");
 
 fwrite($sql_output, "-- Étape 1 : Vérification avant import\n");
 fwrite($sql_output, "SELECT COUNT(*) as total_avant FROM dossiers;\n");
@@ -67,6 +75,17 @@ while (($row = fgetcsv($handle, 0, ';')) !== false) {
     $quartier = isset($row[6]) ? trim($row[6]) : '';
     $lieu_dit = isset($row[7]) ? trim($row[7]) : '';
     $zone_implantation = isset($row[8]) ? trim($row[8]) : '';
+
+    // Convertir TOUS les champs en UTF-8 (depuis Windows-1252 ou ISO-8859-1)
+    $numero = mb_convert_encoding($numero, 'UTF-8', 'Windows-1252,ISO-8859-1,UTF-8');
+    $nom = mb_convert_encoding($nom, 'UTF-8', 'Windows-1252,ISO-8859-1,UTF-8');
+    $region = mb_convert_encoding($region, 'UTF-8', 'Windows-1252,ISO-8859-1,UTF-8');
+    $departement = mb_convert_encoding($departement, 'UTF-8', 'Windows-1252,ISO-8859-1,UTF-8');
+    $arrondissement = mb_convert_encoding($arrondissement, 'UTF-8', 'Windows-1252,ISO-8859-1,UTF-8');
+    $ville = mb_convert_encoding($ville, 'UTF-8', 'Windows-1252,ISO-8859-1,UTF-8');
+    $quartier = mb_convert_encoding($quartier, 'UTF-8', 'Windows-1252,ISO-8859-1,UTF-8');
+    $lieu_dit = mb_convert_encoding($lieu_dit, 'UTF-8', 'Windows-1252,ISO-8859-1,UTF-8');
+    $zone_implantation = mb_convert_encoding($zone_implantation, 'UTF-8', 'Windows-1252,ISO-8859-1,UTF-8');
 
     // Si le nom est vide, ignorer cette ligne
     if (empty($nom)) {
