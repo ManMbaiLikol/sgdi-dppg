@@ -252,21 +252,9 @@ function getVisaPageForRole($role) {
 }
 
 /**
- * Récupérer les utilisateurs par rôle
+ * Note: getUsersByRole() est défini dans includes/auth.php
+ * Cette fonction utilise directement la colonne 'role' de la table 'users'
  */
-function getUsersByRole($role_name) {
-    global $pdo;
-
-    $sql = "SELECT u.*
-            FROM users u
-            JOIN user_roles ur ON u.id = ur.user_id
-            JOIN roles r ON ur.role_id = r.id
-            WHERE r.nom = ? AND u.actif = 1";
-
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([$role_name]);
-    return $stmt->fetchAll();
-}
 
 /**
  * Notifier paiement enregistré
