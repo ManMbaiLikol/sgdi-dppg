@@ -3,8 +3,7 @@
 require_once '../../includes/auth.php';
 require_once 'functions.php';
 
-// Seul le Chef de Service SDTD peut modifier les dossiers
-requireRole('chef_service');
+requireLogin();
 
 $dossier_id = intval($_GET['id'] ?? 0);
 if (!$dossier_id) {
@@ -17,9 +16,16 @@ if (!$dossier) {
     redirect(url('modules/dossiers/list.php'), 'Dossier non trouvé', 'error');
 }
 
-// Vérifier que le dossier peut être modifié (seulement les statuts brouillon et en_cours)
-if (!in_array($dossier['statut'], ['brouillon', 'en_cours'])) {
-    redirect(url('modules/dossiers/view.php?id=' . $dossier_id), 'Ce dossier ne peut plus être modifié', 'error');
+// Vérifier les permissions
+$is_admin = $_SESSION['user_role'] === 'admin';
+$is_chef_service = $_SESSION['user_role'] === 'chef_service';
+
+// Chef service peut modifier TOUS les dossiers SGDI (quel que soit le statut)
+// Admin peut modifier TOUS les dossiers (SGDI + historiques)
+if ($is_admin || $is_chef_service) {
+    // Permissions OK
+} else {
+    redirect(url('modules/dossiers/view.php?id=' . $dossier_id), 'Vous n\'avez pas la permission de modifier ce dossier', 'error');
 }
 
 $page_title = 'Modifier le dossier ' . $dossier['numero'];
@@ -74,11 +80,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'email_demandeur' => cleanInput($_POST['email_demandeur'] ?? ''),
                 'adresse_precise' => cleanInput($_POST['adresse_precise'] ?? ''),
                 'region' => cleanInput($_POST['region']),
+                'departement' => cleanInput($_POST['departement'] ?? ''),
                 'ville' => cleanInput($_POST['ville']),
                 'arrondissement' => cleanInput($_POST['arrondissement'] ?? ''),
                 'quartier' => cleanInput($_POST['quartier'] ?? ''),
+                'zone_type' => cleanInput($_POST['zone_type'] ?? 'urbaine'),
                 'lieu_dit' => cleanInput($_POST['lieu_dit'] ?? ''),
                 'coordonnees_gps' => cleanInput($_POST['coordonnees_gps'] ?? ''),
+                'annee_mise_en_service' => !empty($_POST['annee_mise_en_service']) ? intval($_POST['annee_mise_en_service']) : null,
                 'operateur_proprietaire' => cleanInput($_POST['operateur_proprietaire'] ?? ''),
                 'entreprise_beneficiaire' => cleanInput($_POST['entreprise_beneficiaire'] ?? ''),
                 'entreprise_installatrice' => cleanInput($_POST['entreprise_installatrice'] ?? ''),
@@ -89,7 +98,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ];
 
             if (modifierDossier($dossier_id, $data)) {
-                addHistoriqueDossier($dossier_id, $_SESSION['user_id'], 'modifie', 'Dossier modifié par ' . $_SESSION['user_prenom'] . ' ' . $_SESSION['user_nom']);
+                // Message différent selon le rôle
+                $message_historique = 'Dossier modifié par ' . $_SESSION['user_prenom'] . ' ' . $_SESSION['user_nom'];
+                if ($is_admin && $dossier['est_historique']) {
+                    $message_historique .= ' (Admin - Dossier historique)';
+                }
+
+                addHistoriqueDossier($dossier_id, $_SESSION['user_id'], 'modifie', $message_historique);
                 redirect(url('modules/dossiers/view.php?id=' . $dossier_id), 'Dossier modifié avec succès', 'success');
             } else {
                 $errors[] = 'Erreur lors de la modification du dossier';
@@ -107,8 +122,20 @@ require_once '../../includes/header.php';
             <!-- En-tête -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h1 class="h3 mb-0"><?php echo $page_title; ?></h1>
-                    <p class="text-muted">Modification des informations du dossier</p>
+                    <h1 class="h3 mb-0">
+                        <?php echo $page_title; ?>
+                        <?php if ($dossier['est_historique']): ?>
+                            <span class="badge bg-secondary">Historique</span>
+                        <?php endif; ?>
+                    </h1>
+                    <p class="text-muted">
+                        Modification des informations du dossier
+                        <?php if ($is_admin && $dossier['est_historique']): ?>
+                            <span class="badge bg-warning text-dark">
+                                <i class="fas fa-shield-alt"></i> Mode Admin
+                            </span>
+                        <?php endif; ?>
+                    </p>
                 </div>
                 <div>
                     <a href="<?php echo url('modules/dossiers/view.php?id=' . $dossier_id); ?>" class="btn btn-outline-secondary">
@@ -123,6 +150,19 @@ require_once '../../includes/header.php';
             </div>
 
             <!-- Alertes -->
+            <?php if ($is_admin && $dossier['est_historique']): ?>
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle"></i> Mode administrateur - Dossier historique</h6>
+                    <p class="mb-0">Vous êtes en train de modifier un dossier historique importé.
+                    Les modifications seront enregistrées dans l'historique du dossier.</p>
+                    <?php if ($dossier['source_gps']): ?>
+                        <small class="d-block mt-2">
+                            <strong>Source GPS actuelle:</strong> <?php echo htmlspecialchars($dossier['source_gps']); ?>
+                        </small>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
             <?php if (!empty($errors)): ?>
                 <div class="alert alert-danger">
                     <h6><i class="fas fa-exclamation-triangle"></i> Erreurs détectées :</h6>
@@ -270,6 +310,16 @@ require_once '../../includes/header.php';
                                            value="<?php echo safeHtml($dossier['quartier']); ?>">
                                 </div>
                             </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="zone_type" class="form-label">Type de zone</label>
+                                    <select class="form-select" id="zone_type" name="zone_type">
+                                        <option value="urbaine" <?php echo ($dossier['zone_type'] ?? 'urbaine') === 'urbaine' ? 'selected' : ''; ?>>Zone urbaine</option>
+                                        <option value="rurale" <?php echo ($dossier['zone_type'] ?? '') === 'rurale' ? 'selected' : ''; ?>>Zone rurale</option>
+                                    </select>
+                                    <small class="form-text text-muted">Pour les statistiques urbain/rural</small>
+                                </div>
+                            </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6">
@@ -279,12 +329,23 @@ require_once '../../includes/header.php';
                                            value="<?php echo safeHtml($dossier['lieu_dit']); ?>">
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-3">
                                 <div class="mb-3">
                                     <label for="coordonnees_gps" class="form-label">Coordonnées GPS</label>
                                     <input type="text" class="form-control" id="coordonnees_gps" name="coordonnees_gps"
                                            placeholder="Ex: 3.8647° N, 11.5122° E"
                                            value="<?php echo safeHtml($dossier['coordonnees_gps']); ?>">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="annee_mise_en_service" class="form-label">Année de mise en service</label>
+                                    <input type="number" class="form-control" id="annee_mise_en_service" name="annee_mise_en_service"
+                                           value="<?php echo safeHtml($dossier['annee_mise_en_service']); ?>"
+                                           placeholder="Ex: 2020"
+                                           min="1950"
+                                           max="<?php echo date('Y'); ?>">
+                                    <small class="form-text text-muted">Pour statistiques</small>
                                 </div>
                             </div>
                         </div>

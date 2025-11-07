@@ -166,17 +166,18 @@ require_once '../../includes/header.php';
                                             </td>
                                             <td>
                                                 <?php
-                                                // Ordre hiérarchique camerounais : Région → Arrondissement → Ville → Quartier
+                                                // Ordre hiérarchique camerounais : Région → Arrondissement → Ville → Quartier → Lieu-dit
                                                 $localisation = [];
                                                 if ($dossier['region']) $localisation[] = $dossier['region'];
                                                 if ($dossier['arrondissement']) $localisation[] = $dossier['arrondissement'];
                                                 if ($dossier['ville']) $localisation[] = $dossier['ville'];
                                                 if ($dossier['quartier']) $localisation[] = $dossier['quartier'];
+                                                if ($dossier['lieu_dit']) $localisation[] = '<em>' . $dossier['lieu_dit'] . '</em>';
 
                                                 if (count($localisation) > 0) {
                                                     echo '<strong>' . htmlspecialchars($localisation[0]) . '</strong>';
                                                     for ($i = 1; $i < count($localisation); $i++) {
-                                                        echo '<br><small class="text-muted">' . htmlspecialchars($localisation[$i]) . '</small>';
+                                                        echo '<br><small class="text-muted">' . $localisation[$i] . '</small>';
                                                     }
                                                 } else {
                                                     echo '<span class="text-muted">Non précisé</span>';

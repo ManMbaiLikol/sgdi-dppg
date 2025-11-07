@@ -1,6 +1,7 @@
 <?php
-// Debug pour vérifier les notes de frais
+// Debug pour vérifier les notes de frais - Accessible uniquement aux admins
 require_once '../../includes/auth.php';
+requireRole('admin');
 require_once 'functions.php';
 
 echo "<h3>Debug Notes de Frais</h3>";

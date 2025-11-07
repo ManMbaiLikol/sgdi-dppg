@@ -1,0 +1,10 @@
+# Protection du dossier utilities
+# Accès limité à localhost uniquement
+
+Order Deny,Allow
+Deny from all
+Allow from 127.0.0.1
+Allow from ::1
+
+# Message d'erreur personnalisé
+ErrorDocument 403 "Accès interdit - Utilitaires de maintenance"

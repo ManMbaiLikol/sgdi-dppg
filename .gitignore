@@ -50,6 +50,14 @@ install_*.php
 *.txt
 !Comptes de Démonstration.txt
 
+# Rapports et exports générés
+rapport_*.html
+import_result*.html
+matching_result*.html
+analyze_result*.html
+exports/
+!exports/.gitkeep
+
 # Scripts batch
 *.bat
 

@@ -37,7 +37,7 @@ Application web complète de gestion des dossiers d'implantation d'infrastructur
 10. **Décision ministérielle** (Approbation/Refus)
 11. **Publication automatique** au registre public
 
-### 👥 10 Rôles utilisateurs
+### 👥 9 Rôles utilisateurs
 
 1. **Chef de Service SDTD** - Gestion centralisée
 2. **Billeteur DPPG** - Enregistrement paiements
@@ -48,7 +48,8 @@ Application web complète de gestion des dossiers d'implantation d'infrastructur
 7. **Directeur DPPG** - 3ème niveau visa + transmission
 8. **Cabinet/Ministre** - Décision finale
 9. **Admin Système** - Gestion complète
-10. **Lecteur Public** - Consultation registre
+
+**Note:** Le registre public est accessible sans authentification (pas de rôle "Lecteur" requis)
 
 ### 🏗️ 6 Types d'infrastructures
 
@@ -487,7 +488,7 @@ tail -f /var/log/apache2/error.log
 ### Version 1.0 (Octobre 2025)
 - ✅ Version initiale production
 - ✅ Workflow complet 11 étapes
-- ✅ 10 rôles utilisateurs
+- ✅ 9 rôles utilisateurs
 - ✅ 6 types d'infrastructures
 - ✅ Système huitaine
 - ✅ Géolocalisation GPS

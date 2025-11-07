@@ -1,4 +1,8 @@
 <?php
+// Fiche d'inspection vierge - Accessible uniquement aux utilisateurs connectés
+require_once '../../includes/auth.php';
+requireLogin();
+
 // Déterminer le type d'infrastructure depuis l'URL
 $type = $_GET['type'] ?? 'station_service';
 $est_point_consommateur = ($type === 'point_consommateur');

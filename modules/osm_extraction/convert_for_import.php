@@ -4,6 +4,10 @@
  * Transforme le CSV filtré OSM en format compatible avec le module import_historique
  */
 
+// Sécurité : Accessible uniquement aux admins et chefs de service
+require_once '../../includes/auth.php';
+requireAnyRole(['admin', 'chef_service']);
+
 echo "<!DOCTYPE html><html><head><meta charset='UTF-8'>";
 echo "<title>Conversion CSV OSM pour Import</title>";
 echo "<style>

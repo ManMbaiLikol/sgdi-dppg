@@ -11,6 +11,10 @@
  * - Via CLI: php extract_osm_stations.php
  */
 
+// Sécurité : Accessible uniquement aux admins et chefs de service
+require_once '../../includes/auth.php';
+requireAnyRole(['admin', 'chef_service']);
+
 set_time_limit(300); // 5 minutes max
 
 echo "<!DOCTYPE html><html><head><meta charset='UTF-8'>";

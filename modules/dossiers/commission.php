@@ -56,19 +56,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $cadre_dppg_id = intval($_POST['cadre_dppg_id'] ?? 0);
         $cadre_daj_id = intval($_POST['cadre_daj_id'] ?? 0);
 
-        // DEBUG: Logger les valeurs reçues
-        error_log("=== DEBUG CONSTITUTION COMMISSION ===");
-        error_log("chef_commission_id: " . $chef_commission_id);
-        error_log("chef_commission_role RAW: '" . ($_POST['chef_commission_role'] ?? '') . "'");
-        error_log("chef_commission_role CLEAN: '" . $chef_commission_role . "'");
-        error_log("chef_commission_role LENGTH: " . strlen($chef_commission_role));
-        error_log("cadre_dppg_id: " . $cadre_dppg_id);
-        error_log("cadre_daj_id: " . $cadre_daj_id);
-
         // Le Chef de Service SDTD doit désigner un chef de commission
         if (!$chef_commission_id || !$chef_commission_role) {
             $errors[] = 'Sélection du chef de commission requise';
-            error_log("ERREUR: chef_commission_id ou chef_commission_role manquant");
         }
 
         if (!$cadre_dppg_id) {
@@ -82,14 +72,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($errors)) {
             try {
                 $pdo->beginTransaction();
-
-                // DEBUG: Valeurs à insérer
-                error_log("=== VALEURS À INSÉRER ===");
-                error_log("dossier_id: " . $dossier_id);
-                error_log("chef_commission_id: " . $chef_commission_id);
-                error_log("chef_commission_role: '" . $chef_commission_role . "'");
-                error_log("cadre_dppg_id: " . $cadre_dppg_id);
-                error_log("cadre_daj_id: " . $cadre_daj_id);
 
                 // Vérifier que le role est valide
                 $valid_roles = ['chef_service', 'chef_commission', 'sous_directeur', 'directeur'];
@@ -313,18 +295,12 @@ function updateChefRole() {
     const select = document.getElementById('chef_commission_id');
     const roleInput = document.getElementById('chef_commission_role');
 
-    console.log('=== updateChefRole appelé ===');
-    console.log('Select value:', select.value);
-
     if (select.value) {
         const selectedOption = select.options[select.selectedIndex];
         const role = selectedOption.getAttribute('data-role');
-        console.log('Role récupéré:', role);
-        console.log('data-role attribute:', selectedOption.getAttribute('data-role'));
 
         // Garder le rôle exact de l'utilisateur sélectionné
         roleInput.value = role;
-        console.log('Champ chef_commission_role mis à jour:', roleInput.value);
 
         // Afficher un indicateur visuel
         const indicator = document.getElementById('role-indicator');
@@ -341,7 +317,6 @@ function updateChefRole() {
         }
     } else {
         roleInput.value = '';
-        console.log('Champ chef_commission_role vidé');
 
         const indicator = document.getElementById('role-indicator');
         if (indicator) {
@@ -360,7 +335,6 @@ function updateChefRole() {
 document.addEventListener('DOMContentLoaded', function() {
     const selectElement = document.getElementById('chef_commission_id');
     if (selectElement && selectElement.value) {
-        console.log('Valeur pré-sélectionnée détectée au chargement, mise à jour du rôle...');
         updateChefRole();
     }
 
@@ -370,14 +344,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const roleInput = document.getElementById('chef_commission_role');
             const selectInput = document.getElementById('chef_commission_id');
 
-            console.log('=== SOUMISSION FORMULAIRE ===');
-            console.log('chef_commission_id:', selectInput.value);
-            console.log('chef_commission_role:', roleInput.value);
-
             if (selectInput.value && !roleInput.value) {
                 e.preventDefault();
                 alert('ERREUR: Le rôle du chef de commission n\'a pas été détecté.\n\nVeuillez:\n1. Recharger la page (F5)\n2. Resélectionner le chef de commission\n3. Réessayer');
-                console.error('ERREUR: chef_commission_role vide alors que chef_commission_id est rempli');
                 return false;
             }
 
@@ -391,11 +360,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!validRoles.includes(roleInput.value)) {
                 e.preventDefault();
                 alert('ERREUR: Rôle invalide "' + roleInput.value + '".\n\nRôles acceptés: ' + validRoles.join(', '));
-                console.error('Rôle invalide:', roleInput.value);
                 return false;
             }
-
-            console.log('Validation OK, soumission du formulaire...');
         });
     }
 });

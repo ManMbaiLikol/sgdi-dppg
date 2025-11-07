@@ -1,6 +1,7 @@
 <?php
-// Debug pour vérifier les IDs des dossiers
+// Debug pour vérifier les IDs des dossiers - Accessible uniquement aux admins
 require_once '../../includes/auth.php';
+requireRole('admin');
 
 echo "<h3>Vérification des IDs de dossiers</h3>";
 

@@ -5,6 +5,9 @@ CREATE DATABASE IF NOT EXISTS sgdi_mvp;
 USE sgdi_mvp;
 
 -- Table des utilisateurs
+-- NOTE: Le schéma de base définit 5 rôles initiaux.
+-- Les 4 rôles additionnels (cadre_daj, chef_commission, sous_directeur, ministre)
+-- sont ajoutés via les migrations pour atteindre le total de 9 rôles du système.
 CREATE TABLE users (
     id INT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(50) UNIQUE NOT NULL,

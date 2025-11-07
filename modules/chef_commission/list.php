@@ -142,7 +142,13 @@ require_once '../../includes/header.php';
                             <strong><?php echo sanitize($dossier['nom_demandeur']); ?></strong>
                             <br>
                             <small class="text-muted">
-                                <?php echo sanitize($dossier['ville'] ?? 'N/A'); ?>
+                                <?php
+                                $loc_parts = [];
+                                if (!empty($dossier['ville'])) $loc_parts[] = $dossier['ville'];
+                                if (!empty($dossier['quartier'])) $loc_parts[] = $dossier['quartier'];
+                                if (!empty($dossier['lieu_dit'])) $loc_parts[] = '<em>' . $dossier['lieu_dit'] . '</em>';
+                                echo !empty($loc_parts) ? implode(' - ', $loc_parts) : 'N/A';
+                                ?>
                             </small>
                         </td>
                         <td>

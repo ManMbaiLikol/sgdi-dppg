@@ -101,9 +101,9 @@ require_once '../../includes/header.php';
                             <i class="fas fa-cog"></i> Actions
                         </button>
                         <div class="dropdown-menu">
-                            <?php if ($_SESSION['user_role'] === 'chef_service'): ?>
+                            <?php if ($_SESSION['user_role'] === 'chef_service' || $_SESSION['user_role'] === 'admin'): ?>
                             <a class="dropdown-item" href="<?php echo url('modules/dossiers/edit.php?id=' . $dossier_id); ?>">
-                                <i class="fas fa-edit"></i> Modifier
+                                <i class="fas fa-edit"></i> Modifier les informations
                             </a>
                             <a class="dropdown-item" href="<?php echo url('modules/dossiers/localisation.php?id=' . $dossier_id); ?>">
                                 <i class="fas fa-map-marker-alt"></i> Localisation GPS
@@ -320,6 +320,20 @@ require_once '../../includes/header.php';
                                             </td>
                                         </tr>
                                         <?php endif; ?>
+
+                                        <?php if ($dossier['annee_mise_en_service']): ?>
+                                        <tr>
+                                            <td><strong>Année de mise en service :</strong></td>
+                                            <td>
+                                                <span class="badge bg-info">
+                                                    <i class="fas fa-calendar-alt"></i> <?php echo htmlspecialchars($dossier['annee_mise_en_service']); ?>
+                                                </span>
+                                                <?php if ($dossier['est_historique']): ?>
+                                                <br><small class="text-muted">Dossier historique</small>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                        <?php endif; ?>
                                     </table>
                                 </div>
                             </div>
@@ -403,6 +417,23 @@ require_once '../../includes/header.php';
                                         <tr>
                                             <td><strong>Lieu-dit :</strong></td>
                                             <td><?php echo htmlspecialchars($dossier['lieu_dit'] ?? 'Non précisé'); ?></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Type de zone :</strong></td>
+                                            <td>
+                                                <?php
+                                                $zone_type = $dossier['zone_type'] ?? 'urbaine';
+                                                if ($zone_type === 'rurale'):
+                                                ?>
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-tree"></i> Zone rurale
+                                                </span>
+                                                <?php else: ?>
+                                                <span class="badge bg-primary">
+                                                    <i class="fas fa-city"></i> Zone urbaine
+                                                </span>
+                                                <?php endif; ?>
+                                            </td>
                                         </tr>
                                     </table>
                                 </div>

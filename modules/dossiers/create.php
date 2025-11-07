@@ -69,8 +69,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'ville' => cleanInput($_POST['ville']),
                 'arrondissement' => cleanInput($_POST['arrondissement']),
                 'quartier' => cleanInput($_POST['quartier']),
+                'zone_type' => cleanInput($_POST['zone_type'] ?? 'urbaine'),
                 'lieu_dit' => cleanInput($_POST['lieu_dit']),
                 'coordonnees_gps' => cleanInput($_POST['coordonnees_gps']),
+                'annee_mise_en_service' => !empty($_POST['annee_mise_en_service']) ? intval($_POST['annee_mise_en_service']) : null,
                 'operateur_proprietaire' => cleanInput($_POST['operateur_proprietaire']),
                 'entreprise_beneficiaire' => cleanInput($_POST['entreprise_beneficiaire']),
                 'contrat_livraison' => cleanInput($_POST['contrat_livraison']),
@@ -234,20 +236,38 @@ require_once '../../includes/header.php';
                                    placeholder="Ex: Melen, Bonanjo, Tsinga..."
                                    value="<?php echo sanitize($_POST['quartier'] ?? ''); ?>">
                         </div>
+                        <div class="col-md-6">
+                            <label for="zone_type" class="form-label">Type de zone</label>
+                            <select class="form-select" id="zone_type" name="zone_type">
+                                <option value="urbaine" <?php echo ($_POST['zone_type'] ?? 'urbaine') === 'urbaine' ? 'selected' : ''; ?>>Zone urbaine</option>
+                                <option value="rurale" <?php echo ($_POST['zone_type'] ?? '') === 'rurale' ? 'selected' : ''; ?>>Zone rurale</option>
+                            </select>
+                            <small class="form-text text-muted">Pour les statistiques urbain/rural</small>
+                        </div>
                     </div>
 
                     <div class="row mb-3">
-                        <div class="col-md-8">
+                        <div class="col-md-6">
                             <label for="lieu_dit" class="form-label">Lieu-dit</label>
                             <textarea class="form-control" id="lieu_dit" name="lieu_dit" rows="2"
                                      placeholder="Description précise du lieu d'implantation"><?php echo sanitize($_POST['lieu_dit'] ?? ''); ?></textarea>
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label for="coordonnees_gps" class="form-label">Coordonnées GPS</label>
                             <input type="text" class="form-control" id="coordonnees_gps" name="coordonnees_gps"
                                    value="<?php echo sanitize($_POST['coordonnees_gps'] ?? ''); ?>"
                                    placeholder="Ex: 3.848,11.502">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="annee_mise_en_service" class="form-label">Année de mise en service</label>
+                            <input type="number" class="form-control" id="annee_mise_en_service" name="annee_mise_en_service"
+                                   value="<?php echo sanitize($_POST['annee_mise_en_service'] ?? ''); ?>"
+                                   placeholder="Ex: 2020"
+                                   min="1950"
+                                   max="<?php echo date('Y'); ?>">
+                            <small class="form-text text-muted">Pour dossiers historiques</small>
                         </div>
                     </div>
 
