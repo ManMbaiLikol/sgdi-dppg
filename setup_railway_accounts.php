@@ -8,14 +8,15 @@
  * URL: https://sgdi-dppg-production.up.railway.app/setup_railway_accounts.php
  */
 
-require_once __DIR__ . '/config/database.php';
-
 // Désactiver l'affichage des erreurs en production
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-$database = new Database();
-$db = $database->getConnection();
+// Connexion à la base de données
+require_once __DIR__ . '/config/database.php';
+
+// $pdo est maintenant disponible depuis config/database.php
+$db = $pdo;
 
 $results = [];
 $errors = [];
