@@ -1,6 +1,7 @@
- Comptes de Démonstration :
+Comptes de Démonstration :
   - admin / admin123 (Accès complet)
   - chef / chef123 (Chef Service - Créer dossiers)
   - cadre / cadre123 (Cadre DPPG - Inspections)
   - billeteur / bill123 (Enregistrement paiements)
   - directeur / dir123 (Validation & décisions)
+  - ministre / Ministre@2025 (Cabinet/Ministre - Décision finale)
