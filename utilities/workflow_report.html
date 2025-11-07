@@ -1,0 +1,18 @@
+<h2>Vérification du Workflow jusqu'au Ministre</h2>
+
+<style>
+table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+th, td { border: 1px solid #333; padding: 10px; text-align: left; }
+th { background: #333; color: white; }
+.success { background: #d4edda; }
+.warning { background: #fff3cd; }
+.danger { background: #f8d7da; }
+.info { background: #d1ecf1; }
+</style><h3>📊 1. Statuts des dossiers dans la base</h3><table><tr><th>Statut</th><th>Nombre de dossiers</th><th>État</th></tr><tr class=''><td><strong>historique_autorise</strong></td><td>1006</td><td></td></tr><tr class=''><td><strong>en_cours</strong></td><td>6</td><td></td></tr><tr class=''><td><strong>paye</strong></td><td>3</td><td></td></tr><tr class=''><td><strong>inspecte</strong></td><td>1</td><td></td></tr></table><h3>✅ 2. Dossiers prêts pour décision ministérielle (statut = 'visa_directeur')</h3><div class='warning' style='padding: 15px; margin: 10px 0;'><strong>⚠️ Aucun dossier avec statut 'visa_directeur'</strong><br>Cela signifie qu'aucun dossier n'a encore été visé par le Directeur.</div><h3>📝 3. Dossiers en attente de visa Directeur (statut = 'visa_sous_directeur')</h3><div class='info' style='padding: 15px; margin: 10px 0;'>✓ Aucun dossier en attente du visa Directeur</div><h3>📋 4. Vérification des visas par rôle</h3><table><tr><th>Rôle</th><th>Nombre de visas apposés</th></tr></table><h3>🔍 5. Exemple de dossier avec circuit visa complet</h3><div class='warning' style='padding: 15px;'>⚠️ Aucun dossier n'a encore de visa dans le système</div><h3>🔧 6. Diagnostic du Workflow</h3><div style='background: #f8f9fa; padding: 20px; border: 2px solid #333;'><p style='color: blue; font-weight: bold;'>ℹ️ AUCUN DOSSIER dans le circuit de visa</p><p>→ Créez des dossiers et faites-les progresser dans le workflow</p></div><h3>📖 7. Instructions pour tester le workflow Ministre</h3><div style='background: #e7f3ff; padding: 20px; border: 2px solid #0066cc;'><ol><li><strong>Vérifiez qu'un dossier a les 3 visas</strong> (Chef Service, Sous-Directeur, Directeur)</li><li><strong>Le Directeur doit approuver</strong> le visa pour que le statut devienne 'visa_directeur'</li><li><strong>Connectez-vous en tant que Ministre</strong>:
+        <ul>
+            <li>Username: <code>ministre</code></li>
+            <li>Mot de passe: <code>Ministre@2025</code></li>
+        </ul>
+    </li><li><strong>Accédez à</strong>: <a href='modules/dossiers/decision_ministre.php'>Décisions ministérielles</a></li><li><strong>Vous devriez voir</strong> les dossiers avec statut 'visa_directeur'</li></ol></div>
+
+<hr><p><a href='index.php'>← Retour à la connexion</a> | <a href='dashboard.php'>Tableau de bord</a> | <a href='modules/dossiers/list.php'>Liste des dossiers</a></p>

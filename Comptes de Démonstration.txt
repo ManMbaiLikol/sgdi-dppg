@@ -1,7 +1,8 @@
 Comptes de Démonstration :
   - admin / admin123 (Accès complet)
-  - chef / chef123 (Chef Service - Créer dossiers)
+  - chef / chef123 (Chef Service - Créer dossiers + Visa 1/3)
+  - SDTD_Abena / admin123 (Sous-Directeur - Visa 2/3)
+  - directeur / dir123 (Directeur DPPG - Visa 3/3)
   - cadre / cadre123 (Cadre DPPG - Inspections)
   - billeteur / bill123 (Enregistrement paiements)
-  - directeur / dir123 (Validation & décisions)
   - ministre / Ministre@2025 (Cabinet/Ministre - Décision finale)
