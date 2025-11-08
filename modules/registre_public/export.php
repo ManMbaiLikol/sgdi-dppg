@@ -40,15 +40,15 @@ try {
 
     // Construction de la requête selon la disponibilité de la table decisions
     if ($table_decisions !== null) {
-        // IMPORTANT: Utiliser backticks pour protéger le nom de table (safe car vient de SHOW TABLES)
+        // IMPORTANT: Utiliser backticks + alias non-réservé (decision_info au lieu de dec qui est réservé)
         $sql = "SELECT d.numero, d.type_infrastructure, d.sous_type, d.nom_demandeur,
                 d.region, d.ville, d.adresse_precise,
                 d.operateur_proprietaire, d.entreprise_beneficiaire, d.entreprise_installatrice,
-                d.statut, dec.decision, dec.reference_decision,
-                DATE_FORMAT(dec.date_decision, '%d/%m/%Y') as date_decision,
+                d.statut, decision_info.decision, decision_info.reference_decision,
+                DATE_FORMAT(decision_info.date_decision, '%d/%m/%Y') as date_decision,
                 DATE_FORMAT(d.date_creation, '%d/%m/%Y') as date_creation
                 FROM dossiers d
-                LEFT JOIN `" . $table_decisions . "` dec ON d.id = dec.dossier_id
+                LEFT JOIN `" . $table_decisions . "` AS decision_info ON d.id = decision_info.dossier_id
                 WHERE d.statut IN ('autorise', 'refuse', 'ferme', 'historique_autorise')";
     } else {
         // Sans table de décisions
@@ -92,7 +92,7 @@ try {
 
     if ($annee) {
         if ($table_decisions !== null) {
-            $sql .= " AND YEAR(dec.date_decision) = :annee";
+            $sql .= " AND YEAR(decision_info.date_decision) = :annee";
             $params['annee'] = $annee;
         } else {
             $sql .= " AND YEAR(d.date_creation) = :annee";
@@ -100,7 +100,7 @@ try {
         }
     }
 
-    $sql .= ($table_decisions !== null) ? " ORDER BY dec.date_decision DESC, d.numero DESC" : " ORDER BY d.date_creation DESC, d.numero DESC";
+    $sql .= ($table_decisions !== null) ? " ORDER BY decision_info.date_decision DESC, d.numero DESC" : " ORDER BY d.date_creation DESC, d.numero DESC";
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);

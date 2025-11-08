@@ -44,11 +44,11 @@ try {
         $sql = "SELECT d.numero, d.type_infrastructure, d.sous_type, d.nom_demandeur,
                 d.region, d.ville, d.adresse_precise,
                 d.operateur_proprietaire, d.entreprise_beneficiaire, d.entreprise_installatrice,
-                d.statut, dec.decision, dec.reference_decision,
-                DATE_FORMAT(dec.date_decision, '%d/%m/%Y') as date_decision,
+                d.statut, decision_info.decision, decision_info.reference_decision,
+                DATE_FORMAT(decision_info.date_decision, '%d/%m/%Y') as date_decision,
                 DATE_FORMAT(d.date_creation, '%d/%m/%Y') as date_creation
                 FROM dossiers d
-                LEFT JOIN `" . $table_decisions . "` dec ON d.id = dec.dossier_id
+                LEFT JOIN `" . $table_decisions . "` AS decision_info ON d.id = decision_info.dossier_id
                 WHERE d.statut IN ('autorise', 'refuse', 'ferme', 'historique_autorise')";
     } else {
         $sql = "SELECT d.numero, d.type_infrastructure, d.sous_type, d.nom_demandeur,
