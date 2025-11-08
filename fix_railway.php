@@ -1,10 +1,13 @@
 <?php
 /**
- * Script de Correction Railway - Ajout du rôle 'ministre'
+ * Script de Création Compte Ministre - Railway
  *
  * Ce script :
- * 1. Ajoute le rôle 'ministre' à l'ENUM de la colonne users.role
- * 2. Crée le compte ministre
+ * 1. Vérifie que le rôle 'cabinet' existe (Cabinet du Ministre)
+ * 2. Crée le compte ministre avec le rôle 'cabinet'
+ *
+ * Note: Le rôle 'cabinet' fait référence au Cabinet du Ministre.
+ * Il n'y a pas de rôle 'ministre' séparé.
  */
 
 ini_set('display_errors', 1);
@@ -67,94 +70,80 @@ if ($db) {
     }
 
     // ============================================================
-    // ÉTAPE 2 : AJOUTER LE RÔLE 'ministre' SI NÉCESSAIRE
+    // ÉTAPE 2 : VÉRIFIER SI LE RÔLE 'cabinet' EXISTE
     // ============================================================
 
-    if (!$has_ministre) {
-        try {
-            $results[] = "";
-            $results[] = "🔧 Ajout du rôle 'ministre' à l'ENUM...";
+    // Note: Le rôle 'cabinet' fait référence au Cabinet du Ministre
+    // Pas besoin de créer un rôle 'ministre' séparé
 
-            $alter_sql = "ALTER TABLE users
-                          MODIFY COLUMN role ENUM(
-                              'admin',
-                              'chef_service',
-                              'sous_directeur',
-                              'directeur',
-                              'ministre',
-                              'cabinet',
-                              'cadre_dppg',
-                              'cadre_daj',
-                              'chef_commission',
-                              'billeteur',
-                              'lecteur_public'
-                          ) NOT NULL";
+    $has_cabinet = strpos($column_info['Type'], "'cabinet'") !== false;
 
-            $db->exec($alter_sql);
-
-            $results[] = "✅ Rôle 'ministre' ajouté avec succès à l'ENUM !";
-
-        } catch (PDOException $e) {
-            $errors[] = "❌ Erreur lors de l'ajout du rôle: " . $e->getMessage();
-        }
+    if ($has_cabinet) {
+        $results[] = "";
+        $results[] = "✅ Le rôle 'cabinet' (Cabinet du Ministre) existe déjà";
+    } else {
+        $errors[] = "❌ Le rôle 'cabinet' n'existe pas dans l'ENUM !";
     }
 
     // ============================================================
-    // ÉTAPE 3 : CRÉER LE COMPTE MINISTRE
+    // ÉTAPE 3 : CRÉER LE COMPTE MINISTRE (avec rôle 'cabinet')
     // ============================================================
 
-    try {
-        $results[] = "";
-        $results[] = "👤 Création du compte Ministre...";
+    if ($has_cabinet) {
+        try {
+            $results[] = "";
+            $results[] = "👤 Création du compte Ministre...";
 
-        // Vérifier si le compte existe déjà
-        $check_ministre_sql = "SELECT id, username, email, role FROM users WHERE username = :username";
-        $check_ministre_stmt = $db->prepare($check_ministre_sql);
-        $check_ministre_stmt->execute(['username' => 'ministre']);
+            // Vérifier si le compte existe déjà
+            $check_ministre_sql = "SELECT id, username, email, role FROM users WHERE username = :username";
+            $check_ministre_stmt = $db->prepare($check_ministre_sql);
+            $check_ministre_stmt->execute(['username' => 'ministre']);
 
-        if ($check_ministre_stmt->rowCount() > 0) {
-            $existing = $check_ministre_stmt->fetch(PDO::FETCH_ASSOC);
-            $results[] = "ℹ️ Le compte existe déjà";
-            $results[] = "   Username: " . htmlspecialchars($existing['username']);
-            $results[] = "   Email: " . htmlspecialchars($existing['email']);
-            $results[] = "   Rôle: " . htmlspecialchars($existing['role']);
+            if ($check_ministre_stmt->rowCount() > 0) {
+                $existing = $check_ministre_stmt->fetch(PDO::FETCH_ASSOC);
+                $results[] = "ℹ️ Le compte existe déjà";
+                $results[] = "   Username: " . htmlspecialchars($existing['username']);
+                $results[] = "   Email: " . htmlspecialchars($existing['email']);
+                $results[] = "   Rôle: " . htmlspecialchars($existing['role']);
 
-            // Vérifier si le rôle est correct
-            if ($existing['role'] !== 'ministre') {
-                $results[] = "   ⚠️ Le rôle n'est pas 'ministre', mise à jour...";
+                // Vérifier si le rôle est correct
+                if ($existing['role'] !== 'cabinet') {
+                    $results[] = "   ⚠️ Le rôle n'est pas 'cabinet', mise à jour...";
 
-                $update_sql = "UPDATE users SET role = :role WHERE username = :username";
-                $update_stmt = $db->prepare($update_sql);
-                $update_stmt->execute([
-                    'role' => 'ministre',
-                    'username' => 'ministre'
+                    $update_sql = "UPDATE users SET role = :role WHERE username = :username";
+                    $update_stmt = $db->prepare($update_sql);
+                    $update_stmt->execute([
+                        'role' => 'cabinet',
+                        'username' => 'ministre'
+                    ]);
+
+                    $results[] = "   ✅ Rôle mis à jour vers 'cabinet'";
+                }
+
+            } else {
+                // Créer le compte avec rôle 'cabinet'
+                $insert_sql = "INSERT INTO users (username, email, password, role, nom, prenom, telephone, actif, date_creation)
+                               VALUES (:username, :email, :password, :role, :nom, :prenom, :telephone, :actif, NOW())";
+
+                $insert_stmt = $db->prepare($insert_sql);
+                $insert_stmt->execute([
+                    'username' => 'ministre',
+                    'email' => 'ministre@minee.cm',
+                    'password' => '$2y$10$mTQL2.kuw0g4eBPojVmMOehRxiD8t6OBBsX08XiU7H1NjHLR.yayW', // Ministre@2025
+                    'role' => 'cabinet',  // ← Utilise le rôle 'cabinet' existant
+                    'nom' => 'CABINET',
+                    'prenom' => 'Ministre',
+                    'telephone' => '+237690000009',
+                    'actif' => 1
                 ]);
 
-                $results[] = "   ✅ Rôle mis à jour vers 'ministre'";
+                $results[] = "✅ Compte Ministre créé avec succès !";
+                $results[] = "   Rôle attribué : 'cabinet' (Cabinet du Ministre)";
             }
 
-        } else {
-            // Créer le compte
-            $insert_sql = "INSERT INTO users (username, email, password, role, nom, prenom, telephone, actif, date_creation)
-                           VALUES (:username, :email, :password, :role, :nom, :prenom, :telephone, :actif, NOW())";
-
-            $insert_stmt = $db->prepare($insert_sql);
-            $insert_stmt->execute([
-                'username' => 'ministre',
-                'email' => 'ministre@minee.cm',
-                'password' => '$2y$10$mTQL2.kuw0g4eBPojVmMOehRxiD8t6OBBsX08XiU7H1NjHLR.yayW', // Ministre@2025
-                'role' => 'ministre',
-                'nom' => 'CABINET',
-                'prenom' => 'Ministre',
-                'telephone' => '+237690000009',
-                'actif' => 1
-            ]);
-
-            $results[] = "✅ Compte Ministre créé avec succès !";
+        } catch (PDOException $e) {
+            $errors[] = "❌ Erreur création compte Ministre: " . $e->getMessage();
         }
-
-    } catch (PDOException $e) {
-        $errors[] = "❌ Erreur création compte Ministre: " . $e->getMessage();
     }
 
     // ============================================================
@@ -194,7 +183,7 @@ if ($db) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Correction Railway - Rôle Ministre</title>
+    <title>Création Compte Ministre - Railway</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -312,8 +301,8 @@ if ($db) {
 </head>
 <body>
     <div class="container">
-        <h1>🔧 Correction Railway</h1>
-        <p class="subtitle">Ajout du rôle 'ministre' et création du compte</p>
+        <h1>🚀 Création Compte Ministre</h1>
+        <p class="subtitle">Configuration du compte avec rôle 'cabinet' (Cabinet du Ministre)</p>
 
         <?php if (!empty($errors)): ?>
         <div class="box error">
@@ -342,7 +331,7 @@ if ($db) {
                 URL de connexion: <a href="/">https://sgdi-dppg-production.up.railway.app/</a><br><br>
                 Username: <code>ministre</code><br>
                 Mot de passe: <code>Ministre@2025</code><br>
-                Rôle: <code>ministre</code>
+                Rôle: <code>cabinet</code> (Cabinet du Ministre)
             </div>
         </div>
 
