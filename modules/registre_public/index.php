@@ -15,9 +15,9 @@ $statut = sanitize($_GET['statut'] ?? 'tous'); // Par défaut, tous les statuts 
 $annee = sanitize($_GET['annee'] ?? '');
 $page = max(1, intval($_GET['page'] ?? 1)); // Pagination
 
-// Détecter si des filtres ont été appliqués
+// Détecter si des filtres ont été appliqués (filtres actifs de l'utilisateur)
 $has_filters = !empty($search) || !empty($type_infrastructure) || !empty($region) ||
-               !empty($ville) || ($statut && $statut !== 'tous') || !empty($annee);
+               !empty($ville) || !empty($annee);
 
 // Si aucun filtre : afficher seulement les 10 derniers
 // Si des filtres : afficher 20 par page
