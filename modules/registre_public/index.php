@@ -25,7 +25,7 @@ $par_page = $has_filters ? 20 : 10;
 
 // Construction de la requête
 $where_clause = "WHERE 1=1";
-$from_clause = "FROM dossiers d";
+$from_clause = "FROM dossiers d LEFT JOIN decisions dec ON d.id = dec.dossier_id";
 
 $params = [];
 
@@ -77,13 +77,13 @@ $total_pages = ceil($total_resultats / $par_page);
 $sql = "SELECT d.*,
         d.numero, d.type_infrastructure, d.sous_type, d.region, d.ville,
         d.nom_demandeur, d.operateur_proprietaire, d.entreprise_beneficiaire,
-        DATE_FORMAT(d.date_creation, '%d/%m/%Y') as date_decision_format,
-        NULL as decision,
-        d.date_creation as date_decision,
-        d.numero as reference_decision
+        DATE_FORMAT(COALESCE(dec.date_decision, d.date_creation), '%d/%m/%Y') as date_decision_format,
+        dec.decision,
+        COALESCE(dec.date_decision, d.date_creation) as date_decision,
+        COALESCE(dec.reference_decision, d.numero) as reference_decision
         $from_clause
         $where_clause
-        ORDER BY d.date_creation DESC, d.numero DESC
+        ORDER BY COALESCE(dec.date_decision, d.date_creation) DESC, d.numero DESC
         LIMIT :limit OFFSET :offset";
 
 // Ajouter la pagination
