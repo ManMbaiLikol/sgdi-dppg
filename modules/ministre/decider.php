@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pdo->beginTransaction();
 
                 // Enregistrer la décision
-                $sql_decision = "INSERT INTO decisions (dossier_id, decision, reference_decision, observations, date_decision)
+                $sql_decision = "INSERT INTO decisions (dossier_id, decision, reference_decision, motif, date_decision)
                                  VALUES (?, ?, ?, ?, NOW())";
                 $stmt_decision = $pdo->prepare($sql_decision);
                 $stmt_decision->execute([$dossier_id, $decision, $reference, $observations]);
