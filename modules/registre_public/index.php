@@ -294,11 +294,14 @@ $stats = $pdo->query($stats_sql)->fetch();
         <!-- Résultats -->
         <div class="mb-3 d-flex justify-content-between align-items-center">
             <h4>
-                <?php echo $total_resultats; ?> résultat(s) trouvé(s)
                 <?php if (!$has_filters): ?>
-                    <small class="text-muted">(Affichage des 10 derniers - Utilisez les filtres pour voir plus)</small>
-                <?php elseif ($total_pages > 1): ?>
-                    <small class="text-muted">(Page <?php echo $page; ?> sur <?php echo $total_pages; ?>)</small>
+                    Affichage des 10 dernières autorisations
+                    <small class="text-muted">(Utilisez les filtres pour voir plus de résultats)</small>
+                <?php else: ?>
+                    <?php echo $total_resultats; ?> résultat(s) trouvé(s)
+                    <?php if ($total_pages > 1): ?>
+                        <small class="text-muted">(Page <?php echo $page; ?> sur <?php echo $total_pages; ?>)</small>
+                    <?php endif; ?>
                 <?php endif; ?>
             </h4>
             <a href="export.php?<?php echo http_build_query($_GET); ?>" class="btn btn-success">
