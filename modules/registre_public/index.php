@@ -67,7 +67,16 @@ if ($annee && $annee !== '' && is_numeric($annee)) {
 }
 
 // Compter le total pour la pagination
-$count_sql = "SELECT COUNT(*) $from_clause $where_clause";
+// Si aucun filtre : limiter artificiellement le total à 10 (les 10 derniers)
+if (!$has_filters) {
+    $count_sql = "SELECT COUNT(*) FROM (
+                    SELECT d.id $from_clause $where_clause
+                    ORDER BY COALESCE(decs.date_decision, d.date_creation) DESC
+                    LIMIT 10
+                  ) as limited";
+} else {
+    $count_sql = "SELECT COUNT(*) $from_clause $where_clause";
+}
 $count_stmt = $pdo->prepare($count_sql);
 $count_stmt->execute($params);
 $total_resultats = $count_stmt->fetchColumn();
