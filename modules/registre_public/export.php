@@ -1,8 +1,13 @@
 <?php
-// Export Excel du registre public
+// Export Excel du registre public - Version 2.0 avec backticks
 require_once '../../config/database.php';
 require_once '../../includes/functions.php';
 require_once '../../modules/dossiers/functions.php';
+
+// Désactiver le cache OPcache pour ce fichier si activé
+if (function_exists('opcache_invalidate')) {
+    opcache_invalidate(__FILE__, true);
+}
 
 // Activer l'affichage des erreurs pour le debug (désactiver en production)
 ini_set('display_errors', 0);
