@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Fond dégradé vert (MINEE) -->
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#009639;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#006b2d;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Rectangle arrondi de fond -->
+  <rect width="64" height="64" rx="12" fill="url(#grad)"/>
+
+  <!-- Texte DPPG -->
+  <text x="32" y="42" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#FFFFFF" text-anchor="middle">DPPG</text>
+
+  <!-- Petit accent rouge/jaune (couleurs Cameroun) -->
+  <circle cx="52" cy="12" r="6" fill="#CE1126"/>
+  <circle cx="52" cy="12" r="3" fill="#FFCD00"/>
+</svg>

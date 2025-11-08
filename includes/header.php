@@ -43,8 +43,10 @@ if (isLoggedIn() && file_exists(__DIR__ . '/../includes/huitaine_functions.php')
     <link rel="apple-touch-icon" sizes="512x512" href="<?php echo asset('images/icons/icon-512x512.png'); ?>">
 
     <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="<?php echo asset('images/favicon.svg'); ?>">
     <link rel="icon" type="image/png" sizes="32x32" href="<?php echo asset('images/icons/icon-96x96.png'); ?>">
     <link rel="icon" type="image/png" sizes="16x16" href="<?php echo asset('images/icons/icon-72x72.png'); ?>">
+    <link rel="shortcut icon" href="<?php echo asset('images/favicon.svg'); ?>">
 
     <!-- Microsoft Tiles -->
     <meta name="msapplication-config" content="<?php echo url('browserconfig.xml'); ?>")
