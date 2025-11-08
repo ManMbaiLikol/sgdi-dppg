@@ -73,27 +73,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Logger l'action
                 logAction($pdo, $dossier_id, 'decision_ministerielle', $description, $_SESSION['user_id'], $dossier['statut'], $nouveau_statut);
 
-                // Si approuvé, créer l'entrée pour le registre public
-                if ($decision === 'approuve') {
-                    // Vérifier si l'infrastructure est géolocalisée
-                    $sql_check_geo = "SELECT id FROM infrastructures_geolocalisees WHERE dossier_id = ?";
-                    $stmt_check = $pdo->prepare($sql_check_geo);
-                    $stmt_check->execute([$dossier_id]);
-
-                    if (!$stmt_check->fetch()) {
-                        // Créer une entrée de base si pas encore géolocalisée
-                        $sql_geo = "INSERT INTO infrastructures_geolocalisees
-                                    (dossier_id, type_infrastructure, nom, localisation, statut, date_autorisation)
-                                    VALUES (?, ?, ?, ?, 'autorise', NOW())";
-                        $stmt_geo = $pdo->prepare($sql_geo);
-                        $stmt_geo->execute([
-                            $dossier_id,
-                            $dossier['type_infrastructure'],
-                            $dossier['nom_demandeur'],
-                            $dossier['ville'] ?? 'Non spécifié'
-                        ]);
-                    }
-                }
+                // Note: infrastructures_geolocalisees est une vue basée sur la table dossiers
+                // Elle se met à jour automatiquement quand le statut devient 'autorise'
 
                 $pdo->commit();
 
