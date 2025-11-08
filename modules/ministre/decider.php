@@ -3,7 +3,7 @@
 require_once '../../includes/auth.php';
 require_once '../../modules/dossiers/functions.php';
 
-requireRole('ministre');
+requireRole('cabinet');
 
 $dossier_id = intval($_GET['id'] ?? 0);
 

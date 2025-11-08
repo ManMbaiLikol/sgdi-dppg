@@ -110,8 +110,8 @@ switch ($_SESSION['user_role']) {
         redirect(url('modules/directeur/dashboard.php'));
         break;
 
-    case 'ministre':
-        // Rediriger vers le dashboard spécifique
+    case 'cabinet':
+        // Rediriger vers le dashboard spécifique (Cabinet du Ministre)
         redirect(url('modules/ministre/dashboard.php'));
         break;
 

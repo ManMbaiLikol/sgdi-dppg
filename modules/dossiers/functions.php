@@ -468,8 +468,8 @@ function getDossiers($filters = [], $limit = 20, $offset = 0) {
                 )";
                 break;
 
-            case 'ministre':
-                // Voir seulement les dossiers qui ont une décision OU qui sont en attente de décision
+            case 'cabinet':
+                // Voir seulement les dossiers qui ont une décision OU qui sont en attente de décision (Cabinet du Ministre)
                 $where_conditions[] = "(d.statut IN ('visa_directeur', 'decide', 'autorise', 'rejete'))";
                 break;
 
@@ -642,7 +642,7 @@ function countDossiers($filters = []) {
                     )";
                     break;
 
-                case 'ministre':
+                case 'cabinet':
                     $where_conditions[] = "(d.statut IN ('visa_directeur', 'decide', 'autorise', 'rejete'))";
                     break;
             }

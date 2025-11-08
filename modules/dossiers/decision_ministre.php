@@ -3,7 +3,7 @@
 require_once '../../includes/auth.php';
 require_once 'functions.php';
 
-requireRole('ministre');
+requireRole('cabinet');
 
 $page_title = 'Décisions ministérielles - Cabinet du Ministre';
 

@@ -3,7 +3,7 @@
 require_once '../../includes/auth.php';
 require_once '../../modules/dossiers/functions.php';
 
-requireRole('ministre');
+requireRole('cabinet');
 
 $page_title = 'Cabinet du Ministre - Décisions';
 
