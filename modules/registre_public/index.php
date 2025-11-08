@@ -14,7 +14,14 @@ $ville = sanitize($_GET['ville'] ?? '');
 $statut = sanitize($_GET['statut'] ?? 'tous'); // Par défaut, tous les statuts publics
 $annee = sanitize($_GET['annee'] ?? '');
 $page = max(1, intval($_GET['page'] ?? 1)); // Pagination
-$par_page = 20; // 20 résultats par page
+
+// Détecter si des filtres ont été appliqués
+$has_filters = !empty($search) || !empty($type_infrastructure) || !empty($region) ||
+               !empty($ville) || ($statut && $statut !== 'tous') || !empty($annee);
+
+// Si aucun filtre : afficher seulement les 10 derniers
+// Si des filtres : afficher 20 par page
+$par_page = $has_filters ? 20 : 10;
 
 // Construction de la requête
 $where_clause = "WHERE 1=1";
@@ -279,7 +286,9 @@ $stats = $pdo->query($stats_sql)->fetch();
         <div class="mb-3 d-flex justify-content-between align-items-center">
             <h4>
                 <?php echo $total_resultats; ?> résultat(s) trouvé(s)
-                <?php if ($total_pages > 1): ?>
+                <?php if (!$has_filters): ?>
+                    <small class="text-muted">(Affichage des 10 derniers - Utilisez les filtres pour voir plus)</small>
+                <?php elseif ($total_pages > 1): ?>
                     <small class="text-muted">(Page <?php echo $page; ?> sur <?php echo $total_pages; ?>)</small>
                 <?php endif; ?>
             </h4>
