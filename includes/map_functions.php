@@ -329,7 +329,8 @@ function getAllInfrastructuresForMap($filters = []) {
     global $pdo;
 
     $sql = "SELECT id, numero, type_infrastructure, sous_type, nom_demandeur,
-                   ville, region, coordonnees_gps, statut, date_creation,
+                   ville, region, quartier, arrondissement, departement, lieu_dit,
+                   coordonnees_gps, statut, date_creation,
                    operateur_proprietaire
             FROM dossiers
             WHERE coordonnees_gps IS NOT NULL
