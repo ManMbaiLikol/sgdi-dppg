@@ -276,11 +276,6 @@ $stats = [
             <i class="fas fa-fill-drip" style="color: #ef4444; font-size: 16px; width: 20px;"></i>
             <small>Centre emplisseur</small>
         </div>
-        <hr style="margin: 10px 0;">
-        <div class="legend-item">
-            <div style="display: inline-block; width: 20px; height: 20px; border: 2px solid #dc3545; border-radius: 50%; background: rgba(220, 53, 69, 0.1);"></div>
-            <small>Zone de contrainte (500m)</small>
-        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -313,9 +308,6 @@ $stats = [
             showCoverageOnHover: false
         });
 
-        // Créer un LayerGroup pour les cercles de contrainte (optimisation performance)
-        const circlesLayer = L.layerGroup();
-        const circles = []; // Stockage des cercles
 
         // Données des infrastructures
         const infrastructures = <?php echo json_encode($infrastructures); ?>;
@@ -385,44 +377,26 @@ $stats = [
                 console.log('Marqueur créé pour:', infra.numero);
                 markersAdded++;
 
+                // Construire le nom avec lieu-dit (ex: Tradex Dabbadji)
+                const nomComplet = infra.lieu_dit
+                    ? `${infra.nom_demandeur} ${infra.lieu_dit}`
+                    : infra.nom_demandeur;
+
+                // Construire ville et quartier (ex: Koumé, Bertoua)
+                const localisation = infra.quartier
+                    ? `${infra.quartier}, ${infra.ville}`
+                    : infra.ville;
+
                 const popupContent = `
-                    <div style="min-width: 200px;">
-                        <h6 class="mb-2"><strong>${infra.nom_demandeur}</strong></h6>
-                        <p class="mb-1"><small><i class="fas fa-tag"></i> ${formatTypeInfra(infra.type_infrastructure)}</small></p>
-                        <p class="mb-1"><small><i class="fas fa-map-marker-alt"></i> ${infra.ville}, ${infra.region}</small></p>
-                        ${infra.operateur_proprietaire ? `<p class="mb-1"><small><i class="fas fa-building"></i> ${infra.operateur_proprietaire}</small></p>` : ''}
-                        <hr class="my-2">
-                        <p class="mb-0"><small><i class="fas fa-shield-alt"></i> Zone de contrainte: 500m</small></p>
-                        <hr class="my-2">
-                        <a href="detail.php?numero=${encodeURIComponent(infra.numero)}" class="btn btn-primary btn-sm w-100">
-                            <i class="fas fa-eye"></i> Voir détails
-                        </a>
+                    <div style="min-width: 220px;">
+                        <h6 class="mb-2"><strong>${nomComplet}</strong></h6>
+                        <p class="mb-1"><small><i class="fas fa-map-marker-alt"></i> ${localisation}</small></p>
+                        <p class="mb-0"><small><i class="fas fa-map"></i> ${infra.region}</small></p>
                     </div>
                 `;
 
                 marker.bindPopup(popupContent);
                 markerCluster.addLayer(marker);
-
-                // Créer un cercle de contrainte de 500m en distance réelle
-                // NOTE: L.circle avec radius en mètres fonctionne correctement en Leaflet 1.9+
-                // Le rayon est interprété en mètres sur la surface terrestre
-                const circle = L.circle([infra.latitude, infra.longitude], {
-                    color: '#dc3545',
-                    fillColor: '#dc3545',
-                    fillOpacity: 0.1,
-                    radius: 500, // 500 mètres (distance réelle sur le terrain)
-                    weight: 1,
-                    opacity: 0.5
-                });
-
-                // Tooltip pour le cercle
-                circle.bindTooltip(`Zone de contrainte 500m<br>${infra.nom_demandeur}`, {
-                    permanent: false,
-                    direction: 'center'
-                });
-
-                // Stocker le cercle pour l'afficher conditionnellement
-                circles.push(circle);
 
                 console.log('Marqueur créé');
             }
@@ -443,32 +417,6 @@ $stats = [
             return types[type] || type;
         }
 
-        // Gestion optimisée des cercles de contrainte selon le niveau de zoom
-        let circlesVisible = false;
-        const ZOOM_THRESHOLD = 12; // Afficher les cercles à partir du zoom 12
-
-        function toggleCircles() {
-            const currentZoom = map.getZoom();
-
-            if (currentZoom >= ZOOM_THRESHOLD && !circlesVisible) {
-                // Afficher les cercles quand on zoome suffisamment
-                console.log('Affichage des cercles de contrainte');
-                circles.forEach(circle => circle.addTo(circlesLayer));
-                circlesLayer.addTo(map);
-                circlesVisible = true;
-            } else if (currentZoom < ZOOM_THRESHOLD && circlesVisible) {
-                // Cacher les cercles quand on dézoome
-                console.log('Masquage des cercles de contrainte');
-                map.removeLayer(circlesLayer);
-                circlesVisible = false;
-            }
-        }
-
-        // Écouter les changements de zoom
-        map.on('zoomend', toggleCircles);
-
-        // Vérifier le zoom initial
-        toggleCircles();
 
         // Ajuster la vue pour afficher tous les marqueurs
         if (infrastructures.length > 0) {
