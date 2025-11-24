@@ -378,22 +378,42 @@ $stats = [
                 markersAdded++;
 
                 // Construire le nom avec lieu-dit (ex: Tradex Dabbadji)
-                const nomComplet = infra.lieu_dit
+                // Afficher lieu-dit uniquement s'il existe et n'est pas vide
+                const nomComplet = (infra.lieu_dit && infra.lieu_dit.trim() !== '')
                     ? `${infra.nom_demandeur} ${infra.lieu_dit}`
                     : infra.nom_demandeur;
 
-                // Construire ville et quartier (ex: Koumé, Bertoua)
-                const localisation = infra.quartier
-                    ? `${infra.quartier}, ${infra.ville}`
-                    : infra.ville;
+                // Construire la localisation intelligemment
+                // Format souhaité : "Quartier, Ville" ou juste "Ville" si pas de quartier
+                let localisation = '';
+                const hasQuartier = infra.quartier && infra.quartier.trim() !== '';
+                const hasVille = infra.ville && infra.ville.trim() !== '';
 
-                const popupContent = `
-                    <div style="min-width: 220px;">
-                        <h6 class="mb-2"><strong>${nomComplet}</strong></h6>
-                        <p class="mb-1"><small><i class="fas fa-map-marker-alt"></i> ${localisation}</small></p>
-                        <p class="mb-0"><small><i class="fas fa-map"></i> ${infra.region}</small></p>
-                    </div>
-                `;
+                if (hasQuartier && hasVille) {
+                    localisation = `${infra.quartier}, ${infra.ville}`;
+                } else if (hasVille) {
+                    localisation = infra.ville;
+                } else if (hasQuartier) {
+                    localisation = infra.quartier;
+                }
+
+                // Construire le popup avec les informations disponibles
+                let popupContent = `<div style="min-width: 220px;">`;
+
+                // Nom (toujours présent)
+                popupContent += `<h6 class="mb-2"><strong>${nomComplet}</strong></h6>`;
+
+                // Localisation (ville/quartier) si disponible
+                if (localisation) {
+                    popupContent += `<p class="mb-1"><small><i class="fas fa-map-marker-alt"></i> ${localisation}</small></p>`;
+                }
+
+                // Région (toujours présente normalement)
+                if (infra.region && infra.region.trim() !== '') {
+                    popupContent += `<p class="mb-0"><small><i class="fas fa-map"></i> ${infra.region}</small></p>`;
+                }
+
+                popupContent += `</div>`;
 
                 marker.bindPopup(popupContent);
                 markerCluster.addLayer(marker);
