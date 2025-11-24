@@ -79,19 +79,19 @@ function modifierDossier($dossier_id, $data) {
             $data['type_infrastructure'],
             $data['sous_type'],
             $data['nom_demandeur'],
-            $data['contact_demandeur'] ?? null,
+            $data['contact_demandeur'] ?: null,
             $data['telephone_demandeur'],
             $data['email_demandeur'],
             $data['adresse_precise'],
             $data['region'],
-            $data['departement'] ?? null,
+            $data['departement'] ?: null,
             $data['ville'],
-            $data['arrondissement'] ?? null,
-            $data['quartier'] ?? null,
-            $data['zone_type'] ?? 'urbaine',
-            $data['lieu_dit'] ?? null,
-            $data['coordonnees_gps'] ?? null,
-            $data['annee_mise_en_service'] ?? null,
+            $data['arrondissement'] ?: null,
+            $data['quartier'] ?: null,
+            $data['zone_type'] ?: 'urbaine',
+            $data['lieu_dit'] ?: null,
+            $data['coordonnees_gps'] ?: null,
+            $data['annee_mise_en_service'] ?: null,
             $data['operateur_proprietaire'],
             $data['entreprise_beneficiaire'],
             $data['entreprise_installatrice'],
@@ -103,8 +103,19 @@ function modifierDossier($dossier_id, $data) {
         ]);
 
         return $result;
+    } catch (PDOException $e) {
+        // Log l'erreur avec plus de détails
+        error_log("Erreur modification dossier #$dossier_id: " . $e->getMessage());
+        error_log("Code erreur: " . $e->getCode());
+        error_log("SQL State: " . ($e->errorInfo[0] ?? 'N/A'));
+        // Stocker l'erreur pour qu'elle soit accessible
+        global $derniere_erreur_sql;
+        $derniere_erreur_sql = $e->getMessage();
+        return false;
     } catch (Exception $e) {
-        error_log("Erreur modification dossier: " . $e->getMessage());
+        error_log("Erreur modification dossier #$dossier_id: " . $e->getMessage());
+        global $derniere_erreur_sql;
+        $derniere_erreur_sql = $e->getMessage();
         return false;
     }
 }

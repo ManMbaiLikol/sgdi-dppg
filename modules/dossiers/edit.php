@@ -42,10 +42,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Token de sécurité invalide';
     } else {
         // Validation des données
-        $required_fields = ['type_infrastructure', 'sous_type', 'nom_demandeur'];
+        $required_fields = ['type_infrastructure', 'sous_type', 'nom_demandeur', 'region', 'ville'];
         foreach ($required_fields as $field) {
             if (empty($_POST[$field])) {
-                $errors[] = 'Le champ ' . $field . ' est requis';
+                $errors[] = 'Le champ ' . str_replace('_', ' ', $field) . ' est requis';
             }
         }
 
@@ -68,6 +68,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($type === 'depot_gpl' && empty($_POST['entreprise_installatrice'])) {
             $errors[] = 'L\'entreprise installatrice est requise pour un dépôt GPL';
+        }
+
+        if ($type === 'centre_emplisseur') {
+            if (empty($_POST['operateur_gaz']) && empty($_POST['entreprise_constructrice'])) {
+                $errors[] = 'Pour un centre emplisseur, l\'opérateur de gaz OU l\'entreprise constructrice est requis';
+            }
         }
 
         if (empty($errors)) {
@@ -107,7 +113,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 addHistoriqueDossier($dossier_id, $_SESSION['user_id'], 'modifie', $message_historique);
                 redirect(url('modules/dossiers/view.php?id=' . $dossier_id), 'Dossier modifié avec succès', 'success');
             } else {
-                $errors[] = 'Erreur lors de la modification du dossier';
+                // Récupérer l'erreur détaillée si disponible
+                global $derniere_erreur_sql;
+                if (!empty($derniere_erreur_sql)) {
+                    $errors[] = 'Erreur lors de la modification du dossier : ' . $derniere_erreur_sql;
+                } else {
+                    $errors[] = 'Erreur lors de la modification du dossier (aucun détail disponible)';
+                }
             }
         }
     }
