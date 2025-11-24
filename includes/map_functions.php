@@ -331,7 +331,7 @@ function getAllInfrastructuresForMap($filters = []) {
     $sql = "SELECT id, numero, type_infrastructure, sous_type, nom_demandeur,
                    ville, region, quartier, arrondissement, departement, lieu_dit,
                    coordonnees_gps, statut, date_creation,
-                   operateur_proprietaire
+                   operateur_proprietaire, entreprise_beneficiaire
             FROM dossiers
             WHERE coordonnees_gps IS NOT NULL
             AND coordonnees_gps != ''";

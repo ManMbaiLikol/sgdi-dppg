@@ -377,40 +377,91 @@ $stats = [
                 console.log('Marqueur créé pour:', infra.numero);
                 markersAdded++;
 
-                // Construire le nom avec lieu-dit (ex: Tradex Dabbadji)
-                // Afficher lieu-dit uniquement s'il existe et n'est pas vide
-                const nomComplet = (infra.lieu_dit && infra.lieu_dit.trim() !== '')
-                    ? `${infra.nom_demandeur} ${infra.lieu_dit}`
-                    : infra.nom_demandeur;
-
-                // Construire la localisation intelligemment
-                // Format souhaité : "Quartier, Ville" ou juste "Ville" si pas de quartier
-                let localisation = '';
-                const hasQuartier = infra.quartier && infra.quartier.trim() !== '';
-                const hasVille = infra.ville && infra.ville.trim() !== '';
-
-                if (hasQuartier && hasVille) {
-                    localisation = `${infra.quartier}, ${infra.ville}`;
-                } else if (hasVille) {
-                    localisation = infra.ville;
-                } else if (hasQuartier) {
-                    localisation = infra.quartier;
-                }
-
-                // Construire le popup avec les informations disponibles
+                // Construire le popup selon le type d'infrastructure
                 let popupContent = `<div style="min-width: 220px;">`;
 
-                // Nom (toujours présent)
-                popupContent += `<h6 class="mb-2"><strong>${nomComplet}</strong></h6>`;
+                if (infra.type_infrastructure === 'point_consommateur') {
+                    // ========== FORMAT POINT CONSOMMATEUR ==========
+                    // Ligne 1 : "Point Conso + Nom entreprise bénéficiaire"
+                    const entrepriseBenef = infra.entreprise_beneficiaire && infra.entreprise_beneficiaire.trim() !== ''
+                        ? infra.entreprise_beneficiaire
+                        : '';
 
-                // Localisation (ville/quartier) si disponible
-                if (localisation) {
-                    popupContent += `<p class="mb-1"><small><i class="fas fa-map-marker-alt"></i> ${localisation}</small></p>`;
-                }
+                    const titre = entrepriseBenef
+                        ? `Point Conso ${entrepriseBenef}`
+                        : 'Point Consommateur';
 
-                // Région (toujours présente normalement)
-                if (infra.region && infra.region.trim() !== '') {
-                    popupContent += `<p class="mb-0"><small><i class="fas fa-map"></i> ${infra.region}</small></p>`;
+                    popupContent += `<h6 class="mb-2"><strong>${titre}</strong></h6>`;
+
+                    // Ligne 2 : Nom du demandeur (opérateur)
+                    if (infra.nom_demandeur && infra.nom_demandeur.trim() !== '') {
+                        popupContent += `<p class="mb-1"><small><i class="fas fa-user"></i> ${infra.nom_demandeur}</small></p>`;
+                    }
+
+                    // Ligne 3 : Lieu-dit, Quartier
+                    const hasLieuDit = infra.lieu_dit && infra.lieu_dit.trim() !== '';
+                    const hasQuartier = infra.quartier && infra.quartier.trim() !== '';
+
+                    let lieuQuartier = '';
+                    if (hasLieuDit && hasQuartier) {
+                        lieuQuartier = `${infra.lieu_dit}, ${infra.quartier}`;
+                    } else if (hasLieuDit) {
+                        lieuQuartier = infra.lieu_dit;
+                    } else if (hasQuartier) {
+                        lieuQuartier = infra.quartier;
+                    }
+
+                    if (lieuQuartier) {
+                        popupContent += `<p class="mb-1"><small><i class="fas fa-map-pin"></i> ${lieuQuartier}</small></p>`;
+                    }
+
+                    // Ligne 4 : Ville, Région
+                    const hasVille = infra.ville && infra.ville.trim() !== '';
+                    const hasRegion = infra.region && infra.region.trim() !== '';
+
+                    let villeRegion = '';
+                    if (hasVille && hasRegion) {
+                        villeRegion = `${infra.ville}, ${infra.region}`;
+                    } else if (hasVille) {
+                        villeRegion = infra.ville;
+                    } else if (hasRegion) {
+                        villeRegion = infra.region;
+                    }
+
+                    if (villeRegion) {
+                        popupContent += `<p class="mb-0"><small><i class="fas fa-map-marker-alt"></i> ${villeRegion}</small></p>`;
+                    }
+
+                } else {
+                    // ========== FORMAT STATION-SERVICE / AUTRES ==========
+                    // Ligne 1 : Nom + Lieu-dit (ex: Tradex Dabbadji)
+                    const nomComplet = (infra.lieu_dit && infra.lieu_dit.trim() !== '')
+                        ? `${infra.nom_demandeur} ${infra.lieu_dit}`
+                        : infra.nom_demandeur;
+
+                    popupContent += `<h6 class="mb-2"><strong>${nomComplet}</strong></h6>`;
+
+                    // Ligne 2 : Quartier, Ville
+                    const hasQuartier = infra.quartier && infra.quartier.trim() !== '';
+                    const hasVille = infra.ville && infra.ville.trim() !== '';
+
+                    let localisation = '';
+                    if (hasQuartier && hasVille) {
+                        localisation = `${infra.quartier}, ${infra.ville}`;
+                    } else if (hasVille) {
+                        localisation = infra.ville;
+                    } else if (hasQuartier) {
+                        localisation = infra.quartier;
+                    }
+
+                    if (localisation) {
+                        popupContent += `<p class="mb-1"><small><i class="fas fa-map-marker-alt"></i> ${localisation}</small></p>`;
+                    }
+
+                    // Ligne 3 : Région
+                    if (infra.region && infra.region.trim() !== '') {
+                        popupContent += `<p class="mb-0"><small><i class="fas fa-map"></i> ${infra.region}</small></p>`;
+                    }
                 }
 
                 popupContent += `</div>`;
