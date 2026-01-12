@@ -157,6 +157,17 @@ require_once '../../includes/header.php';
                                 </a>
                                 <?php endif; ?>
                             <?php endforeach; ?>
+
+                            <?php
+                            // Lien pour modifier la commission (si elle existe et dossier pas encore décidé)
+                            $statuts_modification_commission_bloques = ['decide', 'autorise', 'rejete', 'classe'];
+                            if ($dossier['commission_date'] && !in_array($dossier['statut'], $statuts_modification_commission_bloques) && $_SESSION['user_role'] === 'chef_service'):
+                            ?>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item text-warning" href="<?php echo url('modules/dossiers/edit_commission.php?id=' . $dossier_id); ?>">
+                                <i class="fas fa-user-edit"></i> Modifier la commission
+                            </a>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <?php endif; ?>
