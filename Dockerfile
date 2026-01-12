@@ -4,10 +4,6 @@ FROM php:8.1-apache
 # Installation des extensions PHP nécessaires
 RUN docker-php-ext-install pdo pdo_mysql mysqli
 
-# Correction du conflit MPM Apache - supprimer les configs MPM en double
-RUN rm -f /etc/apache2/mods-enabled/mpm_event.conf /etc/apache2/mods-enabled/mpm_event.load \
-          /etc/apache2/mods-enabled/mpm_worker.conf /etc/apache2/mods-enabled/mpm_worker.load 2>/dev/null || true
-
 # Activation des modules Apache
 RUN a2enmod rewrite
 
