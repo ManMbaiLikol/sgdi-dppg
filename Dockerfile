@@ -1,37 +1,33 @@
-# Image PHP avec Apache
-FROM php:8.2-apache
+# Image PHP-FPM avec Nginx
+FROM php:8.2-fpm-alpine
 
-# Installation des extensions PHP nécessaires
-RUN docker-php-ext-install pdo pdo_mysql mysqli
+# Installation de Nginx et extensions PHP
+RUN apk add --no-cache nginx && \
+    docker-php-ext-install pdo pdo_mysql mysqli
 
-# Configuration MPM - garder UNIQUEMENT prefork
-RUN set -eux; \
-    a2dismod mpm_event mpm_worker 2>/dev/null || true; \
-    a2enmod mpm_prefork; \
-    echo "LoadModule mpm_prefork_module /usr/lib/apache2/modules/mod_mpm_prefork.so" > /etc/apache2/mods-enabled/mpm_prefork.load; \
-    rm -f /etc/apache2/mods-enabled/mpm_event.* /etc/apache2/mods-enabled/mpm_worker.*; \
-    cat /etc/apache2/mods-enabled/mpm_prefork.load
-
-# Activation des modules Apache
-RUN a2enmod rewrite
-
-# Configuration PHP pour variables d'environnement et paramètres
-RUN echo "variables_order = \"EGPCS\"" >> /usr/local/etc/php/conf.d/railway.ini && \
+# Configuration PHP
+RUN echo "variables_order = EGPCS" >> /usr/local/etc/php/conf.d/railway.ini && \
     echo "display_errors = Off" >> /usr/local/etc/php/conf.d/railway.ini && \
     echo "upload_max_filesize = 10M" >> /usr/local/etc/php/conf.d/railway.ini && \
     echo "post_max_size = 10M" >> /usr/local/etc/php/conf.d/railway.ini && \
     echo "max_execution_time = 300" >> /usr/local/etc/php/conf.d/railway.ini
 
+# Copie de la configuration Nginx
+COPY nginx.conf /etc/nginx/http.d/default.conf
+
 # Copie des fichiers de l'application
 COPY . /var/www/html/
 
-# Création des répertoires nécessaires avec permissions
+# Permissions
 RUN mkdir -p /var/www/html/uploads /var/www/html/logs /var/www/html/cache && \
     chown -R www-data:www-data /var/www/html && \
-    chmod -R 755 /var/www/html
+    chmod -R 755 /var/www/html && \
+    mkdir -p /run/nginx
 
-# Exposition du port 80
+# Script de démarrage
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
+
 EXPOSE 80
 
-# Démarrage d'Apache
-CMD ["apache2-foreground"]
+CMD ["/start.sh"]
