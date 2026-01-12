@@ -42,6 +42,27 @@ $chefs_directeurs = array_merge(
     getUsersByRole('sous_directeur')
 );
 
+// Ajouter BANA ESSAMA Joseph (billeteur) qui peut aussi être chef de commission
+$sql_bana = "SELECT id, username, email, nom, prenom, telephone, role
+             FROM users
+             WHERE nom = 'BANA ESSAMA' AND prenom = 'Joseph' AND actif = 1";
+$stmt_bana = $pdo->prepare($sql_bana);
+$stmt_bana->execute();
+$bana_user = $stmt_bana->fetch();
+if ($bana_user) {
+    // Vérifier qu'il n'est pas déjà dans la liste
+    $already_in_list = false;
+    foreach ($chefs_directeurs as $chef) {
+        if ($chef['id'] == $bana_user['id']) {
+            $already_in_list = true;
+            break;
+        }
+    }
+    if (!$already_in_list) {
+        $chefs_directeurs[] = $bana_user;
+    }
+}
+
 // Le chef de service actuel peut aussi être chef de commission
 // Donc on ne le retire pas de la liste
 
@@ -74,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pdo->beginTransaction();
 
                 // Vérifier que le role est valide
-                $valid_roles = ['chef_service', 'chef_commission', 'sous_directeur', 'directeur'];
+                $valid_roles = ['chef_service', 'chef_commission', 'sous_directeur', 'directeur', 'billeteur'];
                 if (!in_array($chef_commission_role, $valid_roles)) {
                     throw new Exception("Rôle invalide: '$chef_commission_role'. Rôles acceptés: " . implode(', ', $valid_roles));
                 }
@@ -187,6 +208,8 @@ require_once '../../includes/header.php';
                                         $role_label = 'Chef Service SDTD';
                                     } elseif ($chef['role'] === 'sous_directeur') {
                                         $role_label = 'Sous-Directeur SDTD';
+                                    } elseif ($chef['role'] === 'billeteur') {
+                                        $role_label = 'Billeteur DPPG';
                                     }
                                 ?>
                                 <option value="<?php echo $chef['id']; ?>" data-role="<?php echo $chef['role']; ?>"
@@ -356,7 +379,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return false;
             }
 
-            const validRoles = ['chef_service', 'chef_commission', 'sous_directeur', 'directeur'];
+            const validRoles = ['chef_service', 'chef_commission', 'sous_directeur', 'directeur', 'billeteur'];
             if (!validRoles.includes(roleInput.value)) {
                 e.preventDefault();
                 alert('ERREUR: Rôle invalide "' + roleInput.value + '".\n\nRôles acceptés: ' + validRoles.join(', '));
