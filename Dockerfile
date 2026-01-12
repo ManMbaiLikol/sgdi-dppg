@@ -1,8 +1,16 @@
-# Image PHP avec Apache - utiliser 8.2 pour eviter bug MPM
+# Image PHP avec Apache
 FROM php:8.2-apache
 
 # Installation des extensions PHP nécessaires
 RUN docker-php-ext-install pdo pdo_mysql mysqli
+
+# Configuration MPM - garder UNIQUEMENT prefork
+RUN set -eux; \
+    a2dismod mpm_event mpm_worker 2>/dev/null || true; \
+    a2enmod mpm_prefork; \
+    echo "LoadModule mpm_prefork_module /usr/lib/apache2/modules/mod_mpm_prefork.so" > /etc/apache2/mods-enabled/mpm_prefork.load; \
+    rm -f /etc/apache2/mods-enabled/mpm_event.* /etc/apache2/mods-enabled/mpm_worker.*; \
+    cat /etc/apache2/mods-enabled/mpm_prefork.load
 
 # Activation des modules Apache
 RUN a2enmod rewrite
