@@ -1,14 +1,8 @@
-# Image PHP avec Apache
-FROM php:8.1-apache
+# Image PHP avec Apache - utiliser 8.2 pour eviter bug MPM
+FROM php:8.2-apache
 
 # Installation des extensions PHP nécessaires
 RUN docker-php-ext-install pdo pdo_mysql mysqli
-
-# FORCER la suppression des MPM en conflit (supprimer physiquement les fichiers)
-# Version 2026-01-12-v3
-RUN rm -f /etc/apache2/mods-enabled/mpm_event.* /etc/apache2/mods-enabled/mpm_worker.* 2>/dev/null; \
-    rm -f /etc/apache2/mods-available/mpm_event.* /etc/apache2/mods-available/mpm_worker.* 2>/dev/null; \
-    echo "=== MPM cleanup done ===" && ls -la /etc/apache2/mods-enabled/ | grep mpm || echo "No MPM in enabled"
 
 # Activation des modules Apache
 RUN a2enmod rewrite
