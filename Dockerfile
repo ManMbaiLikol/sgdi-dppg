@@ -4,6 +4,10 @@ FROM php:8.1-apache
 # Installation des extensions PHP nécessaires
 RUN docker-php-ext-install pdo pdo_mysql mysqli
 
+# Corriger le conflit MPM Apache pendant le build
+RUN a2dismod mpm_event && a2dismod mpm_worker || true
+RUN a2enmod mpm_prefork
+
 # Activation des modules Apache
 RUN a2enmod rewrite
 
@@ -22,12 +26,8 @@ RUN mkdir -p /var/www/html/uploads /var/www/html/logs /var/www/html/cache && \
     chown -R www-data:www-data /var/www/html && \
     chmod -R 755 /var/www/html
 
-# Script de démarrage pour corriger MPM Apache
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
 # Exposition du port 80
 EXPOSE 80
 
-# Démarrage avec script personnalisé
-CMD ["/usr/local/bin/docker-entrypoint.sh"]
+# Démarrage d'Apache
+CMD ["apache2-foreground"]
