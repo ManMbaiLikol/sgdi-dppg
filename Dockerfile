@@ -22,8 +22,12 @@ RUN mkdir -p /var/www/html/uploads /var/www/html/logs /var/www/html/cache && \
     chown -R www-data:www-data /var/www/html && \
     chmod -R 755 /var/www/html
 
+# Script de démarrage pour corriger MPM Apache
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Exposition du port 80
 EXPOSE 80
 
-# Démarrage d'Apache
-CMD ["apache2-foreground"]
+# Démarrage avec script personnalisé
+CMD ["/usr/local/bin/docker-entrypoint.sh"]
