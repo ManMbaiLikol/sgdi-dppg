@@ -24,6 +24,33 @@ echo ".success{color:#4ec9b0;}.error{color:#f48771;}.info{color:#569cd6;}</style
 echo "<h1>🔧 EXÉCUTION MIGRATION SQL</h1>";
 echo "<pre>";
 
+// Mode ajout colonnes GPS (score_matching_osm, source_gps) requises par modules/admin_gps
+if (isset($_GET['action']) && $_GET['action'] === 'add_gps_columns') {
+    echo "<h2>Ajout des colonnes GPS manquantes (admin_gps)</h2>\n";
+
+    $columns_to_add = [
+        'score_matching_osm' => "ALTER TABLE dossiers ADD COLUMN score_matching_osm INT DEFAULT NULL COMMENT 'Score de matching avec OSM (0-100)'",
+        'source_gps'         => "ALTER TABLE dossiers ADD COLUMN source_gps VARCHAR(100) DEFAULT NULL COMMENT 'Source des coordonnees GPS'",
+    ];
+
+    try {
+        foreach ($columns_to_add as $col => $ddl) {
+            $stmt = $pdo->query("SHOW COLUMNS FROM dossiers LIKE " . $pdo->quote($col));
+            if ($stmt->rowCount() === 0) {
+                $pdo->exec($ddl);
+                echo "<span class='success'>OK Colonne '$col' ajoutee</span>\n";
+            } else {
+                echo "<span class='info'>-- Colonne '$col' deja presente</span>\n";
+            }
+        }
+        echo "\n<span class='success'>Termine. La page modules/admin_gps/index.php devrait fonctionner.</span>\n";
+    } catch (PDOException $e) {
+        echo "<span class='error'>Erreur: " . htmlspecialchars($e->getMessage()) . "</span>\n";
+    }
+    echo "</pre></body></html>";
+    exit(0);
+}
+
 // Mode diagnostic: lister les tables existantes
 if (isset($_GET['check'])) {
     echo "<h2>📊 TABLES EXISTANTES DANS LA BASE DE DONNÉES</h2>\n";
