@@ -183,12 +183,17 @@ function getHuitainesActives($filters = []) {
  */
 function getStatistiquesHuitaine() {
     global $pdo;
+    static $cache = null; // Appelée par le menu et le dashboard : une seule requête par page
+
+    if ($cache !== null) {
+        return $cache;
+    }
 
     $sql = "SELECT * FROM statistiques_huitaine";
     $stmt = $pdo->query($sql);
     $stats = $stmt->fetch();
 
-    return [
+    return $cache = [
         'en_cours' => $stats['en_cours'] ?? 0,
         'regularises' => $stats['regularises'] ?? 0,
         'rejetes' => $stats['rejetes'] ?? 0,

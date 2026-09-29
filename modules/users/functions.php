@@ -518,22 +518,13 @@ function mustChangePassword($user_id) {
     global $pdo;
 
     try {
-        // Vérifier si la colonne existe
-        $columns_check = $pdo->query("SHOW COLUMNS FROM users LIKE 'force_password_change'");
-        $has_column = $columns_check->rowCount() > 0;
-
-        if ($has_column) {
-            $sql = "SELECT force_password_change FROM users WHERE id = ?";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([$user_id]);
-            $result = $stmt->fetchColumn();
-            return $result == 1;
-        }
-
-        return false; // Si la colonne n'existe pas, pas de changement forcé
+        // Une seule requête : si la colonne n'existe pas, l'exception renvoie false
+        $sql = "SELECT force_password_change FROM users WHERE id = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$user_id]);
+        return $stmt->fetchColumn() == 1;
     } catch (Exception $e) {
-        error_log("Erreur vérification changement mot de passe: " . $e->getMessage());
-        return false;
+        return false; // Colonne absente : pas de changement forcé
     }
 }
 

@@ -48,8 +48,12 @@ function url($path = '') {
     return BASE_URL . ($path ? '/' . ltrim($path, '/') : '');
 }
 
-// Assets URLs
+// Assets URLs, versionnées par date de modification :
+// le navigateur garde le fichier en cache et ne le recharge que s'il a changé
 function asset($path) {
-    return BASE_URL . '/assets/' . ltrim($path, '/');
+    $path = ltrim($path, '/');
+    $file = __DIR__ . '/../assets/' . $path;
+    $version = is_file($file) ? '?v=' . filemtime($file) : '';
+    return BASE_URL . '/assets/' . $path . $version;
 }
 ?>
