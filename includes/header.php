@@ -49,7 +49,14 @@ if (isLoggedIn() && file_exists(__DIR__ . '/../includes/huitaine_functions.php')
     <link rel="shortcut icon" href="<?php echo asset('images/favicon.svg'); ?>">
 
     <!-- Microsoft Tiles -->
-    <meta name="msapplication-config" content="<?php echo url('browserconfig.xml'); ?>")
+    <meta name="msapplication-config" content="<?php echo url('browserconfig.xml'); ?>">
+
+    <!-- Ouvrir les connexions aux CDN au plus tôt -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin><!-- polices Font Awesome -->
+    <link rel="preconnect" href="https://cdn.datatables.net">
+    <link rel="preconnect" href="https://code.jquery.com">
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">

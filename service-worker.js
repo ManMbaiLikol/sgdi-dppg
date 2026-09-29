@@ -3,7 +3,7 @@
  * Permet le fonctionnement offline et améliore les performances
  */
 
-const CACHE_NAME = 'sgdi-v1.0';
+const CACHE_NAME = 'sgdi-v1.1';
 const CACHE_URLS = [
     '/',
     '/dashboard.php',
@@ -89,6 +89,32 @@ self.addEventListener('fetch', (event) => {
         !url.host.includes('cdn.jsdelivr.net') &&
         !url.host.includes('cdnjs.cloudflare.com') &&
         !url.host.includes('code.jquery.com')) {
+        return;
+    }
+
+    // Fichiers statiques locaux (CSS, JS, images) : cache d'abord.
+    // Leurs URL sont versionnées (?v=date de modification), donc un fichier
+    // modifié a une nouvelle URL et sera téléchargé à nouveau.
+    if (url.origin === location.origin && url.pathname.includes('/assets/') && !url.pathname.includes('/assets/uploads/')) {
+        event.respondWith(
+            caches.open(CACHE_NAME).then((cache) =>
+                cache.match(request).then((cached) => {
+                    if (cached) {
+                        return cached;
+                    }
+                    return fetch(request).then((response) => {
+                        if (response && response.status === 200) {
+                            // Retirer les anciennes versions du même fichier
+                            cache.keys().then((keys) => keys
+                                .filter((key) => new URL(key.url).pathname === url.pathname && key.url !== request.url)
+                                .forEach((key) => cache.delete(key)));
+                            cache.put(request, response.clone());
+                        }
+                        return response;
+                    });
+                })
+            )
+        );
         return;
     }
 

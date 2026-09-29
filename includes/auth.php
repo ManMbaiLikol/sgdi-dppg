@@ -253,18 +253,87 @@ function hasPermission($permission_code) {
  * @return bool
  */
 function userHasPermission($user_id, $permission_code) {
+    $permissions = getUserPermissionCodes($user_id);
+
+    if ($permissions === null) {
+        // Tables absentes ou aucune permission assignée - utiliser le fallback basé sur le rôle
+        return roleHasDefaultPermission($_SESSION['user_role'] ?? '', $permission_code);
+    }
+
+    return isset($permissions[$permission_code]);
+}
+
+/**
+ * Charger en une seule requête les codes de permission d'un utilisateur.
+ * Résultat mis en cache pour la durée de la requête HTTP.
+ *
+ * @return array|null Codes indexés (code => true), ou null si le fallback par rôle s'applique
+ */
+function getUserPermissionCodes($user_id) {
     global $pdo;
+    static $cache = [];
 
-    $sql = "SELECT COUNT(*) as count
-            FROM user_permissions up
-            INNER JOIN permissions p ON up.permission_id = p.id
-            WHERE up.user_id = ? AND p.code = ?";
+    if (array_key_exists($user_id, $cache)) {
+        return $cache[$user_id];
+    }
 
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([$user_id, $permission_code]);
-    $result = $stmt->fetch();
+    try {
+        $sql = "SELECT p.code
+                FROM user_permissions up
+                INNER JOIN permissions p ON up.permission_id = p.id
+                WHERE up.user_id = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$user_id]);
+        $codes = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-    return $result['count'] > 0;
+        $cache[$user_id] = empty($codes) ? null : array_fill_keys($codes, true);
+    } catch (Exception $e) {
+        // Tables de permissions non installées ou erreur quelconque
+        $cache[$user_id] = null;
+    }
+
+    return $cache[$user_id];
+}
+
+/**
+ * Fallback: Permissions par défaut basées sur le rôle
+ * Utilisé quand les tables de permissions n'existent pas
+ */
+function roleHasDefaultPermission($role, $permission_code) {
+    $default_permissions = [
+        'chef_service' => [
+            'dossiers.list', 'dossiers.view_all', 'dossiers.create', 'dossiers.edit',
+            'dossiers.delete', 'commission.create', 'commission.edit', 'visa.chef_service',
+            'notes_frais.list', 'notes_frais.create', 'paiements.list', 'carte.view'
+        ],
+        'billeteur' => [
+            'dossiers.list', 'paiements.create', 'paiements.list', 'carte.view'
+        ],
+        'cadre_daj' => [
+            'dossiers.list', 'analyse.create', 'analyse.edit', 'carte.view'
+        ],
+        'cadre_dppg' => [
+            'dossiers.list', 'inspection.create', 'inspection.edit', 'carte.view'
+        ],
+        'chef_commission' => [
+            'dossiers.list', 'inspection.validate', 'carte.view'
+        ],
+        'sous_directeur' => [
+            'dossiers.list', 'visa.sous_directeur', 'carte.view'
+        ],
+        'directeur' => [
+            'dossiers.list', 'visa.directeur', 'carte.view'
+        ],
+        'ministre' => [
+            'dossiers.list', 'decision.create', 'carte.view'
+        ]
+    ];
+
+    if (!isset($default_permissions[$role])) {
+        return false;
+    }
+
+    return in_array($permission_code, $default_permissions[$role]);
 }
 
 /**
