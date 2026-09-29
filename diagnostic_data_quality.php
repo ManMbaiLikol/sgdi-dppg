@@ -4,8 +4,10 @@
  * Identifie les problèmes GPS, les doublons potentiels, et la cohérence géographique
  */
 
-require_once 'config/database.php';
-require_once 'includes/functions.php';
+require_once 'includes/auth.php';
+
+// Outil d'administration : affiche des données des dossiers
+requireRole('admin');
 
 // Fonction Haversine
 function haversineDistance($lat1, $lon1, $lat2, $lon2) {
