@@ -1,19 +1,22 @@
 <?php
 /**
- * Script de migration SQL accessible via web
- * URL: https://sgdi-dppg-production.up.railway.app/migrate.php
+ * Script de migration SQL - ligne de commande uniquement
  *
- * ⚠️ SÉCURISÉ: Nécessite un token secret
+ * En production (Railway) :
+ *   railway ssh -- "cd /var/www/html && php migrate.php"                          (migration 007)
+ *   railway ssh -- "cd /var/www/html && php migrate.php action=add_gps_columns"   (colonnes GPS)
+ *   railway ssh -- "cd /var/www/html && php migrate.php check"                    (lister les tables)
+ *   railway ssh -- "cd /var/www/html && php migrate.php showsql"                  (afficher le SQL 007)
  */
 
-// Token de sécurité (à passer en paramètre ?token=...)
-define('MIGRATION_TOKEN', 'sgdi-migration-2025-secure-token-' . md5('dppg-minee-cameroun'));
-
-// Vérifier le token
-if (!isset($_GET['token']) || $_GET['token'] !== MIGRATION_TOKEN) {
+// Interdit depuis le web : le code est public, un jeton ne protégeait rien
+if (php_sapi_name() !== 'cli') {
     http_response_code(403);
-    die("❌ Accès refusé. Token invalide.\n");
+    die("Script à exécuter en ligne de commande uniquement.\n");
 }
+
+// Les arguments (ex. action=add_gps_columns, check) remplacent les anciens paramètres d'URL
+parse_str(implode('&', array_slice($argv, 1)), $_GET);
 
 require_once __DIR__ . '/config/database.php';
 

@@ -75,18 +75,10 @@ require_once '../../includes/header.php';
     <div class="guide-step info">
         <h3><span class="badge badge-info">Étape 0</span> Préparation - Nettoyage des données test</h3>
 
-        <p><strong>Avant toute chose, supprimez les dossiers de test!</strong></p>
+        <p><strong>Étape déjà réalisée :</strong> les dossiers de test ont été supprimés de la base.</p>
 
-        <ol>
-            <li>Accédez au script de nettoyage:
-                <a href="<?php echo url('cleanup_test_data.php'); ?>" target="_blank" class="btn btn-sm btn-danger">
-                    <i class="fas fa-trash"></i> Nettoyer les données test
-                </a>
-            </li>
-            <li>Vérifiez la liste des 12 dossiers de test identifiés</li>
-            <li>Confirmez la suppression (cette action est <strong>irréversible</strong>)</li>
-            <li>Vérifiez que la suppression a réussi</li>
-        </ol>
+        <p>Le script de nettoyage a été retiré de l'application car il était accessible sans authentification.
+        Pour un nouveau nettoyage, s'adresser à l'administrateur système.</p>
 
         <div class="alert alert-warning">
             <strong>⚠️ Important:</strong> Cette étape garantit que vous n'aurez pas de données fictives mélangées
