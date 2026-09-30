@@ -656,7 +656,8 @@ fieldset legend.form-label { font-size: .875rem; float: none; width: auto; margi
 .liste-distances { list-style: none; margin: .5rem 0 0; padding: 0; font-size: .8rem; }
 .liste-distances li { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: .15rem .5rem; padding: .4rem 0; border-top: 1px solid var(--sgdi-border); }
 .liste-distances li > strong, .liste-distances li > .small { text-align: right; white-space: nowrap; }
-.liste-distances .ld-nom { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.liste-distances .ld-nom { min-width: 0; overflow-wrap: anywhere; line-height: 1.3; }
+.liste-distances .ld-cat { font-size: .75rem; color: var(--sgdi-muted); }
 .liste-distances .status-badge { font-size: .65rem; }
 /* Boutons segmentés du panneau : libellés courts sur une ligne */
 .map-panel .btn-group-sm > .btn { font-size: .75rem; padding-left: .3rem; padding-right: .3rem; white-space: nowrap; }
@@ -668,6 +669,16 @@ fieldset legend.form-label { font-size: .875rem; float: none; width: auto; margi
 .map-bandeau > i { color: var(--sgdi-primary); }
 .map-bandeau span { flex: 1; }
 .zone-projet { fill: var(--sgdi-phase-danger); fill-opacity: .07; stroke: var(--sgdi-phase-danger); stroke-width: 2; stroke-dasharray: 8 5; }
+.zone-sites { fill: none; stroke: var(--sgdi-indigo); stroke-width: 1.5; stroke-opacity: .6; stroke-dasharray: 2 6; }
+.site-conforme { stroke: #fff; stroke-width: 1.5; fill: var(--sgdi-muted); fill-opacity: .9; }
+
+/* Module « Contrôle de proximité » */
+.controle-proximite { border-top: 3px solid var(--sgdi-primary); }
+.controle-proximite #v-resultat:not(:empty) { margin-top: .75rem; }
+.controle-section { margin-top: .9rem; }
+.controle-section-titre { display: flex; align-items: center; gap: .4rem; font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--sgdi-text); margin-bottom: .2rem; }
+.controle-groupe + .controle-groupe { margin-top: .6rem; }
+.controle-groupe-titre { font-size: .78rem; font-weight: 600; margin: .35rem 0 .1rem; }
 .trait-alerte { stroke: var(--sgdi-phase-danger); stroke-width: 2; }
 .trait-info { stroke: var(--sgdi-muted); stroke-width: 1.5; stroke-dasharray: 4 5; }
 .cible-alerte { stroke: var(--sgdi-phase-danger); stroke-width: 2.5; fill: var(--sgdi-phase-danger); fill-opacity: .15; }

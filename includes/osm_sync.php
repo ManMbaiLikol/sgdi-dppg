@@ -119,13 +119,13 @@ function osmTelecharger() {
 /**
  * Exécute une requête Overpass QL
  */
-function osmRequete($requete) {
-    $ch = curl_init('https://overpass-api.de/api/interpreter');
+function osmRequete($requete, $url = 'https://overpass-api.de/api/interpreter', $delai = 150) {
+    $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => http_build_query(['data' => $requete]),
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 150,
+        CURLOPT_TIMEOUT => $delai,
         CURLOPT_USERAGENT => 'SGDI-MINEE-DPPG/2.0 (carte des infrastructures)', // exigé par Overpass
         CURLOPT_HTTPHEADER => ['Accept: application/json'],
     ]);

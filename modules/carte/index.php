@@ -13,7 +13,7 @@ $extra_head = '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/li
             . '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">'
             . '<link rel="stylesheet" href="' . asset('css/carte-marqueurs.css') . '">';
 
-$actions = '<button class="btn btn-outline-secondary" type="button" id="btn-verifier" aria-pressed="false"><i class="fas fa-location-crosshairs"></i> Vérifier un emplacement</button>'
+$actions = '<button class="btn btn-outline-secondary" type="button" id="btn-verifier" aria-pressed="false"><i class="fas fa-location-crosshairs"></i> Contrôle de proximité</button>'
          . '<button class="btn btn-outline-secondary" type="button" id="btn-mesurer" aria-pressed="false"><i class="fas fa-ruler"></i> Mesurer une distance</button>'
          . '<div class="btn-group">'
          . '<button class="btn btn-primary" type="button" id="btn-actualiser"><i class="fas fa-rotate"></i> Actualiser</button>'
@@ -49,34 +49,35 @@ echo uiPageHeader(
 <div class="map-layout">
     <div class="map-panel">
 
-        <!-- Outil actif : vérification d'un emplacement ou mesure -->
-        <div class="card carte-outil" id="carte-outil" hidden><div class="card-body">
-            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-                <h2 class="card-title-sm mb-0" id="outil-titre"></h2>
-                <button type="button" class="btn-close" id="outil-fermer" aria-label="Fermer l'outil"></button>
-            </div>
-
-            <div id="outil-verifier" hidden>
-                <ol class="etapes-outil">
-                    <li>Choisissez le type de zone du projet.</li>
-                    <li>Cliquez sur la carte à l'emplacement projeté, ou saisissez ses coordonnées.</li>
-                    <li>Faites glisser le repère rouge pour ajuster : le résultat se met à jour.</li>
-                </ol>
-                <div class="btn-group btn-group-sm w-100 mb-2" role="group" aria-label="Type de zone">
+        <!-- Contrôle de proximité d'un emplacement : stations et sites protégés -->
+        <div class="card controle-proximite" id="controle"><div class="card-body">
+            <h2 class="card-title-sm mb-1"><i class="fas fa-location-crosshairs text-primary"></i> Contrôle de proximité</h2>
+            <p class="small text-muted-sgdi mb-2">Stations-service à moins de 500 m et sites protégés par la réglementation autour d'un point.</p>
+            <form class="d-flex gap-2 mb-2" id="form-coord" novalidate>
+                <input class="form-control form-control-sm" id="v-coord" inputmode="decimal" autocomplete="off"
+                       placeholder="Latitude, longitude — ex. 3.8667, 11.5167" aria-label="Coordonnées GPS du point à contrôler">
+                <button class="btn btn-sm btn-primary text-nowrap" type="submit">Contrôler</button>
+            </form>
+            <div class="d-flex gap-2 align-items-center mb-1">
+                <div class="btn-group btn-group-sm flex-fill" role="group" aria-label="Type de zone">
                     <input type="radio" class="btn-check" name="v-zone" id="v-zone-u" value="urbaine" checked>
                     <label class="btn btn-outline-primary" for="v-zone-u">Urbaine · 500 m</label>
                     <input type="radio" class="btn-check" name="v-zone" id="v-zone-r" value="rurale">
                     <label class="btn btn-outline-primary" for="v-zone-r">Rurale · 400 m</label>
                 </div>
-                <form class="d-flex gap-2 mb-2" id="form-coord">
-                    <input class="form-control form-control-sm" id="v-lat" inputmode="decimal" placeholder="Latitude (ex. 3.8667)" aria-label="Latitude">
-                    <input class="form-control form-control-sm" id="v-lon" inputmode="decimal" placeholder="Longitude (ex. 11.5167)" aria-label="Longitude">
-                    <button class="btn btn-sm btn-primary" type="submit" aria-label="Vérifier ces coordonnées"><i class="fas fa-check"></i></button>
-                </form>
-                <div id="v-resultat" aria-live="polite"></div>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="v-carte" aria-pressed="false" title="Choisir le point sur la carte"><i class="fas fa-hand-pointer"></i> Carte</button>
+            </div>
+            <div id="v-resultat" aria-live="polite"></div>
+        </div></div>
+
+        <!-- Outil de mesure -->
+        <div class="card carte-outil" id="carte-outil" hidden><div class="card-body">
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                <h2 class="card-title-sm mb-0">Mesurer une distance</h2>
+                <button type="button" class="btn-close" id="outil-fermer" aria-label="Fermer l'outil"></button>
             </div>
 
-            <div id="outil-mesurer" hidden>
+            <div id="outil-mesurer">
                 <ol class="etapes-outil">
                     <li>Cliquez sur un premier point : sur la carte ou directement sur une station.</li>
                     <li>Cliquez sur un second point : la distance s'affiche sur le segment.</li>
@@ -551,7 +552,9 @@ echo uiPageHeader(
     $('l-poi').addEventListener('change', function () { this.checked ? couchePoi.addTo(carte) : carte.removeLayer(couchePoi); });
     $('l-zones').addEventListener('change', function () { this.checked ? coucheZones.addTo(carte) : carte.removeLayer(coucheZones); });
 
-    /* ---------- Outils : vérifier un emplacement, mesurer une distance ---------- */
+    /* ---------- Outils : choix d'un point sur la carte (contrôle de proximité), mesure ---------- */
+    var URL_PROXIMITE = <?php echo json_encode(url('modules/carte/proximite.php')); ?>;
+    var RAYON_STATIONS = 500;                          // stations listées autour du point contrôlé
     var mode = null;
     var Bandeau = L.Control.extend({
         options: { position: 'topright' },
@@ -565,7 +568,7 @@ echo uiPageHeader(
     });
     var bandeau = new Bandeau();
     function texteBandeau() {
-        if (mode === 'verifier') return verif.point ? 'Déplacez le repère ou cliquez ailleurs pour vérifier un autre emplacement.' : 'Cliquez sur la carte à l\x27emplacement projeté.';
+        if (mode === 'verifier') return verif.point ? 'Déplacez le repère rouge ou cliquez ailleurs pour contrôler un autre point.' : 'Cliquez sur la carte au point à contrôler (ou sur une station).';
         if (mode === 'mesurer') return mesure.etapes.length ? 'Total : ' + fd(mesure.total) + ' · cliquez pour ajouter un point.' : 'Cliquez sur un premier point (carte ou station).';
         return '';
     }
@@ -573,21 +576,23 @@ echo uiPageHeader(
 
     function changerMode(m) {
         mode = (m && mode !== m) ? m : null;
-        $('btn-verifier').classList.toggle('active', mode === 'verifier');
-        $('btn-verifier').setAttribute('aria-pressed', mode === 'verifier');
-        $('btn-mesurer').classList.toggle('active', mode === 'mesurer');
-        $('btn-mesurer').setAttribute('aria-pressed', mode === 'mesurer');
+        [['btn-verifier', 'verifier'], ['v-carte', 'verifier'], ['btn-mesurer', 'mesurer']].forEach(function (b) {
+            $(b[0]).classList.toggle('active', mode === b[1]);
+            $(b[0]).setAttribute('aria-pressed', mode === b[1]);
+        });
         document.querySelector('.map-layout').classList.toggle('map-mode-clic', !!mode);
-        $('carte-outil').hidden = !mode;
-        $('outil-verifier').hidden = mode !== 'verifier';
-        $('outil-mesurer').hidden = mode !== 'mesurer';
-        $('outil-titre').textContent = mode === 'verifier' ? 'Vérifier un emplacement' : 'Mesurer une distance';
-        if (mode !== 'verifier') effacerVerif();
+        $('carte-outil').hidden = mode !== 'mesurer';
         if (mode !== 'mesurer') effacerMesure();
         if (mode) { bandeau.addTo(carte); majBandeau(); carte.closePopup(); } else { bandeau.remove(); }
-        if (mode && window.innerWidth < 992) $('carte-outil').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (mode === 'mesurer' && window.innerWidth < 992) $('carte-outil').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-    $('btn-verifier').addEventListener('click', function () { changerMode('verifier'); });
+    // Bouton d'en-tête : amène au module et active le choix du point sur la carte
+    $('btn-verifier').addEventListener('click', function () {
+        $('controle').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        if (mode !== 'verifier') $('v-coord').focus({ preventScroll: true });
+        changerMode('verifier');
+    });
+    $('v-carte').addEventListener('click', function () { changerMode('verifier'); });
     $('btn-mesurer').addEventListener('click', function () { changerMode('mesurer'); });
     $('outil-fermer').addEventListener('click', function () { changerMode(null); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && mode) changerMode(null); });
@@ -602,67 +607,137 @@ echo uiPageHeader(
     });
     function pointOutil(latlng, nom) { if (mode === 'verifier') verifier(latlng); else if (mode === 'mesurer') mesurer(latlng, nom); }
 
-    /* Vérifier un emplacement */
-    var verif = { point: null, calques: [] };
+    /* Contrôle de proximité */
+    var verif = { point: null, calques: [], jeton: 0, stations: null, sites: null };
     function zoneChoisie() { return valeurRadio('v-zone') || 'urbaine'; }
     function effacerVerif() {
         verif.calques.forEach(function (c) { carte.removeLayer(c); });
-        verif = { point: null, calques: [] };
+        verif = { point: null, calques: [], jeton: verif.jeton + 1, stations: null, sites: null };
         $('v-resultat').innerHTML = '';
+        majBandeau();
+    }
+    // « 3.8667, 11.5167 », « 3,8667 11,5167 », « 3.8667;11.5167 »…
+    function lireCoordonnees(texte) {
+        var t = String(texte).trim().replace(/\s+/g, ' '), m;
+        if ((m = t.match(/^(-?\d+(?:\.\d+)?)\s*[,; ]\s*(-?\d+(?:\.\d+)?)$/)) || (m = t.match(/^(-?\d+(?:,\d+)?)\s*[; ]\s*(-?\d+(?:,\d+)?)$/))) {
+            var lat = parseFloat(m[1].replace(',', '.')), lon = parseFloat(m[2].replace(',', '.'));
+            if (lat >= 1.5 && lat <= 13.5 && lon >= 8 && lon <= 16.5) return L.latLng(lat, lon);
+        }
+        return null;
     }
     function verifier(latlng, sansZoom) {
         effacerVerif();
         verif.point = latlng;
-        var zone = zoneChoisie(), rayon = DISTANCE[zone];
+        var zone = zoneChoisie(), rayon = DISTANCE[zone], jeton = verif.jeton;
+        $('v-coord').value = latlng.lat.toFixed(6) + ', ' + latlng.lng.toFixed(6);
 
-        // Zone de protection du projet : cercle en mètres réels
+        // Zone de protection du projet (mètres réels) et rayon des grands sites protégés (1 000 m)
         var cercle = L.circle(latlng, { radius: rayon, className: 'zone-projet', interactive: false }).addTo(carte);
+        var cercleSites = L.circle(latlng, { radius: 1000, className: 'zone-sites', interactive: false }).addTo(carte);
         var repere = L.marker(latlng, {
-            draggable: true, autoPan: true, zIndexOffset: 1000, title: 'Emplacement projeté (déplaçable)',
+            draggable: true, autoPan: true, zIndexOffset: 1000, title: 'Point contrôlé (déplaçable)',
             icon: L.divIcon({ className: '', iconSize: [22, 22], iconAnchor: [11, 26], html: '<span class="pin pin-projet"><i class="fas fa-crosshairs"></i></span>' })
         }).addTo(carte);
         repere.on('dragend', function () { verifier(repere.getLatLng(), true); });
-        verif.calques.push(cercle, repere);
+        verif.calques.push(cercle, cercleSites, repere);
 
+        // Stations-service à moins de 500 m, de la plus proche à la plus éloignée
         var mesures = stationsReference().map(function (s) { s.d = carte.distance(latlng, s.ll); return s; })
             .filter(function (s) { return s.d > 1; }) // le point lui-même (clic sur une station)
             .sort(function (a, b) { return a.d - b.d; });
-        var proches = mesures.filter(function (s) { return s.d < rayon; });
-        var plusProche = mesures[0];
-        var poi = D.poi.map(function (p) { var min = zone === 'rurale' ? p[5] : p[4]; return { nom: p[2], cat: p[3], d: carte.distance(latlng, [p[0], p[1]]), min: min }; })
-            .filter(function (x) { return x.d < x.min; }).sort(function (a, b) { return a.d - b.d; });
+        verif.stations = { liste: mesures.filter(function (s) { return s.d <= RAYON_STATIONS; }), plusProche: mesures[0], rayon: rayon, zone: zone };
+        verif.stations.liste.forEach(function (s) { verif.calques.push.apply(verif.calques, repereDistance(latlng, s, s.d < rayon ? 'alerte' : 'info')); });
+        var pp = verif.stations.plusProche;
+        if (pp && pp.d > RAYON_STATIONS && pp.d < 5000) verif.calques.push.apply(verif.calques, repereDistance(latlng, pp, 'info'));
+        // Stations connues seulement au centre de leur localité : non mesurables
+        verif.stations.approx = D.sgdi.filter(function (m) { var p = m._sgdi; return p[I.type] === 'station_service' && p[I.approx] && carte.distance(latlng, m.getLatLng()) < 5000; }).length;
 
-        // Traits vers les stations trop proches, et vers la plus proche si elle est hors zone ;
-        // la distance est affichée sur la station elle-même pour que les étiquettes ne se chevauchent pas
-        proches.slice(0, 8).forEach(function (s) { verif.calques.push.apply(verif.calques, repereDistance(latlng, s, 'alerte')); });
-        if (plusProche && plusProche.d >= rayon && plusProche.d < 5000) verif.calques.push.apply(verif.calques, repereDistance(latlng, plusProche, 'info'));
-
-        // Stations de la zone connues seulement au centre de leur localité : non mesurables
-        var approx = D.sgdi.filter(function (m) { var p = m._sgdi; return p[I.type] === 'station_service' && p[I.approx] && carte.distance(latlng, m.getLatLng()) < 5000; }).length;
-
-        var conforme = !proches.length && !poi.length;
-        var titre = conforme ? 'Emplacement conforme en zone ' + zone + ' : aucune station à moins de ' + rayon + ' m ni point d\x27intérêt dans sa zone de protection.'
-            : 'Emplacement non conforme en zone ' + zone + ' (' + rayon + ' m minimum).';
-        var lignes = proches.slice(0, 8).map(function (s) {
-            return '<li><span class="ld-nom">' + (s.id ? '<a href="' + URL_DOSSIER + s.id + '">' + esc(s.nom) + '</a>' : esc(s.nom)) + '</span>' +
-                '<strong>' + fd(s.d) + '</strong>' +
-                '<span><span class="status-badge phase-' + s.phase + '">' + esc(s.etat) + '</span></span>' +
-                '<span class="small text-muted-sgdi">manque ' + fd(rayon - s.d) + '</span></li>';
-        }).concat(poi.slice(0, 5).map(function (x) {
-            return '<li><span class="ld-nom">' + esc(x.nom) + '</span><strong>' + fd(x.d) + '</strong>' +
-                '<span><span class="status-badge phase-danger">' + esc(x.cat) + '</span></span>' +
-                '<span class="small text-muted-sgdi">minimum ' + x.min + ' m</span></li>';
-        }));
-        $('v-resultat').innerHTML =
-            '<div class="verdict phase-' + (conforme ? 'succes' : 'danger') + '"><strong>' + esc(titre) + '</strong></div>' +
-            (lignes.length ? '<ul class="liste-distances">' + lignes.join('') + '</ul>' : '') +
-            (plusProche ? '<p class="small mb-1 mt-2">Station la plus proche : <strong>' + esc(plusProche.nom) + '</strong> à <strong>' + fd(plusProche.d) + '</strong>' +
-                (plusProche.d >= rayon ? ' (marge de ' + fd(plusProche.d - rayon) + ')' : '') + '.</p>' : '') +
-            (approx ? '<p class="small text-muted-sgdi mb-1"><i class="fas fa-triangle-exclamation"></i> ' + approx + ' station(s) à moins de 5 km n\x27ont qu\x27une position approximative (centre de la localité) et ne peuvent pas être prises en compte.</p>' : '') +
-            '<p class="small text-muted-sgdi mb-0">Point vérifié : ' + latlng.lat.toFixed(6) + ', ' + latlng.lng.toFixed(6) + '</p>';
-        $('v-lat').value = latlng.lat.toFixed(6); $('v-lon').value = latlng.lng.toFixed(6);
+        afficherControle();
         majBandeau();
-        if (!sansZoom) carte.flyToBounds(cercle.getBounds(), { padding: [60, 60], maxZoom: 17, duration: .6 });
+        if (!sansZoom) carte.flyToBounds(cercleSites.getBounds(), { padding: [30, 30], maxZoom: 17, duration: .6 });
+
+        // Sites protégés : recherche côté serveur (points d'intérêt du SGDI et OpenStreetMap)
+        fetch(URL_PROXIMITE + '?lat=' + latlng.lat.toFixed(6) + '&lon=' + latlng.lng.toFixed(6) + '&zone=' + zone, { credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (json) {
+                if (jeton !== verif.jeton) return; // un autre point a été contrôlé entre-temps
+                if (json.erreur) throw new Error(json.erreur);
+                verif.sites = json;
+                json.sites.forEach(function (s) {
+                    if (s.lat == null) return;
+                    var cible = { ll: L.latLng(s.lat, s.lon), d: s.distance };
+                    if (!s.conforme) verif.calques.push.apply(verif.calques, repereDistance(latlng, cible, 'alerte'));
+                    else verif.calques.push(L.circleMarker(cible.ll, { radius: 5, className: 'site-conforme' })
+                        .bindTooltip(esc(s.nom || s.categorie) + ' · ' + fd(s.distance), { direction: 'top', className: 'etiquette-distance' }).addTo(carte));
+                });
+                afficherControle();
+            })
+            .catch(function (e) {
+                if (jeton !== verif.jeton) return;
+                verif.sites = { erreur: e.message || 'Recherche des sites protégés impossible.' };
+                afficherControle();
+            });
+    }
+
+    // Résultat du contrôle : verdict, stations à moins de 500 m, sites protégés par distance réglementaire
+    function afficherControle() {
+        var st = verif.stations, si = verif.sites;
+        if (!st) return;
+        var stationsKo = st.liste.filter(function (s) { return s.d < st.rayon; });
+        var sitesKo = si && si.sites ? si.sites.filter(function (s) { return !s.conforme; }) : [];
+        var enAttente = !si;
+
+        var verdict;
+        if (stationsKo.length || sitesKo.length) {
+            verdict = '<div class="verdict phase-danger"><strong>Non conforme</strong> : ' +
+                [stationsKo.length ? stationsKo.length + ' station(s) à moins de ' + st.rayon + ' m' : '',
+                 sitesKo.length ? sitesKo.length + ' site(s) protégé(s) trop proche(s)' : ''].filter(Boolean).join(' et ') + '.</div>';
+        } else if (enAttente) {
+            verdict = '<div class="verdict phase-instruction"><strong>Aucune station à moins de ' + st.rayon + ' m</strong> (zone ' + st.zone + '). <span class="spinner-border spinner-border-sm ms-1" role="status"></span> Recherche des sites protégés…</div>';
+        } else if (si.erreur || !si.osm_disponible) {
+            verdict = '<div class="verdict phase-attention"><strong>Stations conformes</strong> (aucune à moins de ' + st.rayon + ' m). Sites protégés : contrôle incomplet, OpenStreetMap n\x27a pas répondu. Réessayez dans un instant.</div>';
+        } else {
+            verdict = '<div class="verdict phase-succes"><strong>Conforme</strong> : aucune station à moins de ' + st.rayon + ' m (zone ' + st.zone + ') ni site protégé en deçà de sa distance réglementaire.</div>';
+        }
+
+        var stations = st.liste.length
+            ? '<ul class="liste-distances">' + st.liste.map(function (s) {
+                var ok = s.d >= st.rayon;
+                return '<li><span class="ld-nom">' + (s.id ? '<a href="' + URL_DOSSIER + s.id + '">' + esc(s.nom) + '</a>' : esc(s.nom)) + '</span>' +
+                    '<strong class="' + (ok ? '' : 'text-danger') + '">' + fd(s.d) + '</strong>' +
+                    '<span><span class="status-badge phase-' + s.phase + '">' + esc(s.etat) + '</span></span>' +
+                    '<span class="small ' + (ok ? 'text-success' : 'text-danger') + '">' + (ok ? '<i class="fas fa-check"></i> conforme' : 'manque ' + fd(st.rayon - s.d)) + '</span></li>';
+            }).join('') + '</ul>'
+            : '<p class="small text-muted-sgdi mb-0">Aucune station-service à moins de ' + RAYON_STATIONS + ' m.' +
+                (st.plusProche ? ' La plus proche : <strong>' + esc(st.plusProche.nom) + '</strong> à ' + fd(st.plusProche.d) + '.' : '') + '</p>';
+
+        var sites;
+        if (enAttente) sites = '<p class="small text-muted-sgdi mb-0"><span class="spinner-border spinner-border-sm"></span> Recherche en cours…</p>';
+        else if (si.erreur) sites = '<p class="small text-danger mb-0">' + esc(si.erreur) + '</p>';
+        else {
+            var groupes = [[1000, 'Distance minimale 1 000 m', 'Présidence, Services du Premier Ministre, Assemblée nationale, Sénat, Gouverneur, préfectures et sous-préfectures'],
+                           [100, 'Distance minimale 100 m', 'Enseignement, santé, lieux de culte, terrains de sport, marchés, bâtiments administratifs']];
+            sites = groupes.map(function (g) {
+                var liste = si.sites.filter(function (s) { return g[0] === 1000 ? s.minimum >= 1000 : s.minimum < 1000; });
+                return '<div class="controle-groupe"><div class="controle-groupe-titre">' + g[1] + ' <span class="text-muted-sgdi fw-normal">· ' + g[2] + '</span></div>' +
+                    (liste.length ? '<ul class="liste-distances">' + liste.map(function (s) {
+                        var nom = s.nom || s.categorie;
+                        return '<li><span class="ld-nom">' + (s.url ? '<a href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(nom) + '</a>' : esc(nom)) + '</span>' +
+                            '<strong class="' + (s.conforme ? '' : 'text-danger') + '">' + fd(s.distance) + '</strong>' +
+                            '<span class="ld-cat">' + esc(s.categorie) + '</span>' +
+                            '<span class="small ' + (s.conforme ? 'text-success' : 'text-danger') + '">' + (s.conforme ? '<i class="fas fa-check"></i> conforme' : 'manque ' + fd(s.minimum - s.distance)) + '</span></li>';
+                    }).join('') + '</ul>' : '<p class="small text-muted-sgdi mb-0">Aucun site recensé à moins de ' + (g[0] === 1000 ? '1 000' : '300') + ' m.</p>') + '</div>';
+            }).join('') + (si.osm_disponible ? '' : '<p class="small text-danger mb-0">OpenStreetMap n\x27a pas répondu : seuls les points d\x27intérêt saisis dans le SGDI ont été contrôlés.</p>');
+        }
+
+        $('v-resultat').innerHTML = verdict +
+            '<div class="controle-section"><div class="controle-section-titre">Stations-service à moins de ' + RAYON_STATIONS + ' m <span class="badge rounded-pill text-bg-secondary">' + st.liste.length + '</span></div>' + stations +
+            (st.approx ? '<p class="small text-muted-sgdi mt-1 mb-0"><i class="fas fa-triangle-exclamation"></i> ' + st.approx + ' station(s) à moins de 5 km n\x27ont qu\x27une position approximative (centre de la localité) et ne peuvent pas être mesurées.</p>' : '') + '</div>' +
+            '<div class="controle-section"><div class="controle-section-titre">Sites protégés</div>' + sites + '</div>' +
+            '<p class="small text-muted-sgdi mt-2 mb-1">Sites : points d\x27intérêt du SGDI et OpenStreetMap (données collaboratives, à confirmer sur le terrain). Distance mesurée jusqu\x27à la limite du site.</p>' +
+            '<div class="d-flex justify-content-between align-items-center"><span class="small text-muted-sgdi">Point : ' + verif.point.lat.toFixed(6) + ', ' + verif.point.lng.toFixed(6) + '</span>' +
+            '<button type="button" class="btn btn-link btn-sm p-0" id="v-effacer">Effacer</button></div>';
+        $('v-effacer').addEventListener('click', effacerVerif);
     }
     function repereDistance(depart, s, niveau) {
         return [
@@ -680,12 +755,12 @@ echo uiPageHeader(
     });
     $('form-coord').addEventListener('submit', function (e) {
         e.preventDefault();
-        var lat = parseFloat($('v-lat').value.replace(',', '.')), lon = parseFloat($('v-lon').value.replace(',', '.'));
-        if (isNaN(lat) || isNaN(lon) || lat < 1.5 || lat > 13.5 || lon < 8 || lon > 16.5) {
-            $('v-resultat').innerHTML = '<div class="verdict phase-danger">Coordonnées invalides : la latitude doit être entre 1,5 et 13,5 et la longitude entre 8 et 16,5 (Cameroun).</div>';
+        var ll = lireCoordonnees($('v-coord').value);
+        if (!ll) {
+            $('v-resultat').innerHTML = '<div class="verdict phase-danger">Coordonnées invalides. Saisissez « latitude, longitude » en degrés décimaux, au Cameroun (latitude 1,5 à 13,5 ; longitude 8 à 16,5). Exemple : 3.8667, 11.5167</div>';
             return;
         }
-        verifier(L.latLng(lat, lon));
+        verifier(ll);
     });
 
     /* Mesurer une distance */
