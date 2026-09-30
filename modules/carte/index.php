@@ -356,15 +356,28 @@ echo uiPageHeader(
                 var stationsSgdi = json.sgdi.filter(function (p) { return p[I.type] === 'station_service' && !p[I.approx]; });
                 // Stations existantes calées sur OpenStreetMap : la station OSM et le dossier ne forment qu'un point
                 var existantes = D.sgdi.filter(function (m) { var p = m._sgdi; return p[I.type] === 'station_service' && !p[I.approx] && p[I.existante]; });
-                var absents = 0, fusions = 0;
-                D.osm = json.osm.points.map(function (p) {
+                // Chaque dossier fusionne avec la station OSM la plus proche (paires triées par distance)
+                var paires = [];
+                json.osm.points.forEach(function (p, k) {
+                    if (p[2] !== 'station') return;
+                    existantes.forEach(function (x) {
+                        var s = x._sgdi;
+                        if (Math.abs(s[I.lat] - p[0]) > .0005 || Math.abs(s[I.lon] - p[1]) > .0005) return;
+                        var d = carte.distance([s[I.lat], s[I.lon]], [p[0], p[1]]);
+                        if (d < RAYON_FUSION) paires.push([d, k, x]);
+                    });
+                });
+                var osmFusionnees = {};
+                paires.sort(function (a, b) { return a[0] - b[0]; }).forEach(function (pr) {
+                    if (osmFusionnees[pr[1]] || pr[2]._fusion) return;
+                    pr[2]._fusion = json.osm.points[pr[1]];
+                    osmFusionnees[pr[1]] = true;
+                });
+                var absents = 0, fusions = Object.keys(osmFusionnees).length;
+                D.osm = json.osm.points.map(function (p, k) {
                     var absent = false;
                     if (p[2] === 'station') {
-                        var h = existantes.filter(function (x) {
-                            var s = x._sgdi;
-                            return !x._fusion && Math.abs(s[I.lat] - p[0]) < .0005 && Math.abs(s[I.lon] - p[1]) < .0005 && carte.distance([s[I.lat], s[I.lon]], [p[0], p[1]]) < RAYON_FUSION;
-                        })[0];
-                        if (h) { h._fusion = p; fusions++; return null; }
+                        if (osmFusionnees[k]) return null;
                         absent = !stationsSgdi.some(function (s) {
                             return Math.abs(s[I.lat] - p[0]) < .003 && Math.abs(s[I.lon] - p[1]) < .003 && carte.distance([s[I.lat], s[I.lon]], [p[0], p[1]]) < RAYON_CORRESPONDANCE;
                         });

@@ -112,25 +112,9 @@ function geolocMotsMarque($nom) {
     }));
 }
 
-/**
- * Marques d'un même réseau, sous des noms différents : CORLAY exploite le réseau MRS, qui a repris
- * les anciennes stations Texaco (OSM : « MRS CORLAY », « Texaco »…).
- * groupe => mots (normalisés) qui le désignent
- */
-function geolocReseauxEquivalents() {
-    return [
-        'corlay-mrs' => ['corlay', 'coray', 'mrs', 'texaco'],
-    ];
-}
-
-// Réseaux reconnus dans un texte (nom de dossier, ou nom, marque et opérateur d'une station OSM)
+// Réseaux de marques équivalents (CORLAY = MRS = Texaco) : voir osmReseauxEquivalents()
 function geolocReseaux($texte) {
-    $mots = explode(' ', geolocNormaliser($texte));
-    $reseaux = [];
-    foreach (geolocReseauxEquivalents() as $groupe => $cles) {
-        if (array_intersect($cles, $mots)) $reseaux[] = $groupe;
-    }
-    return $reseaux;
+    return osmReseaux($texte);
 }
 
 // Même distributeur ? Même réseau, sinon marque reconnue : comparaison des marques ; sinon tous les mots distinctifs doivent apparaître
@@ -452,7 +436,7 @@ function geolocControlerCorrespondances() {
     foreach ($dossiers as $d) {
         $c = parseGPSCoordinates($d['coordonnees_gps']);
         $point = null;
-        $meilleure = GEOLOC_DISTANCE_DEJA_UTILISEE;
+        $meilleure = OSM_DISTANCE_DOUBLON + 5; // les exemplaires en double d'une station ont été fusionnés sur l'un d'eux
         if ($c) {
             foreach ($stations as $p) {
                 if (abs($p[0] - $c['latitude']) > .001 || abs($p[1] - $c['longitude']) > .001) continue;
@@ -469,7 +453,22 @@ function geolocControlerCorrespondances() {
         } else {
             $verdict = 'discordant';
         }
-        $resultats[] = ['dossier' => $d, 'point' => $point, 'verdict' => $verdict];
+        $resultats[] = ['dossier' => $d, 'point' => $point, 'verdict' => $verdict, 'distance' => $point ? $meilleure : null];
+    }
+
+    // Plusieurs dossiers sur la même station : le mieux validé la garde (rapprochement sûr, choix manuel,
+    // attribution automatique), puis le plus proche ; les autres sont des doublons
+    $par_station = [];
+    foreach ($resultats as $k => $r) {
+        if ($r['point'] && in_array($r['verdict'], ['concordant', 'indetermine'], true)) $par_station[$r['point'][0] . ',' . $r['point'][1]][] = $k;
+    }
+    foreach ($par_station as $cles) {
+        if (count($cles) < 2) continue;
+        usort($cles, function ($a, $b) use ($resultats) {
+            return [-(int) $resultats[$a]['dossier']['score_matching_osm'], $resultats[$a]['distance'], $resultats[$a]['dossier']['id']]
+               <=> [-(int) $resultats[$b]['dossier']['score_matching_osm'], $resultats[$b]['distance'], $resultats[$b]['dossier']['id']];
+        });
+        foreach (array_slice($cles, 1) as $k) $resultats[$k]['verdict'] = 'doublon';
     }
     return $resultats;
 }
@@ -484,18 +483,24 @@ function geolocControlerCorrespondances() {
 function geolocCorrigerDiscordances($user_id, $simulation = false) {
     global $pdo;
     $controle = geolocControlerCorrespondances();
-    $a_corriger = array_filter($controle, function ($r) { return $r['verdict'] === 'discordant'; });
-    if ($simulation) return ['controle' => $controle, 'corriges' => count($a_corriger), 'attribution' => null];
+    $a_corriger = array_filter($controle, function ($r) { return in_array($r['verdict'], ['discordant', 'doublon'], true); });
+    // Dossiers restés sur l'exemplaire supprimé d'une station saisie deux fois dans OSM : recalés sur l'exemplaire gardé
+    $a_recaler = array_filter($controle, function ($r) { return in_array($r['verdict'], ['concordant', 'indetermine'], true) && $r['distance'] > 1; });
+    if ($simulation) return ['controle' => $controle, 'corriges' => count($a_corriger), 'recales' => count($a_recaler), 'attribution' => null];
 
     $pdo->beginTransaction();
     try {
+        $recaler = $pdo->prepare("UPDATE dossiers SET coordonnees_gps = ?, latitude = ?, longitude = ? WHERE id = ? AND est_historique = 1");
+        foreach ($a_recaler as $r) {
+            $recaler->execute([$r['point'][0] . ',' . $r['point'][1], $r['point'][0], $r['point'][1], $r['dossier']['id']]);
+        }
         $stmt = $pdo->prepare("UPDATE dossiers SET coordonnees_gps = NULL, latitude = NULL, longitude = NULL, source_gps = NULL, score_matching_osm = NULL
                                WHERE id = ? AND est_historique = 1");
         foreach ($a_corriger as $r) {
             $stmt->execute([$r['dossier']['id']]);
             addHistoriqueDossier($r['dossier']['id'], $user_id, 'modification_gps',
-                'Position retirée : la station OpenStreetMap à cet emplacement (' . ($r['point'][3] ?: 'sans nom') . ', ' . $r['point'][4]
-                . ') ne correspond pas au nom du dossier');
+                'Position retirée : la station OpenStreetMap à cet emplacement (' . ($r['point'][3] ?: 'sans nom') . ', ' . $r['point'][4] . ') '
+                . ($r['verdict'] === 'doublon' ? 'est déjà attribuée à un autre dossier' : 'ne correspond pas au nom du dossier'));
         }
         $pdo->commit();
     } catch (Exception $e) {
@@ -503,7 +508,7 @@ function geolocCorrigerDiscordances($user_id, $simulation = false) {
         throw $e;
     }
     // Nouvelle attribution (même marque uniquement), sinon centre de la localité
-    return ['controle' => $controle, 'corriges' => count($a_corriger), 'attribution' => geolocAttribuerTout($user_id)];
+    return ['controle' => $controle, 'corriges' => count($a_corriger), 'recales' => count($a_recaler), 'attribution' => geolocAttribuerTout($user_id)];
 }
 
 /**

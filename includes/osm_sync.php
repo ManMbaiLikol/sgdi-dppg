@@ -221,14 +221,83 @@ function osmLieux() {
  * Référence OSM à afficher : le cache s'il existe, sinon le jeu de départ
  */
 function osmDonnees() {
+    static $memo = null;
+    if ($memo !== null) return $memo;
     foreach ([OSM_FICHIER_CACHE, OSM_FICHIER_SEED] as $f) {
         $d = is_file($f) ? json_decode((string) file_get_contents($f), true) : null;
         if (!empty($d['points'])) {
             $d['source'] = $f === OSM_FICHIER_CACHE ? 'cache' : 'seed';
-            return $d;
+            $d['points'] = osmDedoublonner($d['points']);
+            return $memo = $d;
         }
     }
     return ['maj' => null, 'points' => [], 'source' => 'aucune'];
+}
+
+define('OSM_DISTANCE_DOUBLON', 40); // une même station saisie deux fois dans OSM (point et bâtiment, ou deux contributeurs)
+
+/**
+ * Stations et points GPL saisis plusieurs fois dans OpenStreetMap : un seul point par station.
+ * Deux points de même catégorie à moins de 40 m sont la même station s'ils ont la même marque,
+ * des noms semblables, ou si l'un n'a ni nom ni marque. On garde le mieux renseigné.
+ */
+function osmDedoublonner(array $points) {
+    $cle = function ($p) { return preg_replace('/[^a-z0-9]/', '', strtolower(iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', (string) $p))); };
+    $info = function ($p) { return strlen(trim(($p[3] ?? '') . ($p[8] ?? ''))); };
+    $memeStation = function ($a, $b) use ($cle, $info) {
+        if ($info($a) === 0 || $info($b) === 0) return true;
+        // Même réseau sous deux noms (ancienne étiquette « Texaco » et nouvelle « MRS »)
+        $ra = osmReseaux(($a[8] ?? '') . ' ' . $a[3] . ' ' . $a[4]);
+        if ($ra && array_intersect($ra, osmReseaux(($b[8] ?? '') . ' ' . $b[3] . ' ' . $b[4]))) return true;
+        if ($a[4] !== 'Autre / indépendant' || $b[4] !== 'Autre / indépendant') return $a[4] === $b[4];
+        $na = $cle($a[3]); $nb = $cle($b[3]);
+        return $na !== '' && $nb !== '' && (strpos($na, $nb) !== false || strpos($nb, $na) !== false);
+    };
+
+    // Grille d'environ 110 m pour ne comparer que les voisins
+    $grille = [];
+    foreach ($points as $i => $p) $grille[round($p[0], 3) . '|' . round($p[1], 3)][] = $i;
+    $retire = [];
+    foreach ($points as $i => $p) {
+        if (isset($retire[$i]) || !in_array($p[2], ['station', 'gpl'], true)) continue;
+        for ($dy = -1; $dy <= 1; $dy++) for ($dx = -1; $dx <= 1; $dx++) {
+            foreach ($grille[round(round($p[0], 3) + $dy / 1000, 3) . '|' . round(round($p[1], 3) + $dx / 1000, 3)] ?? [] as $j) {
+                if ($j <= $i || isset($retire[$j]) || $points[$j][2] !== $p[2]) continue;
+                $q = $points[$j];
+                if (osmDistance($p[0], $p[1], $q[0], $q[1]) > OSM_DISTANCE_DOUBLON || !$memeStation($p, $q)) continue;
+                // Garder le point le mieux renseigné ; GPL disponible si l'un des deux l'indique
+                if ($info($q) > $info($p)) { $q[7] = $q[7] || $p[7]; $points[$i] = $p = $q; } else { $points[$i][7] = $p[7] = $p[7] || $q[7]; }
+                $retire[$j] = true;
+            }
+        }
+    }
+    return array_values(array_diff_key($points, $retire));
+}
+
+/**
+ * Marques d'un même réseau, sous des noms différents : CORLAY exploite le réseau MRS, qui a repris
+ * les anciennes stations Texaco (OSM : « MRS CORLAY », « Texaco »…).
+ * @return array groupe => mots qui le désignent
+ */
+function osmReseauxEquivalents() {
+    return [
+        'corlay-mrs' => ['corlay', 'coray', 'mrs', 'texaco'],
+    ];
+}
+
+// Réseaux reconnus dans un texte (nom de dossier, ou nom, marque et opérateur d'une station)
+function osmReseaux($texte) {
+    $mots = preg_split('/[^a-z0-9]+/', strtolower(iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', (string) $texte)), -1, PREG_SPLIT_NO_EMPTY);
+    $reseaux = [];
+    foreach (osmReseauxEquivalents() as $groupe => $cles) {
+        if (array_intersect($cles, $mots)) $reseaux[] = $groupe;
+    }
+    return $reseaux;
+}
+
+function osmDistance($lat1, $lon1, $lat2, $lon2) {
+    $a = sin(deg2rad($lat2 - $lat1) / 2) ** 2 + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin(deg2rad($lon2 - $lon1) / 2) ** 2;
+    return 12742000 * asin(min(1, sqrt($a)));
 }
 
 /**

@@ -37,26 +37,28 @@ echo "Contrôle des correspondances avec OpenStreetMap" . ($dry_run ? " (simulat
 echo str_repeat('-', 70) . "\n";
 
 $r = geolocCorrigerDiscordances($user_id, $dry_run);
-$par_verdict = ['concordant' => 0, 'discordant' => 0, 'indetermine' => 0, 'introuvable' => 0];
+$par_verdict = ['concordant' => 0, 'discordant' => 0, 'doublon' => 0, 'indetermine' => 0, 'introuvable' => 0];
 foreach ($r['controle'] as $c) $par_verdict[$c['verdict']]++;
 $manuels = array_filter($r['controle'], function ($c) { return $c['verdict'] === 'discordant' && strpos($c['dossier']['source_gps'], 'OSM (choix parmi') === 0; });
 
 printf("  Dossiers placés sur une station OSM          : %d\n", count($r['controle']));
 printf("  Nom concordant avec OSM                      : %d\n", $par_verdict['concordant']);
 printf("  Nom discordant (autre nom ou marque dans OSM): %d\n", $par_verdict['discordant']);
-printf("    positions retirées (OSM fait foi)          : %d\n", $r['corriges']);
 printf("    dont choix faits à la main                 : %d\n", count($manuels));
+printf("  Station déjà occupée par un autre dossier    : %d\n", $par_verdict['doublon']);
+printf("  Positions retirées (OSM fait foi)            : %d\n", $r['corriges']);
+printf("  Recalés sur une station saisie deux fois     : %d\n", $r['recales']);
 printf("  Station OSM sans nom ni marque (indéterminé) : %d\n", $par_verdict['indetermine']);
 printf("  Plus de station OSM à cette position         : %d\n", $par_verdict['introuvable']);
 
 if ($liste || $dry_run) {
     echo str_repeat('-', 70) . "\nDiscordances (dossier SGDI  ≠  station OpenStreetMap) :\n";
     foreach ($r['controle'] as $c) {
-        if ($c['verdict'] !== 'discordant') continue;
+        if (!in_array($c['verdict'], ['discordant', 'doublon'], true)) continue;
         $d = $c['dossier'];
         $p = $c['point'];
-        printf("  %-6s %-28s %-16s ≠ %s (%s)%s\n", $d['numero'], mb_substr($d['nom_demandeur'], 0, 28), mb_substr((string) $d['ville'], 0, 16),
-            $p[3] ?: 'sans nom', $p[4], strpos($d['source_gps'], 'OSM (choix parmi') === 0 ? '  [choix manuel]' : '');
+        printf("  %-6s %-28s %-16s %s %s (%s)%s\n", $d['numero'], mb_substr($d['nom_demandeur'], 0, 28), mb_substr((string) $d['ville'], 0, 16),
+            $c['verdict'] === 'doublon' ? '= déjà pris :' : '≠', $p[3] ?: 'sans nom', $p[4], strpos($d['source_gps'], 'OSM (choix parmi') === 0 ? '  [choix manuel]' : '');
     }
 }
 
