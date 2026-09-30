@@ -29,6 +29,7 @@ $analyse_existante = getAnalyseDAJ($dossier_id);
 
 // Traitement du formulaire d'analyse
 if ($_POST) {
+    exigerCSRF();
     $statut_analyse = $_POST['statut_analyse'];
     $observations = $_POST['observations'];
     $documents_manquants = $_POST['documents_manquants'];
@@ -226,6 +227,7 @@ require_once '../../includes/header.php';
                         </div>
                         <div class="card-body">
                             <form method="POST">
+                                <?php echo csrfField(); ?>
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">

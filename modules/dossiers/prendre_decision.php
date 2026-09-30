@@ -59,6 +59,7 @@ if ($decision_existante) {
 
 // Traitement du formulaire
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    exigerCSRF();
     try {
         $pdo->beginTransaction();
 
@@ -313,6 +314,7 @@ require_once '../../includes/header.php';
                     </div>
 
                     <form method="POST" id="decisionForm">
+                        <?php echo csrfField(); ?>
                         <!-- Numéro d'arrêté -->
                         <div class="mb-4">
                             <label for="numero_arrete" class="form-label">

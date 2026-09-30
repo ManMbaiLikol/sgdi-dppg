@@ -191,7 +191,8 @@ echo "</div>";
 echo "<div class='filters'>";
 echo "<h2>🎯 Sélectionnez le niveau de qualité à exporter</h2>";
 
-echo "<form method='POST' action=''>";
+exigerCSRF();
+echo "<form method='POST' action=''>" . csrfField();
 echo "<div style='margin: 20px 0;'>";
 
 echo "<label style='display: block; margin: 10px 0;'>";

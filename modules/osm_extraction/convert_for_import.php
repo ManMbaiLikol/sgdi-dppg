@@ -73,8 +73,9 @@ usort($csv_files, function($a, $b) {
 echo "<p><strong>" . count($csv_files) . " fichier(s) CSV disponible(s)</strong></p>";
 
 // Si aucun fichier sélectionné, afficher le formulaire de sélection
+exigerCSRF();
 if (!isset($_POST['csv_file'])) {
-    echo "<form method='POST'>";
+    echo "<form method='POST'>" . csrfField();
     echo "<div class='warning'>";
     echo "<h3>Sélectionnez le fichier CSV à convertir:</h3>";
 

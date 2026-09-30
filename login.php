@@ -9,6 +9,7 @@ if (isLoggedIn()) {
 
 // Traitement du formulaire
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    exigerCSRF(url('index.php'));
     $username = cleanInput($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
 

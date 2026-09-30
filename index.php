@@ -1,3 +1,15 @@
+<?php
+// Page d'accueil et de connexion - SGDI
+require_once 'includes/auth.php';
+
+// Déjà connecté : aller directement au tableau de bord
+if (isLoggedIn()) {
+    redirect(url('dashboard.php'));
+}
+
+// Message après une tentative de connexion (identifiants incorrects, formulaire expiré...)
+$flash = getFlashMessage();
+?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -261,7 +273,14 @@
                                     Connectez-vous pour accéder à votre espace de gestion des dossiers
                                 </p>
 
+                                <?php if ($flash): ?>
+                                <div class="alert alert-<?php echo $flash['type'] === 'error' ? 'danger' : sanitize($flash['type']); ?> py-2" role="alert">
+                                    <?php echo sanitize($flash['message']); ?>
+                                </div>
+                                <?php endif; ?>
+
                                 <form action="login.php" method="POST">
+                                    <?php echo csrfField(); ?>
                                     <div class="mb-3">
                                         <label class="form-label">Nom d'utilisateur</label>
                                         <div class="input-group">

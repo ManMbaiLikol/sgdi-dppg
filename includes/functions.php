@@ -225,7 +225,20 @@ function generateCSRFToken() {
 
 // Vérifier un token CSRF
 function verifyCSRFToken($token) {
-    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+    return isset($_SESSION['csrf_token']) && is_string($token) && hash_equals($_SESSION['csrf_token'], $token);
+}
+
+// Champ caché à placer dans chaque formulaire POST
+function csrfField() {
+    return '<input type="hidden" name="csrf_token" value="' . htmlspecialchars(generateCSRFToken()) . '">';
+}
+
+// À appeler en tête du traitement d'un formulaire POST : refuse la requête si le jeton est absent ou invalide
+function exigerCSRF($url_retour = null) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && !verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+        redirect($url_retour ?? ($_SERVER['REQUEST_URI'] ?? url('dashboard.php')),
+            'Le formulaire a expiré ou n\'est pas valide. Veuillez le soumettre à nouveau.', 'error');
+    }
 }
 
 // Rediriger avec message flash
