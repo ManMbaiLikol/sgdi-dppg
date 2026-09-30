@@ -112,8 +112,33 @@ function geolocMotsMarque($nom) {
     }));
 }
 
-// Même distributeur ? Marque reconnue : comparaison des marques ; sinon tous les mots distinctifs doivent apparaître
+/**
+ * Marques d'un même réseau, sous des noms différents : CORLAY exploite le réseau MRS, qui a repris
+ * les anciennes stations Texaco (OSM : « MRS CORLAY », « Texaco »…).
+ * groupe => mots (normalisés) qui le désignent
+ */
+function geolocReseauxEquivalents() {
+    return [
+        'corlay-mrs' => ['corlay', 'coray', 'mrs', 'texaco'],
+    ];
+}
+
+// Réseaux reconnus dans un texte (nom de dossier, ou nom, marque et opérateur d'une station OSM)
+function geolocReseaux($texte) {
+    $mots = explode(' ', geolocNormaliser($texte));
+    $reseaux = [];
+    foreach (geolocReseauxEquivalents() as $groupe => $cles) {
+        if (array_intersect($cles, $mots)) $reseaux[] = $groupe;
+    }
+    return $reseaux;
+}
+
+// Même distributeur ? Même réseau, sinon marque reconnue : comparaison des marques ; sinon tous les mots distinctifs doivent apparaître
 function geolocMemeMarque($nom_sgdi, $marque_sgdi, array $point_osm) {
+    $reseaux = geolocReseaux($nom_sgdi);
+    if ($reseaux && array_intersect($reseaux, geolocReseaux(($point_osm[8] ?? '') . ' ' . $point_osm[3] . ' ' . $point_osm[4]))) {
+        return true;
+    }
     if ($marque_sgdi !== 'Autre / indépendant') {
         return $marque_sgdi === $point_osm[4];
     }
