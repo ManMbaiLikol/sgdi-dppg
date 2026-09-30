@@ -27,10 +27,15 @@
     transform: rotate(-45deg) scale(1.15);
     box-shadow: 0 1px 1px rgba(15, 23, 42, .2), 0 6px 14px rgba(15, 23, 42, .28);
 }
+/* Chaque type a sa couleur, son pictogramme et sa forme : goutte (station), goutte carrée (point consommateur),
+   carré (dépôt GPL), goutte cerclée (centre emplisseur) */
 .pin-station_service { --c: var(--mk-station); }
-.pin-point_consommateur { --c: var(--mk-conso); }
-.pin-depot_gpl { --c: var(--mk-gpl); }
-.pin-centre_emplisseur { --c: var(--mk-emplisseur); }
+.pin-point_consommateur { --c: var(--mk-conso); border-radius: 32% 32% 32% 2px; }
+.pin-depot_gpl { --c: var(--mk-gpl); border-radius: 4px 4px 4px 2px; }
+.pin-centre_emplisseur {
+    --c: var(--mk-emplisseur);
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .55), 0 1px 1px rgba(15, 23, 42, .18), 0 3px 8px rgba(15, 23, 42, .22);
+}
 /* Emplacement projeté (outil de vérification) */
 .pin-projet { --c: var(--mk-alerte); }
 /* Position approximative : épingle claire à contour pointillé */

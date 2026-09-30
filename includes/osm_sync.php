@@ -50,6 +50,32 @@ function osmRegionDuPoint($lat, $lon) {
 }
 
 /**
+ * Département ou arrondissement contenant le point, '' si inconnu.
+ * Limites issues d'OpenStreetMap (database/outils/generer_limites_administratives.php).
+ * @param string $niveau 'departements' ou 'arrondissements'
+ */
+function osmLimiteDuPoint($lat, $lon, $niveau) {
+    static $limites = [];
+    if (!isset($limites[$niveau])) {
+        $limites[$niveau] = json_decode((string) @file_get_contents(__DIR__ . "/../assets/data/cameroun_$niveau.json"), true) ?: [];
+    }
+    foreach ($limites[$niveau] as $l) {
+        if ($lat < $l['bbox'][0] || $lat > $l['bbox'][2] || $lon < $l['bbox'][1] || $lon > $l['bbox'][3]) continue;
+        foreach ($l['anneaux'] as $ring) {
+            $dedans = false;
+            for ($i = 0, $j = count($ring) - 1; $i < count($ring); $j = $i++) {
+                if ((($ring[$i][0] > $lat) != ($ring[$j][0] > $lat))
+                    && ($lon < ($ring[$j][1] - $ring[$i][1]) * ($lat - $ring[$i][0]) / (($ring[$j][0] - $ring[$i][0]) ?: 1e-12) + $ring[$i][1])) {
+                    $dedans = !$dedans;
+                }
+            }
+            if ($dedans) return $l['nom'];
+        }
+    }
+    return '';
+}
+
+/**
  * Marque ou opérateur reconnu à partir des étiquettes OSM
  */
 function osmMarque(array $t) {
