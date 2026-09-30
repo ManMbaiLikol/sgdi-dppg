@@ -126,6 +126,7 @@ echo uiPageHeader(
     var TYPES = { station_service: 'Station-service', point_consommateur: 'Point consommateur', depot_gpl: 'Dépôt GPL', centre_emplisseur: 'Centre emplisseur' };
     var CAT_OSM = { station: 'Station-service', gpl: 'Point de vente GPL', depot: 'Dépôt pétrolier' };
     var DISTANCE_URBAINE = 500, DISTANCE_RURALE = 400; // distance minimale entre stations (contraintes_distance_functions.php)
+    var RAYON_FUSION = 30;                             // station OSM à moins de 30 m d'une station historique : même station, un seul marqueur
     var RAYON_CORRESPONDANCE = 200;                    // une station OSM à moins de 200 m d'un dossier SGDI est considérée comme connue
 
     function $(id) { return document.getElementById(id); }
@@ -179,6 +180,7 @@ echo uiPageHeader(
                 '<div class="text-muted-sgdi">' + esc([p[7], p[8]].filter(Boolean).join(', ')) + '</div>' +
                 '<div class="my-2"><span class="status-badge phase-' + s[1] + '">' + esc(s[0]) + '</span></div>' +
                 (p[11] ? '<div class="verdict phase-attention mb-2">Position approximative : centre de la localité, à préciser sur le terrain.</div>' : '') +
+                (m._fusion ? '<div class="small mb-2"><i class="fas fa-link"></i> Même station dans OpenStreetMap : <strong>' + esc(m._fusion[3] || 'sans nom') + '</strong> (' + esc(m._fusion[4]) + ')</div>' : '') +
                 '<div class="d-flex justify-content-between align-items-center gap-2"><span class="small text-muted-sgdi">' + esc(p[10]) + '</span>' +
                 '<a class="btn btn-sm btn-primary" href="' + URL_DOSSIER + p[0] + '">Ouvrir le dossier</a></div>';
         });
@@ -251,10 +253,17 @@ echo uiPageHeader(
                 D.osmMaj = json.osm.maj;
                 // Stations OSM sans dossier SGDI proche
                 var stationsSgdi = json.sgdi.filter(function (p) { return p[3] === 'station_service' && !p[11]; });
-                var absents = 0;
+                // Stations historiques calées sur OpenStreetMap : la station OSM et le dossier ne forment qu'un point
+                var historiques = D.sgdi.filter(function (m) { var p = m._sgdi; return p[3] === 'station_service' && !p[11] && p[12]; });
+                var absents = 0, fusions = 0;
                 D.osm = json.osm.points.map(function (p) {
                     var absent = false;
                     if (p[2] === 'station') {
+                        var h = historiques.filter(function (x) {
+                            var s = x._sgdi;
+                            return !x._fusion && Math.abs(s[1] - p[0]) < .0005 && Math.abs(s[2] - p[1]) < .0005 && carte.distance([s[1], s[2]], [p[0], p[1]]) < RAYON_FUSION;
+                        })[0];
+                        if (h) { h._fusion = p; fusions++; return null; }
                         absent = !stationsSgdi.some(function (s) {
                             return Math.abs(s[1] - p[0]) < .003 && Math.abs(s[2] - p[1]) < .003 && carte.distance([s[1], s[2]], [p[0], p[1]]) < RAYON_CORRESPONDANCE;
                         });
@@ -263,7 +272,8 @@ echo uiPageHeader(
                     var m = marqueurOsm(p, absent);
                     m._absent = absent;
                     return m;
-                });
+                }).filter(Boolean);
+                D.fusions = fusions;
                 $('nb-absents').textContent = nf(absents);
                 afficherCouverture(json.couverture);
                 $('nb-poi').textContent = '(' + nf(D.poi.length) + ')';
@@ -283,6 +293,7 @@ echo uiPageHeader(
         if (!cv || !cv.stations) { $('couverture').textContent = ''; return; }
         var taux = Math.round(cv.geolocalisees / cv.stations * 100);
         $('couverture').innerHTML = 'Couverture GPS du SGDI : <strong>' + nf(cv.geolocalisees) + ' / ' + nf(cv.stations) + ' stations (' + taux + ' %)</strong>.' +
+            (D.fusions ? ' ' + nf(D.fusions) + ' stations OpenStreetMap fusionnées avec leur dossier historique.' : '') +
             (taux < 80 ? ' Tant que les dossiers ne sont pas géolocalisés, la comparaison avec OpenStreetMap n\x27est pas significative.' : '') +
             (URL_GPS ? ' <a href="' + URL_GPS + '">Compléter les coordonnées</a>' : '');
     }

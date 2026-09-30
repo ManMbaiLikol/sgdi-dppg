@@ -6,7 +6,7 @@
  * POST action=synchroniser_osm (admin, chef de service) : resynchronise la référence OSM
  *
  * Format compact pour limiter le volume :
- *   sgdi : [id, lat, lon, type, nature, demandeur, opérateur, ville, région, statut, numéro, approximatif (0|1)]
+ *   sgdi : [id, lat, lon, type, nature, demandeur, opérateur, ville, région, statut, numéro, approximatif (0|1), historique (0|1)]
  *   poi  : [lat, lon, nom, catégorie, distance min (m), distance min rurale (m), couleur]
  *   osm  : voir includes/osm_sync.php
  */
@@ -62,7 +62,7 @@ foreach (getAllInfrastructuresForMap([]) as $i) {
         (string) ($i['operateur_proprietaire'] ?: $i['entreprise_beneficiaire']),
         (string) ($i['ville'] ?: $i['arrondissement']),
         osmRegionDuPoint($lat, $lon) ?: (string) $i['region'],
-        $i['statut'], $i['numero'], !empty($i['approximatif']) ? 1 : 0,
+        $i['statut'], $i['numero'], !empty($i['approximatif']) ? 1 : 0, !empty($i['est_historique']) ? 1 : 0,
     ];
 }
 
