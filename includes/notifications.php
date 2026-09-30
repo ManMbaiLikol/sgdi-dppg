@@ -62,11 +62,17 @@ function envoyerEmail($to, $subject, $body, $from_name = 'SGDI - MINEE/DPPG') {
 function creerNotification($user_id, $type, $titre, $message, $dossier_id = null, $lien = null) {
     global $pdo;
 
-    $sql = "INSERT INTO notifications (user_id, type, titre, message, dossier_id, lien, lu, date_creation)
-            VALUES (?, ?, ?, ?, ?, ?, 0, NOW())";
-
-    $stmt = $pdo->prepare($sql);
-    return $stmt->execute([$user_id, $type, $titre, $message, $dossier_id, $lien]);
+    // La table notifications n'a pas de colonne « lien » : le lien se déduit du dossier.
+    // Une notification qui échoue ne doit jamais faire échouer l'opération métier (visa, décision…).
+    try {
+        $sql = "INSERT INTO notifications (user_id, type, titre, message, dossier_id, lue, date_creation)
+                VALUES (?, ?, ?, ?, ?, 0, NOW())";
+        $stmt = $pdo->prepare($sql);
+        return $stmt->execute([$user_id, $type, $titre, $message, $dossier_id]);
+    } catch (Exception $e) {
+        error_log('Notification non créée : ' . $e->getMessage());
+        return false;
+    }
 }
 
 /**
@@ -132,7 +138,7 @@ function notifierVisa($dossier_id, $visa_role, $action) {
     } elseif ($visa_role === 'sous_directeur' && $action === 'approuve') {
         $prochain_role = 'directeur';
     } elseif ($visa_role === 'directeur' && $action === 'approuve') {
-        $prochain_role = 'ministre';
+        $prochain_role = 'cabinet';
     }
 
     if ($prochain_role) {
@@ -245,7 +251,8 @@ function getVisaPageForRole($role) {
         'chef_service' => 'modules/dossiers/viser_inspections.php',
         'sous_directeur' => 'modules/dossiers/viser_sous_directeur.php',
         'directeur' => 'modules/dossiers/viser_directeur.php',
-        'ministre' => 'modules/dossiers/decision_ministre.php'
+        'ministre' => 'modules/dossiers/decision_ministre.php',
+        'cabinet' => 'modules/ministre/dashboard.php'
     ];
 
     return $pages[$role] ?? 'dashboard.php';

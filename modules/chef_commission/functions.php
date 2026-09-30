@@ -132,14 +132,13 @@ function approuverInspection($fiche_id, $chef_commission_id, $commentaires = '')
         $chef_service = $stmt->fetch();
 
         if ($chef_service) {
-            $sql = "INSERT INTO notifications (user_id, type, message, lien, date_creation)
-                    VALUES (?, 'validation_commission', ?, ?, NOW())";
+            $sql = "INSERT INTO notifications (user_id, type, titre, message, dossier_id, lue, date_creation)
+                    VALUES (?, 'validation_commission', 'Inspection approuvée', ?, ?, 0, NOW())";
             $stmt = $pdo->prepare($sql);
             $message = "Inspection approuvée pour le dossier N° " . $fiche['dossier_numero'];
-            $lien = "modules/dossiers/view.php?id=" . $fiche['dossier_id'];
 
             try {
-                $stmt->execute([$chef_service['id'], $message, $lien]);
+                $stmt->execute([$chef_service['id'], $message, $fiche['dossier_id']]);
             } catch (Exception $e) {
                 error_log("Notification non envoyée: " . $e->getMessage());
             }
@@ -220,14 +219,13 @@ function rejeterInspection($fiche_id, $chef_commission_id, $motif) {
 
         // 4. Notification inspecteur
         if ($fiche['valideur_id']) {
-            $sql = "INSERT INTO notifications (user_id, type, message, lien, date_creation)
-                    VALUES (?, 'inspection_rejetee', ?, ?, NOW())";
+            $sql = "INSERT INTO notifications (user_id, type, titre, message, dossier_id, lue, date_creation)
+                    VALUES (?, 'inspection_rejetee', 'Inspection rejetée', ?, ?, 0, NOW())";
             $stmt = $pdo->prepare($sql);
             $message = "Votre inspection a été rejetée : " . $motif;
-            $lien = "modules/fiche_inspection/edit.php?dossier_id=" . $fiche['dossier_id'];
 
             try {
-                $stmt->execute([$fiche['valideur_id'], $message, $lien]);
+                $stmt->execute([$fiche['valideur_id'], $message, $fiche['dossier_id']]);
             } catch (Exception $e) {
                 error_log("Notification non envoyée: " . $e->getMessage());
             }

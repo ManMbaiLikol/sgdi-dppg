@@ -213,7 +213,7 @@ function handleNotifications($method, $id, $api_key) {
             }
 
             if ($lu !== null) {
-                $where[] = 'lu = ?';
+                $where[] = 'lue = ?';
                 $params[] = $lu === 'true' ? 1 : 0;
             }
 

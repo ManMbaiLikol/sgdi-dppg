@@ -46,7 +46,7 @@ class StatisticsController {
             SELECT
                 (SELECT COUNT(*) FROM dossiers WHERE archive = 0) as total_dossiers,
                 (SELECT COUNT(*) FROM users WHERE actif = 1) as total_users,
-                (SELECT COUNT(*) FROM notifications WHERE lu = 0) as notifications_non_lues,
+                (SELECT COUNT(*) FROM notifications WHERE lue = 0) as notifications_non_lues,
                 (SELECT COUNT(*) FROM v_huitaines_actives WHERE jours_restants < 0) as huitaines_expirees
         ");
         $stats['global'] = $stmt->fetch(PDO::FETCH_ASSOC);

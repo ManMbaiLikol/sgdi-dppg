@@ -347,7 +347,7 @@ function collectApplicationMetrics() {
         $stmt = $conn->query("
             SELECT COUNT(*) as nb
             FROM notifications
-            WHERE lu = 0
+            WHERE lue = 0
         ");
         $notifs = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -513,7 +513,7 @@ function getMonitoringDashboard() {
         SELECT
             (SELECT COUNT(*) FROM dossiers WHERE archive = 0) as nb_dossiers_actifs,
             (SELECT COUNT(*) FROM users WHERE actif = 1) as nb_users_actifs,
-            (SELECT COUNT(*) FROM notifications WHERE lu = 0) as nb_notifications_non_lues,
+            (SELECT COUNT(*) FROM notifications WHERE lue = 0) as nb_notifications_non_lues,
             (SELECT COUNT(*) FROM v_huitaines_actives WHERE jours_restants < 0) as nb_huitaines_expirees
     ");
     $dashboard['stats'] = $stmt->fetch(PDO::FETCH_ASSOC);
