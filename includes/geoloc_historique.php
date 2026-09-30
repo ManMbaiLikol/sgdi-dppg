@@ -475,17 +475,16 @@ function geolocControlerCorrespondances() {
 }
 
 /**
- * Corrige les correspondances discordantes attribuées automatiquement : la position est retirée,
- * puis l'attribution automatique cherche une station libre de la même marque, à défaut le centre de la localité.
- * Les choix faits à la main dans l'écran de rapprochement ne sont pas modifiés.
+ * Corrige les correspondances discordantes : OpenStreetMap fait foi sur l'identité de la station.
+ * La position du dossier est retirée (la station reste affichée sous son nom OSM), puis l'attribution
+ * automatique cherche une station libre de la même marque, à défaut le centre de la localité.
+ * Les choix faits à la main dans l'écran de rapprochement sont corrigés de la même façon.
  * @return array ['controle' => liste, 'corriges' => n, 'attribution' => statistiques]
  */
 function geolocCorrigerDiscordances($user_id, $simulation = false) {
     global $pdo;
     $controle = geolocControlerCorrespondances();
-    $a_corriger = array_filter($controle, function ($r) {
-        return $r['verdict'] === 'discordant' && strpos($r['dossier']['source_gps'], 'OSM (choix parmi') !== 0;
-    });
+    $a_corriger = array_filter($controle, function ($r) { return $r['verdict'] === 'discordant'; });
     if ($simulation) return ['controle' => $controle, 'corriges' => count($a_corriger), 'attribution' => null];
 
     $pdo->beginTransaction();
@@ -495,7 +494,7 @@ function geolocCorrigerDiscordances($user_id, $simulation = false) {
         foreach ($a_corriger as $r) {
             $stmt->execute([$r['dossier']['id']]);
             addHistoriqueDossier($r['dossier']['id'], $user_id, 'modification_gps',
-                'Position retirée : la station OpenStreetMap attribuée automatiquement (' . ($r['point'][3] ?: 'sans nom') . ', ' . $r['point'][4]
+                'Position retirée : la station OpenStreetMap à cet emplacement (' . ($r['point'][3] ?: 'sans nom') . ', ' . $r['point'][4]
                 . ') ne correspond pas au nom du dossier');
         }
         $pdo->commit();

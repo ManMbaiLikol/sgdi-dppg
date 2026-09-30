@@ -8,8 +8,9 @@
  *   - discordant  : OSM affiche un autre nom ou une autre marque (ex. dossier SOPROPEC sur une station TotalEnergies) ;
  *   - indéterminé : la station OSM n'a ni nom ni marque ;
  *   - introuvable : plus de station OSM à cette position.
- * Correction des discordances attribuées automatiquement : position retirée puis nouvelle attribution
- * (station libre de la même marque, sinon centre de la localité). Les choix faits à la main sont seulement signalés.
+ * Correction des discordances, OpenStreetMap faisant foi sur l'identité de la station : position du dossier
+ * retirée (la station reste affichée sous son nom OSM), puis nouvelle attribution (station libre de la même
+ * marque, sinon centre de la localité). Les choix faits à la main sont corrigés de la même façon.
  *
  * Usage : php database/migrations/2026_09_30_controle_correspondances_osm.php [--dry-run] [--liste]
  *   --liste : détail de chaque discordance
@@ -43,8 +44,8 @@ $manuels = array_filter($r['controle'], function ($c) { return $c['verdict'] ===
 printf("  Dossiers placés sur une station OSM          : %d\n", count($r['controle']));
 printf("  Nom concordant avec OSM                      : %d\n", $par_verdict['concordant']);
 printf("  Nom discordant (autre nom ou marque dans OSM): %d\n", $par_verdict['discordant']);
-printf("    dont attribués automatiquement, corrigés   : %d\n", $r['corriges']);
-printf("    dont choisis à la main, à revoir           : %d\n", count($manuels));
+printf("    positions retirées (OSM fait foi)          : %d\n", $r['corriges']);
+printf("    dont choix faits à la main                 : %d\n", count($manuels));
 printf("  Station OSM sans nom ni marque (indéterminé) : %d\n", $par_verdict['indetermine']);
 printf("  Plus de station OSM à cette position         : %d\n", $par_verdict['introuvable']);
 
