@@ -408,17 +408,24 @@ function getDossierById($id) {
     return $stmt->fetch();
 }
 
-// Obtenir tous les dossiers avec filtres
-function getDossiers($filters = [], $limit = 20, $offset = 0) {
-    global $pdo;
-
+// Conditions SQL communes à getDossiers() et countDossiers() : filtres de recherche
+// et restriction de visibilité selon le rôle.
+// Filtres acceptés : statut, statuts (liste), type_infrastructure, sous_type, region, search, user_role
+function construireFiltresDossiers($filters) {
     $where_conditions = [];
     $params = [];
 
-    // Filtres
     if (!empty($filters['statut'])) {
         $where_conditions[] = "d.statut = ?";
         $params[] = $filters['statut'];
+    }
+
+    // Plusieurs statuts à la fois (filtre par phase du workflow)
+    if (!empty($filters['statuts']) && is_array($filters['statuts'])) {
+        $where_conditions[] = "d.statut IN (" . implode(', ', array_fill(0, count($filters['statuts']), '?')) . ")";
+        foreach ($filters['statuts'] as $s) {
+            $params[] = $s;
+        }
     }
 
     if (!empty($filters['type_infrastructure'])) {
@@ -431,105 +438,72 @@ function getDossiers($filters = [], $limit = 20, $offset = 0) {
         $params[] = $filters['sous_type'];
     }
 
-    if (!empty($filters['search'])) {
-        $where_conditions[] = "(d.numero LIKE ? OR d.nom_demandeur LIKE ? OR d.contact_demandeur LIKE ? OR d.region LIKE ? OR d.arrondissement LIKE ? OR d.ville LIKE ? OR d.quartier LIKE ? OR d.lieu_dit LIKE ? OR d.operateur_proprietaire LIKE ? OR d.entreprise_beneficiaire LIKE ? OR d.entreprise_installatrice LIKE ? OR d.operateur_gaz LIKE ? OR d.entreprise_constructrice LIKE ?)";
-        $search = '%' . $filters['search'] . '%';
-        $params[] = $search; // numero
-        $params[] = $search; // nom_demandeur
-        $params[] = $search; // contact_demandeur
-        $params[] = $search; // region
-        $params[] = $search; // arrondissement
-        $params[] = $search; // ville
-        $params[] = $search; // quartier
-        $params[] = $search; // lieu_dit
-        $params[] = $search; // operateur_proprietaire
-        $params[] = $search; // entreprise_beneficiaire
-        $params[] = $search; // entreprise_installatrice
-        $params[] = $search; // operateur_gaz
-        $params[] = $search; // entreprise_constructrice
+    if (!empty($filters['region'])) {
+        $where_conditions[] = "d.region = ?";
+        $params[] = $filters['region'];
     }
 
-    // Permissions selon le rôle et les permissions granulaires
-    if (!empty($filters['user_role'])) {
-        // Si l'utilisateur a la permission dossiers.view_all, il voit tous les dossiers
-        if (hasPermission('dossiers.view_all')) {
-            // Pas de filtre, voir tous les dossiers
-        } else {
-            switch ($filters['user_role']) {
-                case 'chef_service':
-                case 'admin':
-                    // Voir tous les dossiers
-                    break;
+    if (!empty($filters['search'])) {
+        $colonnes = ['numero', 'nom_demandeur', 'contact_demandeur', 'region', 'arrondissement', 'ville', 'quartier', 'lieu_dit',
+                     'operateur_proprietaire', 'entreprise_beneficiaire', 'entreprise_installatrice', 'operateur_gaz', 'entreprise_constructrice'];
+        $where_conditions[] = '(' . implode(' OR ', array_map(function ($c) { return "d.$c LIKE ?"; }, $colonnes)) . ')';
+        foreach ($colonnes as $c) {
+            $params[] = '%' . $filters['search'] . '%';
+        }
+    }
 
-            case 'sous_directeur':
-                // Voir seulement les dossiers qu'il a visés
-                $where_conditions[] = "EXISTS (
-                    SELECT 1 FROM visas v
-                    WHERE v.dossier_id = d.id
-                    AND v.role = 'sous_directeur'
-                )";
+    // Visibilité selon le rôle (dossiers.view_all donne accès à tout)
+    if (!empty($filters['user_role']) && !hasPermission('dossiers.view_all')) {
+        switch ($filters['user_role']) {
+            case 'chef_service':
+            case 'admin':
                 break;
 
+            case 'sous_directeur':
             case 'directeur':
-                // Voir seulement les dossiers qu'il a visés
-                $where_conditions[] = "EXISTS (
-                    SELECT 1 FROM visas v
-                    WHERE v.dossier_id = d.id
-                    AND v.role = 'directeur'
-                )";
+                // Seulement les dossiers qu'il a visés
+                $where_conditions[] = "EXISTS (SELECT 1 FROM visas v WHERE v.dossier_id = d.id AND v.role = ?)";
+                $params[] = $filters['user_role'];
                 break;
 
             case 'cabinet':
-                // Voir seulement les dossiers qui ont une décision OU qui sont en attente de décision (Cabinet du Ministre)
-                $where_conditions[] = "(d.statut IN ('visa_directeur', 'decide', 'autorise', 'rejete'))";
+                // Dossiers en attente de décision ou décidés
+                $where_conditions[] = "d.statut IN ('visa_directeur', 'decide', 'autorise', 'rejete')";
                 break;
 
             case 'cadre_dppg':
-                // Voir SEULEMENT les dossiers dont il est membre de la commission
-                // Règle stricte: accès uniquement aux membres de la commission (cadre_dppg, cadre_daj, chef_commission)
-                $where_conditions[] = "EXISTS (
-                    SELECT 1 FROM commissions c
-                    WHERE c.dossier_id = d.id
-                    AND (c.cadre_dppg_id = ? OR c.cadre_daj_id = ? OR c.chef_commission_id = ?)
-                )";
-                $params[] = $_SESSION['user_id'];
-                $params[] = $_SESSION['user_id'];
-                $params[] = $_SESSION['user_id'];
+                // Seulement les dossiers dont il est membre de la commission
+                $where_conditions[] = "EXISTS (SELECT 1 FROM commissions c WHERE c.dossier_id = d.id
+                                       AND (c.cadre_dppg_id = ? OR c.cadre_daj_id = ? OR c.chef_commission_id = ?))";
+                array_push($params, $_SESSION['user_id'], $_SESSION['user_id'], $_SESSION['user_id']);
                 break;
 
             case 'cadre_daj':
-                // Voir seulement les dossiers dont il est membre de la commission
-                $where_conditions[] = "EXISTS (
-                    SELECT 1 FROM commissions c
-                    WHERE c.dossier_id = d.id
-                    AND c.cadre_daj_id = ?
-                )";
+                $where_conditions[] = "EXISTS (SELECT 1 FROM commissions c WHERE c.dossier_id = d.id AND c.cadre_daj_id = ?)";
                 $params[] = $_SESSION['user_id'];
                 $where_conditions[] = "d.statut IN ('paye', 'en_cours', 'inspecte', 'valide', 'decide', 'autorise')";
                 break;
 
             case 'chef_commission':
-                // Voir seulement les dossiers dont il est chef de commission
-                $where_conditions[] = "EXISTS (
-                    SELECT 1 FROM commissions c
-                    WHERE c.dossier_id = d.id
-                    AND c.chef_commission_id = ?
-                )";
+                $where_conditions[] = "EXISTS (SELECT 1 FROM commissions c WHERE c.dossier_id = d.id AND c.chef_commission_id = ?)";
                 $params[] = $_SESSION['user_id'];
                 break;
 
-                case 'billeteur':
-                    // Voir les dossiers en cours (pour paiement)
-                    $where_conditions[] = "d.statut = 'en_cours'";
-                    break;
-            }
+            case 'billeteur':
+                // Dossiers en cours (pour paiement)
+                $where_conditions[] = "d.statut = 'en_cours'";
+                break;
         }
     }
 
-    $where_sql = '';
-    if (!empty($where_conditions)) {
-        $where_sql = 'WHERE ' . implode(' AND ', $where_conditions);
-    }
+    return [$where_conditions ? 'WHERE ' . implode(' AND ', $where_conditions) : '', $params];
+}
+
+// Obtenir tous les dossiers avec filtres
+function getDossiers($filters = [], $limit = 20, $offset = 0) {
+    global $pdo;
+
+    list($where_sql, $params) = construireFiltresDossiers($filters);
 
     $sql = "SELECT d.*, u.nom as createur_nom, u.prenom as createur_prenom
             FROM dossiers d
@@ -550,126 +524,23 @@ function getDossiers($filters = [], $limit = 20, $offset = 0) {
 function countDossiers($filters = []) {
     global $pdo;
 
-    $where_conditions = [];
-    $params = [];
+    list($where_sql, $params) = construireFiltresDossiers($filters);
 
-    // Même logique de filtres que getDossiers
-    if (!empty($filters['statut'])) {
-        $where_conditions[] = "d.statut = ?";
-        $params[] = $filters['statut'];
-    }
-
-    if (!empty($filters['type_infrastructure'])) {
-        $where_conditions[] = "d.type_infrastructure = ?";
-        $params[] = $filters['type_infrastructure'];
-    }
-
-    if (!empty($filters['sous_type'])) {
-        $where_conditions[] = "d.sous_type = ?";
-        $params[] = $filters['sous_type'];
-    }
-
-    if (!empty($filters['search'])) {
-        $where_conditions[] = "(d.numero LIKE ? OR d.nom_demandeur LIKE ? OR d.contact_demandeur LIKE ? OR d.region LIKE ? OR d.arrondissement LIKE ? OR d.ville LIKE ? OR d.quartier LIKE ? OR d.lieu_dit LIKE ? OR d.operateur_proprietaire LIKE ? OR d.entreprise_beneficiaire LIKE ? OR d.entreprise_installatrice LIKE ? OR d.operateur_gaz LIKE ? OR d.entreprise_constructrice LIKE ?)";
-        $search = '%' . $filters['search'] . '%';
-        $params[] = $search; // numero
-        $params[] = $search; // nom_demandeur
-        $params[] = $search; // contact_demandeur
-        $params[] = $search; // region
-        $params[] = $search; // arrondissement
-        $params[] = $search; // ville
-        $params[] = $search; // quartier
-        $params[] = $search; // lieu_dit
-        $params[] = $search; // operateur_proprietaire
-        $params[] = $search; // entreprise_beneficiaire
-        $params[] = $search; // entreprise_installatrice
-        $params[] = $search; // operateur_gaz
-        $params[] = $search; // entreprise_constructrice
-    }
-
-    // Permissions selon le rôle et les permissions granulaires
-    if (!empty($filters['user_role'])) {
-        // Si l'utilisateur a la permission dossiers.view_all, il voit tous les dossiers
-        if (hasPermission('dossiers.view_all')) {
-            // Pas de filtre, compter tous les dossiers
-        } else {
-            switch ($filters['user_role']) {
-                case 'chef_service':
-                case 'admin':
-                    // Voir tous les dossiers
-                    break;
-
-                case 'cadre_dppg':
-                // Voir SEULEMENT les dossiers dont il est membre de la commission
-                // Règle stricte: accès uniquement aux membres de la commission (cadre_dppg, cadre_daj, chef_commission)
-                $where_conditions[] = "EXISTS (
-                    SELECT 1 FROM commissions c
-                    WHERE c.dossier_id = d.id
-                    AND (c.cadre_dppg_id = ? OR c.cadre_daj_id = ? OR c.chef_commission_id = ?)
-                )";
-                $params[] = $_SESSION['user_id'];
-                $params[] = $_SESSION['user_id'];
-                $params[] = $_SESSION['user_id'];
-                break;
-
-            case 'cadre_daj':
-                // Voir seulement les dossiers dont il est membre de la commission
-                $where_conditions[] = "EXISTS (
-                    SELECT 1 FROM commissions c
-                    WHERE c.dossier_id = d.id
-                    AND c.cadre_daj_id = ?
-                )";
-                $params[] = $_SESSION['user_id'];
-                $where_conditions[] = "d.statut IN ('paye', 'en_cours', 'inspecte', 'valide', 'decide', 'autorise')";
-                break;
-
-            case 'chef_commission':
-                // Voir seulement les dossiers dont il est chef de commission
-                $where_conditions[] = "EXISTS (
-                    SELECT 1 FROM commissions c
-                    WHERE c.dossier_id = d.id
-                    AND c.chef_commission_id = ?
-                )";
-                $params[] = $_SESSION['user_id'];
-                break;
-
-                case 'billeteur':
-                    $where_conditions[] = "d.statut = 'en_cours'";
-                    break;
-
-                case 'sous_directeur':
-                    $where_conditions[] = "EXISTS (
-                        SELECT 1 FROM visas v
-                        WHERE v.dossier_id = d.id
-                        AND v.role = 'sous_directeur'
-                    )";
-                    break;
-
-                case 'directeur':
-                    $where_conditions[] = "EXISTS (
-                        SELECT 1 FROM visas v
-                        WHERE v.dossier_id = d.id
-                        AND v.role = 'directeur'
-                    )";
-                    break;
-
-                case 'cabinet':
-                    $where_conditions[] = "(d.statut IN ('visa_directeur', 'decide', 'autorise', 'rejete'))";
-                    break;
-            }
-        }
-    }
-
-    $where_sql = '';
-    if (!empty($where_conditions)) {
-        $where_sql = 'WHERE ' . implode(' AND ', $where_conditions);
-    }
-
-    $sql = "SELECT COUNT(*) FROM dossiers d $where_sql";
-
-    $stmt = $pdo->prepare($sql);
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM dossiers d $where_sql");
     $stmt->execute($params);
     return $stmt->fetchColumn();
+}
+
+// Nombre de dossiers par statut pour les mêmes filtres (compteurs des filtres par phase)
+function countDossiersParStatut($filters = []) {
+    global $pdo;
+
+    unset($filters['statut'], $filters['statuts']);
+    list($where_sql, $params) = construireFiltresDossiers($filters);
+
+    $stmt = $pdo->prepare("SELECT d.statut, COUNT(*) FROM dossiers d $where_sql GROUP BY d.statut");
+    $stmt->execute($params);
+    return $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 }
 
 // Changer le statut d'un dossier

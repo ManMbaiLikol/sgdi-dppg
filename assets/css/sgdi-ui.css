@@ -520,6 +520,54 @@ a.kpi-link:hover .card { border-color: var(--bs-primary-border-subtle); box-shad
 .map-live { width: .5rem; height: .5rem; border-radius: 50%; background: var(--sgdi-phase-succes); box-shadow: 0 0 0 0 var(--sgdi-phase-succes); animation: map-pulse 2s infinite; }
 @keyframes map-pulse { 70% { box-shadow: 0 0 0 .5rem transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
 
+/* Couleurs des couches */
+:root, [data-bs-theme="light"] {
+    --layer-station: #1f74e0; --layer-conso: #11998e; --layer-gpl: #f39c12; --layer-emplisseur: #764ba2;
+    --layer-osm: #64748b; --layer-alerte: #e74c3c;
+}
+[data-bs-theme="dark"] {
+    --layer-station: #5b9cf5; --layer-conso: #2cc7b8; --layer-gpl: #f5b041; --layer-emplisseur: #a58be0;
+    --layer-osm: #94a3b8; --layer-alerte: #f06a5d;
+}
+.map-canvas.leaflet-container { font: inherit; }
+/* Fond de plan assombri en mode sombre */
+[data-bs-theme="dark"] .map-canvas .leaflet-tile-pane { filter: brightness(.62) invert(1) contrast(2.6) hue-rotate(200deg) saturate(.35) brightness(.72); }
+.mk { display: block; width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .35); background: var(--c); }
+.mk-station_service { --c: var(--layer-station); }
+.mk-point_consommateur { --c: var(--layer-conso); }
+.mk-depot_gpl { --c: var(--layer-gpl); border-radius: 3px; }
+.mk-centre_emplisseur { --c: var(--layer-emplisseur); border-radius: 3px; }
+/* Référence OpenStreetMap : anneau (pas un point plein) pour la distinguer des dossiers SGDI */
+.mk-osm { width: 12px; height: 12px; background: #fff; border: 3px solid var(--c); }
+.mk-osm.mk-station { --c: var(--layer-osm); }
+.mk-osm.mk-gpl { --c: var(--layer-gpl); }
+.mk-osm.mk-depot { --c: var(--layer-emplisseur); border-radius: 3px; }
+.mk-osm.is-absent { --c: var(--layer-alerte); box-shadow: 0 0 0 4px color-mix(in srgb, var(--layer-alerte) 30%, transparent); }
+.mk-poi { --c: var(--poi-couleur, #e74c3c); width: 12px; height: 12px; transform: rotate(45deg); border-radius: 2px; }
+.mk-cluster {
+    display: grid; place-items: center; border-radius: 50%; color: #fff; font-weight: 700; font-size: .75rem;
+    background: var(--sgdi-gradient);
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--sgdi-indigo) 30%, transparent), 0 2px 6px rgba(0, 0, 0, .3);
+}
+.map-canvas .leaflet-popup-content-wrapper, .map-canvas .leaflet-popup-tip { background: var(--sgdi-surface); color: var(--sgdi-text); }
+.map-canvas .leaflet-popup-content { margin: .8rem 1rem; font-size: .85rem; line-height: 1.45; min-width: 14rem; }
+.map-canvas .leaflet-popup-content h3 { font-size: .95rem; font-weight: 600; margin: 0 0 .3rem; }
+/* leaflet.css colore tous les liens de la carte : rétablir le texte des boutons */
+.map-canvas .leaflet-popup-content a.btn-primary { color: var(--bs-btn-color, #fff); }
+.map-canvas .leaflet-bar a, .map-canvas .leaflet-bar a:hover { background: var(--sgdi-surface); color: var(--sgdi-text); border-color: var(--sgdi-border); }
+.map-canvas .leaflet-control-attribution { font-size: .68rem; background: color-mix(in srgb, var(--sgdi-surface) 85%, transparent); color: var(--sgdi-muted); }
+.zone-urbaine { fill: var(--sgdi-phase-danger); fill-opacity: .08; stroke: var(--sgdi-phase-danger); stroke-width: 2; }
+.zone-rurale { fill: none; stroke: var(--sgdi-phase-attention); stroke-width: 1.5; stroke-dasharray: 5 5; }
+.zone-contrainte { fill: var(--sgdi-phase-danger); fill-opacity: .05; stroke: var(--sgdi-phase-danger); stroke-width: 1; stroke-opacity: .5; }
+.trace-mesure { stroke: var(--sgdi-indigo); stroke-width: 3; stroke-dasharray: 6 6; fill: none; }
+.map-mode-clic .leaflet-container { cursor: crosshair; }
+.verdict { border-radius: .6rem; padding: .75rem .9rem; font-size: .85rem; color: var(--phase-text); background: var(--phase-bg); }
+.verdict ul { margin: .4rem 0 0; padding-left: 1.1rem; color: var(--sgdi-text); }
+.layer-group-title { font-size: .7rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--sgdi-muted); margin: .9rem 0 .4rem; }
+.layer-group-title:first-of-type { margin-top: 0; }
+.spin { animation: sgdi-spin 1s linear infinite; }
+@keyframes sgdi-spin { to { transform: rotate(360deg); } }
+
 .app-footer {
     display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem;
     margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--sgdi-border);
@@ -565,6 +613,14 @@ body.sgdi.sgdi a:is(.app-user, .shortcut, .chip:not(.active)):hover { color: var
 body.sgdi.sgdi a.cell-main:hover, body.sgdi.sgdi a.card-link-more { color: var(--sgdi-primary); }
 body.sgdi.sgdi a:is(.task-item, .kpi-link), body.sgdi.sgdi a:is(.task-item, .kpi-link):hover { color: inherit; }
 body.sgdi a.app-nav-link, body.sgdi a.app-user, body.sgdi a.app-brand { display: flex; }
+
+body.sgdi.sgdi a.chip.active, body.sgdi.sgdi a.chip.active:hover { color: #fff; }
+[data-bs-theme="dark"] body.sgdi.sgdi a.chip.active { color: #06202c; }
+
+/* style.css encadre le fil d'Ariane, buttons.css agrandit les boutons, les selects perdent leur marge de flèche */
+.sgdi .page-header .breadcrumb { background: none; padding: 0; border-radius: 0; }
+.sgdi .table-sgdi .btn { font-size: .8rem; padding: .25rem .65rem; min-height: 2rem; min-width: 0; }
+.sgdi .form-select { padding-right: 2.25rem; }
 
 /* dark-mode.css force .btn-light en vert : rétablir le bouton blanc du bandeau */
 .sgdi .hero-welcome .btn-light { background: #fff !important; border-color: #fff !important; color: #4b3a8c !important; }

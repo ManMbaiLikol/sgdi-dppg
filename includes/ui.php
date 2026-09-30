@@ -34,6 +34,30 @@ function uiPhases() {
  * @return array ['label', 'phase', 'etape' (1..11), 'icon']
  */
 function uiStatut($statut) {
+    $statuts = uiTableStatuts();
+    if (!isset($statuts[$statut])) {
+        return ['label' => (string) $statut, 'phase' => 'preparation', 'etape' => 1, 'icon' => 'fa-circle-question'];
+    }
+
+    list($label, $phase, $etape, $icon) = $statuts[$statut];
+    return ['label' => $label, 'phase' => $phase, 'etape' => $etape, 'icon' => $icon];
+}
+
+/**
+ * Codes des statuts appartenant à une phase (filtre par phase)
+ */
+function uiStatutsDePhase($phase) {
+    $codes = [];
+    foreach (uiTableStatuts() as $code => $s) {
+        if ($s[1] === $phase) $codes[] = $code;
+    }
+    return $codes;
+}
+
+/**
+ * Table des statuts : code => [libellé, phase, étape du circuit, icône]
+ */
+function uiTableStatuts() {
     static $statuts = [
         'brouillon'             => ['Brouillon',                'preparation', 1,  'fa-file-pen'],
         'cree'                  => ['Créé',                     'preparation', 1,  'fa-file-circle-plus'],
@@ -55,13 +79,7 @@ function uiStatut($statut) {
         'suspendu'              => ['Suspendu',                 'attention',   11, 'fa-circle-pause'],
         'historique_autorise'   => ['Autorisé (historique)',    'succes',      11, 'fa-clock-rotate-left'],
     ];
-
-    if (!isset($statuts[$statut])) {
-        return ['label' => (string) $statut, 'phase' => 'preparation', 'etape' => 1, 'icon' => 'fa-circle-question'];
-    }
-
-    list($label, $phase, $etape, $icon) = $statuts[$statut];
-    return ['label' => $label, 'phase' => $phase, 'etape' => $etape, 'icon' => $icon];
+    return $statuts;
 }
 
 /**

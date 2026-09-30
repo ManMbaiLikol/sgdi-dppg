@@ -1,1067 +1,451 @@
 <?php
-// Carte interactive des infrastructures - SGDI
+// Carte des infrastructures - SGDI
+// Les données sont chargées par modules/carte/donnees.php et rafraîchies sans recharger la page.
 require_once '../../includes/auth.php';
-require_once '../../includes/map_functions.php';
-require_once '../../includes/contraintes_distance_functions.php';
-require_once '../dossiers/functions.php';
+require_once '../../includes/ui.php';
 
 requireLogin();
+// Comme la carte d'origine : accessible à tout utilisateur connecté
 
 $page_title = 'Carte des infrastructures';
+$peut_synchroniser = hasAnyRole(['admin', 'chef_service']);
+$extra_head = '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">'
+            . '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">';
 
-// Filtres
-$filters = [
-    'type_infrastructure' => sanitize($_GET['type'] ?? ''),
-    'statut' => sanitize($_GET['statut'] ?? ''),
-    'region' => sanitize($_GET['region'] ?? '')
-];
-
-// Récupérer toutes les infrastructures avec coordonnées
-$infrastructures = getAllInfrastructuresForMap($filters);
-
-// Récupérer les POI (Points d'intérêt stratégiques)
-$pois = getAllPOIsForMap();
-
-// Récupérer les catégories de POI
-$categories = getCategoriesPOI();
-
-// Récupérer les régions pour le filtre
-$sql = "SELECT DISTINCT region FROM dossiers WHERE region IS NOT NULL AND region != '' ORDER BY region";
-$stmt = $pdo->query($sql);
-$regions = $stmt->fetchAll(PDO::FETCH_COLUMN);
+$actions = '<button class="btn btn-outline-secondary" type="button" id="btn-verifier"><i class="fas fa-location-crosshairs"></i> Vérifier un emplacement</button>'
+         . '<button class="btn btn-outline-secondary" type="button" id="btn-mesurer"><i class="fas fa-ruler"></i> Mesurer</button>'
+         . '<div class="btn-group">'
+         . '<button class="btn btn-primary" type="button" id="btn-actualiser"><i class="fas fa-rotate"></i> Actualiser</button>'
+         . ($peut_synchroniser
+            ? '<button class="btn btn-primary dropdown-toggle dropdown-toggle-split" type="button" data-bs-toggle="dropdown" aria-expanded="false"><span class="visually-hidden">Plus d\'options</span></button>'
+            . '<ul class="dropdown-menu dropdown-menu-end"><li><button class="dropdown-item" type="button" id="btn-sync-osm"><i class="fas fa-globe-africa me-2"></i>Synchroniser OpenStreetMap maintenant</button></li></ul>'
+            : '')
+         . '</div>';
 
 require_once '../../includes/header.php';
+
+echo uiPageHeader(
+    'Carte des infrastructures',
+    'Dossiers du SGDI et référence OpenStreetMap des points de distribution au Cameroun',
+    [['label' => 'Tableau de bord', 'url' => url('dashboard.php')], ['label' => 'Carte des infrastructures']],
+    $actions
+);
 ?>
 
-<style>
-#map {
-    height: 600px;
-    width: 100%;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
+<div class="map-layout">
+    <div class="map-panel">
+        <div class="card"><div class="card-body">
+            <h2 class="card-title-sm mb-2">Couches</h2>
 
-/* Style des tooltips au survol */
-.leaflet-tooltip {
-    background: rgba(0, 0, 0, 0.85) !important;
-    color: white !important;
-    border: none !important;
-    border-radius: 6px !important;
-    padding: 8px 12px !important;
-    font-size: 13px !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
-}
+            <div class="layer-group-title">Dossiers du SGDI</div>
+            <?php foreach (['station_service' => 'Stations-service', 'point_consommateur' => 'Points consommateurs', 'depot_gpl' => 'Dépôts GPL', 'centre_emplisseur' => 'Centres emplisseurs'] as $code => $libelle): ?>
+            <label class="layer-toggle" style="--layer-color: var(--layer-<?php echo ['station_service' => 'station', 'point_consommateur' => 'conso', 'depot_gpl' => 'gpl', 'centre_emplisseur' => 'emplisseur'][$code]; ?>)">
+                <input type="checkbox" data-couche="sgdi:<?php echo $code; ?>" checked>
+                <span class="layer-dot"<?php echo in_array($code, ['depot_gpl', 'centre_emplisseur'], true) ? ' style="border-radius: 3px"' : ''; ?>></span><?php echo $libelle; ?>
+                <span class="layer-count" data-compteur="sgdi:<?php echo $code; ?>">…</span>
+            </label>
+            <?php endforeach; ?>
 
-.leaflet-tooltip-top:before {
-    border-top-color: rgba(0, 0, 0, 0.85) !important;
-}
+            <div class="layer-group-title">Référence OpenStreetMap</div>
+            <label class="layer-toggle" style="--layer-color: var(--layer-osm)"><input type="checkbox" data-couche="osm:station" checked><span class="layer-dot"></span>Stations-service<span class="layer-count" data-compteur="osm:station">…</span></label>
+            <label class="layer-toggle" style="--layer-color: var(--layer-gpl)"><input type="checkbox" data-couche="osm:gpl" checked><span class="layer-dot"></span>Points de vente GPL<span class="layer-count" data-compteur="osm:gpl">…</span></label>
+            <label class="layer-toggle" style="--layer-color: var(--layer-emplisseur)"><input type="checkbox" data-couche="osm:depot" checked><span class="layer-dot" style="border-radius: 3px"></span>Dépôts pétroliers<span class="layer-count" data-compteur="osm:depot">…</span></label>
+            <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" role="switch" id="osm-absents">
+                <label class="form-check-label small" for="osm-absents">Seulement les stations sans dossier géolocalisé à proximité <span class="badge rounded-pill text-bg-danger" id="nb-absents">…</span></label>
+            </div>
+            <p class="small text-muted-sgdi mt-2 mb-0" id="couverture"></p>
 
-/* Style des popups */
-.leaflet-popup-content-wrapper {
-    border-radius: 8px !important;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.2) !important;
-}
+            <div class="layer-group-title">Contraintes</div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="l-poi">
+                <label class="form-check-label" for="l-poi">Points d'intérêt <span class="text-muted-sgdi small" id="nb-poi"></span></label>
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="l-zones">
+                <label class="form-check-label" for="l-zones">Zones de distance minimale</label>
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="l-densite">
+                <label class="form-check-label" for="l-densite">Carte de densité</label>
+            </div>
+        </div></div>
 
-.leaflet-popup-content {
-    margin: 15px !important;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-}
+        <div class="card"><div class="card-body d-flex flex-column gap-2">
+            <h2 class="card-title-sm">Filtres</h2>
+            <div class="app-search" style="max-width: none">
+                <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                <input id="f-recherche" class="form-control" type="search" placeholder="N°, demandeur, opérateur, ville…" aria-label="Rechercher sur la carte">
+            </div>
+            <select id="f-region" class="form-select" aria-label="Région"><option value="">Toutes les régions</option></select>
+            <select id="f-phase" class="form-select" aria-label="Phase du dossier">
+                <option value="">Tous les statuts (SGDI)</option>
+                <?php foreach (uiPhases() as $code => $p): ?>
+                <option value="<?php echo $code; ?>"><?php echo sanitize($p['label']); ?></option>
+                <?php endforeach; ?>
+            </select>
+            <select id="f-operateur" class="form-select" aria-label="Opérateur ou marque"><option value="">Tous les opérateurs</option></select>
+        </div></div>
 
-.custom-popup .leaflet-popup-content-wrapper {
-    background: #ffffff !important;
-}
+        <div class="card" id="carte-verif" hidden><div class="card-body">
+            <h2 class="card-title-sm mb-2">Vérification d'un emplacement</h2>
+            <p class="small text-muted-sgdi mb-2">Cliquez sur la carte ou saisissez des coordonnées.</p>
+            <form class="d-flex gap-2 mb-2" id="form-coord">
+                <input class="form-control form-control-sm" id="v-lat" inputmode="decimal" placeholder="Latitude (ex. 3.8667)" aria-label="Latitude">
+                <input class="form-control form-control-sm" id="v-lon" inputmode="decimal" placeholder="Longitude (ex. 11.5167)" aria-label="Longitude">
+                <button class="btn btn-sm btn-primary" type="submit" aria-label="Vérifier ces coordonnées"><i class="fas fa-check"></i></button>
+            </form>
+            <div id="v-resultat" aria-live="polite"></div>
+        </div></div>
 
-/* Animation des marqueurs */
-.custom-marker {
-    animation: markerBounce 0.5s ease-out;
-}
-
-@keyframes markerBounce {
-    0% { transform: translateY(-20px); opacity: 0; }
-    50% { transform: translateY(5px); }
-    100% { transform: translateY(0); opacity: 1; }
-}
-
-/* Style de l'échelle métrique */
-.leaflet-control-scale {
-    background: rgba(255, 255, 255, 0.95) !important;
-    border: 2px solid #3498db !important;
-    border-radius: 6px !important;
-    padding: 8px 12px !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
-    font-weight: bold !important;
-    font-size: 13px !important;
-}
-
-.leaflet-control-scale-line {
-    border: 2px solid #3498db !important;
-    border-top: none !important;
-    color: #2c3e50 !important;
-    font-weight: bold !important;
-    line-height: 1.5 !important;
-    padding: 4px 8px !important;
-    background: white !important;
-}
-
-.map-filters {
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    margin-bottom: 20px;
-}
-
-.legend {
-    background: white;
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.legend-item {
-    display: flex;
-    align-items: center;
-    margin-bottom: 8px;
-}
-
-.legend-marker {
-    width: 24px;
-    height: 24px;
-    margin-right: 10px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    color: white;
-}
-
-.stats-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 20px;
-    border-radius: 8px;
-    text-align: center;
-}
-</style>
-
-<!-- Leaflet CSS -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-<!-- Mobile Responsive pour cartes -->
-<link rel="stylesheet" href="../../assets/css/map-mobile-responsive.css">
-
-<div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col">
-            <h1 class="h3">
-                <i class="fas fa-map-marked-alt"></i> Carte des infrastructures pétrolières
-            </h1>
-            <p class="text-muted">Visualisation géographique des infrastructures du Cameroun</p>
-        </div>
-        <div class="col-auto">
-            <?php if ($_SESSION['user_role'] === 'admin'): ?>
-            <a href="<?php echo url('modules/poi/index.php'); ?>" class="btn btn-outline-primary">
-                <i class="fas fa-map-pin"></i> Gérer les POI
-            </a>
-            <?php endif; ?>
-            <button class="btn btn-outline-info" id="togglePOI">
-                <i class="fas fa-landmark"></i> Afficher les POI (<?php echo count($pois); ?>)
-            </button>
-            <button class="btn btn-outline-warning" id="toggleZones">
-                <i class="fas fa-circle-notch"></i> Afficher les zones de contrainte
-            </button>
-            <button class="btn btn-outline-primary" id="btnMeasure">
-                <i class="fas fa-ruler"></i> Mesurer une distance
-            </button>
-        </div>
+        <div class="card"><div class="card-body">
+            <h2 class="card-title-sm mb-3">Par région</h2>
+            <ul class="region-bars" id="par-region"></ul>
+        </div></div>
     </div>
 
-    <!-- Statistiques rapides -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="stats-card">
-                <h2 class="mb-0"><?php echo count($infrastructures); ?></h2>
-                <small>Infrastructures géolocalisées</small>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stats-card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
-                <h2 class="mb-0">
-                    <?php echo count(array_filter($infrastructures, fn($i) => $i['statut'] === 'autorise')); ?>
-                </h2>
-                <small>Autorisées</small>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stats-card" style="background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);">
-                <h2 class="mb-0">
-                    <?php echo count(array_filter($infrastructures, fn($i) => $i['type_infrastructure'] === 'station_service')); ?>
-                </h2>
-                <small>Stations-service</small>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-                <h2 class="mb-0">
-                    <?php echo count(array_filter($infrastructures, fn($i) => $i['type_infrastructure'] === 'depot_gpl')); ?>
-                </h2>
-                <small>Dépôts GPL</small>
-            </div>
-        </div>
-    </div>
-
-    <!-- Filtres -->
-    <div class="map-filters">
-        <form method="GET" class="row g-3">
-            <div class="col-md-3">
-                <label class="form-label">Type d'infrastructure</label>
-                <select class="form-select" name="type" onchange="this.form.submit()">
-                    <option value="">Tous les types</option>
-                    <option value="station_service" <?php echo $filters['type_infrastructure'] === 'station_service' ? 'selected' : ''; ?>>
-                        Stations-service
-                    </option>
-                    <option value="point_consommateur" <?php echo $filters['type_infrastructure'] === 'point_consommateur' ? 'selected' : ''; ?>>
-                        Points consommateurs
-                    </option>
-                    <option value="depot_gpl" <?php echo $filters['type_infrastructure'] === 'depot_gpl' ? 'selected' : ''; ?>>
-                        Dépôts GPL
-                    </option>
-                    <option value="centre_emplisseur" <?php echo $filters['type_infrastructure'] === 'centre_emplisseur' ? 'selected' : ''; ?>>
-                        Centres emplisseurs
-                    </option>
-                </select>
-            </div>
-
-            <div class="col-md-3">
-                <label class="form-label">Statut</label>
-                <select class="form-select" name="statut" onchange="this.form.submit()">
-                    <option value="">Tous les statuts</option>
-                    <option value="autorise" <?php echo $filters['statut'] === 'autorise' ? 'selected' : ''; ?>>Autorisé</option>
-                    <option value="decide" <?php echo $filters['statut'] === 'decide' ? 'selected' : ''; ?>>Décidé</option>
-                    <option value="valide" <?php echo $filters['statut'] === 'valide' ? 'selected' : ''; ?>>Validé</option>
-                    <option value="inspecte" <?php echo $filters['statut'] === 'inspecte' ? 'selected' : ''; ?>>Inspecté</option>
-                </select>
-            </div>
-
-            <div class="col-md-3">
-                <label class="form-label">Région</label>
-                <select class="form-select" name="region" onchange="this.form.submit()">
-                    <option value="">Toutes les régions</option>
-                    <?php foreach ($regions as $region): ?>
-                    <option value="<?php echo htmlspecialchars($region); ?>" <?php echo $filters['region'] === $region ? 'selected' : ''; ?>>
-                        <?php echo htmlspecialchars($region); ?>
-                    </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <div class="col-md-3 d-flex align-items-end">
-                <?php if (array_filter($filters)): ?>
-                <a href="?" class="btn btn-outline-secondary">
-                    <i class="fas fa-times"></i> Réinitialiser
-                </a>
-                <?php endif; ?>
-            </div>
-        </form>
-    </div>
-
-    <!-- Panneau de vérification GPS -->
-    <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0"><i class="fas fa-map-marker-alt"></i> Vérification GPS - Zone de Contrainte 500m</h5>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <label class="form-label">Latitude</label>
-                    <input type="text" class="form-control" id="test_latitude" placeholder="Ex: 3.8667">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Longitude</label>
-                    <input type="text" class="form-control" id="test_longitude" placeholder="Ex: 11.5167">
-                </div>
-            </div>
-            <div class="mt-3">
-                <button class="btn btn-primary" id="btnTestGPS">
-                    <i class="fas fa-map-pin"></i> Placer sur la carte et vérifier
-                </button>
-                <button class="btn btn-outline-secondary" id="btnClearTest">
-                    <i class="fas fa-times"></i> Effacer
-                </button>
-            </div>
-            <div id="testResult" class="mt-3" style="display: none;"></div>
-        </div>
-    </div>
-
-    <div class="row">
-        <div class="col-md-9">
-            <!-- Carte -->
-            <div id="map"></div>
-        </div>
-
-        <div class="col-md-3">
-            <!-- Légende -->
-            <div class="legend">
-                <h6 class="mb-3"><i class="fas fa-list"></i> Légende</h6>
-
-                <strong class="d-block mb-2">Types d'infrastructure:</strong>
-                <div class="legend-item">
-                    <div class="legend-marker" style="background: #ff6b6b;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-                            <path d="M18,10a1,1,0,0,0-1,1v3a1,1,0,0,1-1,1,1,1,0,0,1-1-1V6a2,2,0,0,0-2-2H6A2,2,0,0,0,4,6v9a2,2,0,0,0,2,2v4h2V17h4v4h2V17a2,2,0,0,0,2-2V13h1a3,3,0,0,0,3-3V11A1,1,0,0,0,18,10ZM12,10H6V6h6Z"/>
-                        </svg>
-                    </div>
-                    <span>Station-service</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-marker" style="background: #4ecdc4;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-                            <path d="M17,10h3v11h-3ZM13,2h-2L8.5,7l-3-4L4,5v14h5V9h4V19h4Z"/>
-                        </svg>
-                    </div>
-                    <span>Point consommateur</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-marker" style="background: #f7b731;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-                            <path d="M18,15H16V17H8V15H6v5h12ZM20,3H4A2,2,0,0,0,2,5V15a2,2,0,0,0,2,2h4V14h8v3h4a2,2,0,0,0,2-2V5A2,2,0,0,0,20,3ZM10,10H8V5h2Zm6,0H14V5h2Z"/>
-                        </svg>
-                    </div>
-                    <span>Dépôt GPL</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-marker" style="background: #5f27cd;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-                            <path d="M16,6V4a2,2,0,0,0-2-2H10A2,2,0,0,0,8,4V6a2,2,0,0,0-2,2V20a2,2,0,0,0,2,2h8a2,2,0,0,0,2-2V8A2,2,0,0,0,16,6ZM10,4h4V6H10Zm0,14V10h4v8Z"/>
-                        </svg>
-                    </div>
-                    <span>Centre emplisseur</span>
-                </div>
-
-                <hr class="my-3">
-
-                <strong class="d-block mb-2">Statuts:</strong>
-                <div class="legend-item">
-                    <div style="width: 12px; height: 12px; background: #28a745; border-radius: 50%; margin-right: 10px;"></div>
-                    <span>Autorisé</span>
-                </div>
-                <div class="legend-item">
-                    <div style="width: 12px; height: 12px; background: #007bff; border-radius: 50%; margin-right: 10px;"></div>
-                    <span>Décidé</span>
-                </div>
-                <div class="legend-item">
-                    <div style="width: 12px; height: 12px; background: #ffc107; border-radius: 50%; margin-right: 10px;"></div>
-                    <span>En cours</span>
-                </div>
-            </div>
-
-            <!-- Liste des infrastructures -->
-            <div class="legend mt-3">
-                <h6 class="mb-3"><i class="fas fa-th-list"></i> Liste (<?php echo count($infrastructures); ?>)</h6>
-                <div style="max-height: 400px; overflow-y: auto;">
-                    <?php foreach ($infrastructures as $infra): ?>
-                    <div class="border-bottom pb-2 mb-2">
-                        <small class="text-muted"><?php echo sanitize($infra['numero']); ?></small>
-                        <br>
-                        <strong><?php echo sanitize($infra['nom_demandeur']); ?></strong>
-                        <br>
-                        <small>
-                            <i class="fas fa-map-marker-alt"></i> <?php echo sanitize($infra['ville']); ?>
-                        </small>
-                        <br>
-                        <span class="badge bg-<?php echo getStatutClass($infra['statut']); ?> badge-sm">
-                            <?php echo getStatutLabel($infra['statut']); ?>
-                        </span>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        </div>
+    <div class="d-flex flex-column gap-2" style="min-width: 0">
+        <div id="map" class="map-canvas" role="region" aria-label="Carte des infrastructures"></div>
+        <div class="map-meta"><span class="map-live"></span><span id="carte-meta">Chargement des données…</span></div>
     </div>
 </div>
 
-<!-- Leaflet JS -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
 <script>
-// Initialiser la carte centrée sur le Cameroun
-const map = L.map('map').setView([7.3697, 12.3547], 6);
+(function () {
+    'use strict';
+    var URL_DONNEES = <?php echo json_encode(url('modules/carte/donnees.php')); ?>;
+    var URL_REGIONS = <?php echo json_encode(asset('data/cameroun_regions.json')); ?>;
+    var URL_DOSSIER = <?php echo json_encode(url('modules/dossiers/view.php?id=')); ?>;
+    var CSRF = <?php echo json_encode(generateCSRFToken()); ?>;
+    var URL_GPS = <?php echo json_encode(hasAnyRole(['admin', 'chef_service']) ? url('modules/admin_gps/index.php') : ''); ?>;
+    var DOSSIER_CIBLE = <?php echo (int) ($_GET['dossier'] ?? 0); ?>;
+    var STATUTS = <?php echo json_encode(array_map(function ($s) { return [$s[0], $s[1]]; }, uiTableStatuts()), JSON_UNESCAPED_UNICODE); ?>;
+    var TYPES = { station_service: 'Station-service', point_consommateur: 'Point consommateur', depot_gpl: 'Dépôt GPL', centre_emplisseur: 'Centre emplisseur' };
+    var CAT_OSM = { station: 'Station-service', gpl: 'Point de vente GPL', depot: 'Dépôt pétrolier' };
+    var DISTANCE_URBAINE = 500, DISTANCE_RURALE = 400; // distance minimale entre stations (contraintes_distance_functions.php)
+    var RAYON_CORRESPONDANCE = 200;                    // une station OSM à moins de 200 m d'un dossier SGDI est considérée comme connue
 
-// Ajouter le fond de carte OpenStreetMap
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors',
-    maxZoom: 18
-}).addTo(map);
+    function $(id) { return document.getElementById(id); }
+    function esc(t) { var e = document.createElement('span'); e.textContent = t == null ? '' : String(t); return e.innerHTML; }
+    function nf(n) { return n.toLocaleString('fr-FR'); }
 
-// Créer un groupe de marqueurs avec clustering
-const markers = L.markerClusterGroup({
-    chunkedLoading: true,
-    spiderfyOnMaxZoom: true,
-    showCoverageOnHover: false
-});
+    var carte = L.map('map', { zoomSnap: .5, minZoom: 5, maxZoom: 19 }).setView([7.37, 12.35], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">contributeurs OpenStreetMap</a>'
+    }).addTo(carte);
+    L.control.scale({ imperial: false }).addTo(carte);
 
-// Données des infrastructures
-const infrastructures = <?php echo json_encode($infrastructures); ?>;
-
-// Définir les icônes personnalisées
-const iconColors = {
-    'station_service': '#ff6b6b',
-    'point_consommateur': '#4ecdc4',
-    'depot_gpl': '#f7b731',
-    'centre_emplisseur': '#5f27cd'
-};
-
-const iconNames = {
-    'station_service': 'gas-pump',
-    'point_consommateur': 'industry',
-    'depot_gpl': 'warehouse',
-    'centre_emplisseur': 'fire'
-};
-
-// Créer des icônes SVG réalistes selon le type d'infrastructure
-function createCustomIcon(type, color) {
-    let iconSvg = '';
-
-    switch(type) {
-        case 'station_service':
-            // Icône pompe à essence réaliste (style Google Maps)
-            iconSvg = `
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                    <path d="M18,10a1,1,0,0,0-1,1v3a1,1,0,0,1-1,1,1,1,0,0,1-1-1V6a2,2,0,0,0-2-2H6A2,2,0,0,0,4,6v9a2,2,0,0,0,2,2v4h2V17h4v4h2V17a2,2,0,0,0,2-2V13h1a3,3,0,0,0,3-3V11A1,1,0,0,0,18,10ZM12,10H6V6h6Z"/>
-                </svg>`;
-            break;
-        case 'point_consommateur':
-            // Icône usine/industrie
-            iconSvg = `
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                    <path d="M17,10h3v11h-3ZM13,2h-2L8.5,7l-3-4L4,5v14h5V9h4V19h4Z"/>
-                </svg>`;
-            break;
-        case 'depot_gpl':
-            // Icône réservoir/entrepôt
-            iconSvg = `
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                    <path d="M18,15H16V17H8V15H6v5h12ZM20,3H4A2,2,0,0,0,2,5V15a2,2,0,0,0,2,2h4V14h8v3h4a2,2,0,0,0,2-2V5A2,2,0,0,0,20,3ZM10,10H8V5h2Zm6,0H14V5h2Z"/>
-                </svg>`;
-            break;
-        case 'centre_emplisseur':
-            // Icône bouteille de gaz
-            iconSvg = `
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                    <path d="M16,6V4a2,2,0,0,0-2-2H10A2,2,0,0,0,8,4V6a2,2,0,0,0-2,2V20a2,2,0,0,0,2,2h8a2,2,0,0,0,2-2V8A2,2,0,0,0,16,6ZM10,4h4V6H10Zm0,14V10h4v8Z"/>
-                </svg>`;
-            break;
-        default:
-            // Icône générique marker
-            iconSvg = `
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                    <path d="M12,2A7,7,0,0,0,5,9c0,5.25,7,13,7,13s7-7.75,7-13A7,7,0,0,0,12,2Zm0,9.5A2.5,2.5,0,1,1,14.5,9,2.5,2.5,0,0,1,12,11.5Z"/>
-                </svg>`;
-    }
-
-    return L.divIcon({
-        html: `<div style="background: ${color}; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: 3px solid white; box-shadow: 0 3px 8px rgba(0,0,0,0.4); position: relative;">
-                ${iconSvg}
-                <div style="position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid ${color}; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));"></div>
-               </div>`,
-        className: 'custom-marker',
-        iconSize: [36, 44],
-        iconAnchor: [18, 44],
-        popupAnchor: [0, -44]
-    });
-}
-
-// Ajouter les marqueurs
-infrastructures.forEach(function(infra) {
-    const color = iconColors[infra.type_infrastructure] || '#6c757d';
-    const icon = createCustomIcon(infra.type_infrastructure, color);
-
-    const marker = L.marker([infra.latitude, infra.longitude], { icon: icon });
-
-    // Tooltip au survol (info rapide)
-    const tooltipContent = `
-        <strong>${infra.nom_demandeur}</strong><br>
-        <small>${infra.numero}</small><br>
-        <small><i class="fas fa-map-marker-alt"></i> ${infra.ville}</small>
-    `;
-
-    marker.bindTooltip(tooltipContent, {
-        permanent: false,
-        direction: 'top',
-        offset: [0, -20]
-    });
-
-    // Popup détaillé au clic
-    const popupContent = `
-        <div style="min-width: 280px;">
-            <div style="border-bottom: 2px solid ${color}; padding-bottom: 8px; margin-bottom: 10px;">
-                <h6 class="mb-1"><strong>${infra.numero}</strong></h6>
-                <small class="text-muted">Dossier d'infrastructure</small>
-            </div>
-
-            <table style="width: 100%; font-size: 13px; margin-bottom: 10px;">
-                <tr>
-                    <td style="padding: 4px 0;"><i class="fas fa-building" style="width: 20px;"></i></td>
-                    <td><strong>${infra.nom_demandeur}</strong></td>
-                </tr>
-                <tr>
-                    <td style="padding: 4px 0;"><i class="fas fa-industry" style="width: 20px;"></i></td>
-                    <td>${getTypeLabel(infra.type_infrastructure, infra.sous_type)}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 4px 0;"><i class="fas fa-map-marker-alt" style="width: 20px;"></i></td>
-                    <td>${infra.ville}${infra.region ? ', ' + infra.region : ''}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 4px 0;"><i class="fas fa-crosshairs" style="width: 20px;"></i></td>
-                    <td><code style="font-size: 11px;">${infra.latitude}, ${infra.longitude}</code></td>
-                </tr>
-                <tr>
-                    <td style="padding: 4px 0;"><i class="fas fa-calendar" style="width: 20px;"></i></td>
-                    <td><small>Créé le ${new Date(infra.date_creation).toLocaleDateString('fr-FR')}</small></td>
-                </tr>
-            </table>
-
-            <div style="margin-bottom: 10px;">
-                <span class="badge bg-${getStatutClass(infra.statut)}" style="font-size: 12px;">
-                    ${getStatutLabel(infra.statut)}
-                </span>
-            </div>
-
-            <div class="d-grid gap-2">
-                <a href="<?php echo url('modules/dossiers/view.php?id='); ?>${infra.id}"
-                   class="btn btn-sm btn-primary" target="_blank">
-                    <i class="fas fa-eye"></i> Voir le dossier complet
-                </a>
-                <a href="https://www.google.com/maps?q=${infra.latitude},${infra.longitude}"
-                   class="btn btn-sm btn-outline-secondary" target="_blank">
-                    <i class="fas fa-external-link-alt"></i> Ouvrir dans Google Maps
-                </a>
-            </div>
-        </div>
-    `;
-
-    marker.bindPopup(popupContent, {
-        maxWidth: 300,
-        className: 'custom-popup'
-    });
-    markers.addLayer(marker);
-});
-
-// Ajouter le groupe de marqueurs à la carte
-map.addLayer(markers);
-
-// Ajuster la vue pour inclure tous les marqueurs
-if (infrastructures.length > 0) {
-    map.fitBounds(markers.getBounds(), { padding: [50, 50] });
-}
-
-// ========== Ajouter l'échelle métrique ==========
-L.control.scale({
-    position: 'bottomleft',
-    metric: true,
-    imperial: false,
-    maxWidth: 200
-}).addTo(map);
-
-// ========== Ajouter une règle de référence de 500m ==========
-const ReferenceScale = L.Control.extend({
-    onAdd: function(map) {
-        const div = L.DomUtil.create('div', 'reference-scale-control');
-
-        const updateScale = () => {
-            // Calculer la taille en pixels pour 500m
-            const centerPoint = map.getCenter();
-            const pointA = map.latLngToContainerPoint(centerPoint);
-            const pointB = map.latLngToContainerPoint(
-                map.containerPointToLatLng([pointA.x + 100, pointA.y])
-            );
-
-            const distance = map.distance(
-                map.containerPointToLatLng(pointA),
-                map.containerPointToLatLng(pointB)
-            );
-
-            const pixelsFor500m = (500 / distance) * 100;
-
-            div.innerHTML = `
-                <div style="background: rgba(220, 53, 69, 0.95); color: white; padding: 8px 12px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-weight: bold; font-size: 13px;">
-                    <div style="margin-bottom: 5px;">Zone de contrainte :</div>
-                    <div style="background: white; height: 4px; width: ${pixelsFor500m}px; border: 2px solid #dc3545; border-radius: 2px;"></div>
-                    <div style="margin-top: 5px; text-align: center;">500 mètres</div>
-                </div>
-            `;
-        };
-
-        updateScale();
-        map.on('zoomend', updateScale);
-
-        return div;
-    }
-});
-
-const referenceScale = new ReferenceScale({ position: 'bottomright' });
-map.addControl(referenceScale);
-
-// Fonctions helper pour le JavaScript
-function getTypeLabel(type, sousType) {
-    const types = {
-        'station_service': 'Station-service',
-        'point_consommateur': 'Point consommateur',
-        'depot_gpl': 'Dépôt GPL',
-        'centre_emplisseur': 'Centre emplisseur'
-    };
-    return types[type] || type;
-}
-
-function getStatutClass(statut) {
-    const classes = {
-        'autorise': 'success',
-        'decide': 'primary',
-        'valide': 'info',
-        'inspecte': 'warning',
-        'en_cours': 'secondary'
-    };
-    return classes[statut] || 'secondary';
-}
-
-function getStatutLabel(statut) {
-    const labels = {
-        'autorise': 'Autorisé',
-        'decide': 'Décidé',
-        'valide': 'Validé',
-        'inspecte': 'Inspecté',
-        'en_cours': 'En cours'
-    };
-    return labels[statut] || statut;
-}
-
-// ========== Gestion des POI et zones de contrainte ==========
-
-// Données des POI
-const pois = <?php echo json_encode($pois); ?>;
-
-// Groupes de layers pour les POI et zones
-const poiMarkersGroup = L.layerGroup();
-const zonesGroup = L.layerGroup();
-
-let poiVisible = false;
-let zonesVisible = false;
-
-// Ajouter les POI à la carte
-pois.forEach(function(poi) {
-    const color = poi.couleur_marqueur || '#dc3545';
-    const icon = poi.icone || 'landmark';
-
-    // Créer un marqueur pour le POI
-    const poiMarker = L.marker([poi.latitude, poi.longitude], {
-        icon: L.divIcon({
-            html: `<div style="background: ${color}; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">
-                    <i class="fas fa-${icon}" style="font-size: 12px;"></i>
-                   </div>`,
-            className: 'poi-marker',
-            iconSize: [28, 28],
-            iconAnchor: [14, 14]
-        })
-    });
-
-    // Tooltip
-    const tooltipContent = `<strong>${poi.nom}</strong><br><small>${poi.categorie_nom}</small>`;
-    poiMarker.bindTooltip(tooltipContent, {
-        permanent: false,
-        direction: 'top',
-        offset: [0, -15]
-    });
-
-    // Popup détaillé
-    const popupContent = `
-        <div style="min-width: 220px;">
-            <div style="border-bottom: 2px solid ${color}; padding-bottom: 8px; margin-bottom: 10px;">
-                <h6 class="mb-1"><strong>${poi.nom}</strong></h6>
-                <small class="text-muted">${poi.categorie_nom}</small>
-            </div>
-            <table style="width: 100%; font-size: 13px; margin-bottom: 10px;">
-                <tr>
-                    <td style="padding: 4px 0;"><i class="fas fa-map-marker-alt" style="width: 20px;"></i></td>
-                    <td>${poi.ville || 'Non spécifié'}${poi.region ? ', ' + poi.region : ''}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 4px 0;"><i class="fas fa-ruler" style="width: 20px;"></i></td>
-                    <td>
-                        <strong style="color: ${color};">${poi.distance_min_metres}m</strong>
-                        <small class="text-muted">(${poi.distance_min_rural_metres}m rural)</small>
-                    </td>
-                </tr>
-                <tr>
-                    <td style="padding: 4px 0;"><i class="fas fa-crosshairs" style="width: 20px;"></i></td>
-                    <td><code style="font-size: 11px;">${poi.latitude}, ${poi.longitude}</code></td>
-                </tr>
-            </table>
-            ${poi.description ? '<p class="small mb-2">' + poi.description + '</p>' : ''}
-            <div class="d-grid gap-2">
-                <a href="https://www.google.com/maps?q=${poi.latitude},${poi.longitude}"
-                   class="btn btn-sm btn-outline-secondary" target="_blank">
-                    <i class="fas fa-external-link-alt"></i> Google Maps
-                </a>
-            </div>
-        </div>
-    `;
-
-    poiMarker.bindPopup(popupContent, {
-        maxWidth: 280,
-        className: 'custom-popup'
-    });
-
-    poiMarkersGroup.addLayer(poiMarker);
-
-    // Créer les cercles de contrainte (pour le groupe zones)
-    const radiusNormal = poi.distance_min_metres;
-    const circle = L.circle([poi.latitude, poi.longitude], {
-        radius: radiusNormal,
-        color: color,
-        fillColor: color,
-        fillOpacity: 0.05,
-        opacity: 0.3,
-        weight: 2
-    });
-
-    circle.bindTooltip(`Zone ${poi.categorie_nom}: ${radiusNormal}m`, {
-        permanent: false
-    });
-
-    zonesGroup.addLayer(circle);
-});
-
-// Ajouter les zones de contrainte autour des stations-service
-infrastructures.forEach(function(infra) {
-    if (infra.type_infrastructure === 'station_service') {
-        // Zone de 500m autour de chaque station
-        const circle = L.circle([infra.latitude, infra.longitude], {
-            radius: 500,
-            color: '#ff6b6b',
-            fillColor: '#ff6b6b',
-            fillOpacity: 0.15,  // Augmenté de 0.05 à 0.15 (3x plus visible)
-            opacity: 0.5,       // Augmenté de 0.3 à 0.5 pour la bordure
-            weight: 2,
-            dashArray: '5, 10'
-        });
-
-        circle.bindTooltip(`Zone station: 500m<br><small>${infra.nom_demandeur}</small>`, {
-            permanent: false
-        });
-
-        zonesGroup.addLayer(circle);
-    }
-});
-
-// Boutons de contrôle
-document.getElementById('togglePOI').addEventListener('click', function() {
-    if (poiVisible) {
-        map.removeLayer(poiMarkersGroup);
-        this.innerHTML = '<i class="fas fa-landmark"></i> Afficher les POI (<?php echo count($pois); ?>)';
-        this.classList.remove('btn-info');
-        this.classList.add('btn-outline-info');
-        poiVisible = false;
-    } else {
-        map.addLayer(poiMarkersGroup);
-        this.innerHTML = '<i class="fas fa-eye-slash"></i> Masquer les POI (<?php echo count($pois); ?>)';
-        this.classList.remove('btn-outline-info');
-        this.classList.add('btn-info');
-        poiVisible = true;
-    }
-});
-
-document.getElementById('toggleZones').addEventListener('click', function() {
-    if (zonesVisible) {
-        map.removeLayer(zonesGroup);
-        this.innerHTML = '<i class="fas fa-circle-notch"></i> Afficher les zones de contrainte';
-        this.classList.remove('btn-warning');
-        this.classList.add('btn-outline-warning');
-        zonesVisible = false;
-    } else {
-        map.addLayer(zonesGroup);
-        this.innerHTML = '<i class="fas fa-eye-slash"></i> Masquer les zones';
-        this.classList.remove('btn-outline-warning');
-        this.classList.add('btn-warning');
-        zonesVisible = true;
-    }
-});
-
-// ========== Vérification GPS ==========
-let testMarker = null;
-let testCircle = null;
-
-document.getElementById('btnTestGPS').addEventListener('click', function() {
-    const lat = parseFloat(document.getElementById('test_latitude').value);
-    const lng = parseFloat(document.getElementById('test_longitude').value);
-
-    // Validation
-    if (isNaN(lat) || isNaN(lng)) {
-        document.getElementById('testResult').innerHTML = `
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-triangle"></i> Veuillez entrer des coordonnées GPS valides
-            </div>
-        `;
-        document.getElementById('testResult').style.display = 'block';
-        return;
-    }
-
-    // Vérifier que les coordonnées sont au Cameroun (approximativement)
-    if (lat < 1.5 || lat > 13.5 || lng < 8.0 || lng > 16.5) {
-        document.getElementById('testResult').innerHTML = `
-            <div class="alert alert-warning">
-                <i class="fas fa-exclamation-circle"></i> Ces coordonnées ne semblent pas être au Cameroun
-            </div>
-        `;
-        document.getElementById('testResult').style.display = 'block';
-    }
-
-    // Effacer les marqueurs précédents
-    if (testMarker) map.removeLayer(testMarker);
-    if (testCircle) map.removeLayer(testCircle);
-
-    // Créer un marqueur pour le point test (en bleu)
-    const testIcon = L.divIcon({
-        className: 'custom-div-icon',
-        html: `<div style="background: #2196F3; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
-                <i class="fas fa-question" style="color: white; font-size: 14px;"></i>
-              </div>`,
-        iconSize: [30, 30],
-        iconAnchor: [15, 15]
-    });
-
-    testMarker = L.marker([lat, lng], { icon: testIcon })
-        .addTo(map)
-        .bindPopup(`
-            <div style="padding: 10px;">
-                <strong>📍 Point à vérifier</strong><br>
-                <small>Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}</small>
-            </div>
-        `)
-        .openPopup();
-
-    // Cercle de 500m autour du point test
-    testCircle = L.circle([lat, lng], {
-        radius: 500,
-        color: '#2196F3',
-        fillColor: '#2196F3',
-        fillOpacity: 0.1,
-        weight: 2,
-        dashArray: '10, 5'
-    }).addTo(map);
-
-    // Centrer la carte sur le point
-    map.setView([lat, lng], 15);
-
-    // Vérifier les violations
-    const violations = [];
-    const minDistance = 500; // 500 mètres
-
-    <?php foreach ($infrastructures as $infra): ?>
-    <?php if (!empty($infra['latitude']) && !empty($infra['longitude']) && $infra['type_infrastructure'] === 'station_service'): ?>
-    {
-        const infraLat = <?php echo $infra['latitude']; ?>;
-        const infraLng = <?php echo $infra['longitude']; ?>;
-        const distance = map.distance([lat, lng], [infraLat, infraLng]);
-
-        if (distance < minDistance) {
-            violations.push({
-                nom: "<?php echo addslashes($infra['nom_demandeur']); ?>",
-                numero: "<?php echo addslashes($infra['numero']); ?>",
-                distance: Math.round(distance),
-                lat: infraLat,
-                lng: infraLng
-            });
+    var grappe = L.markerClusterGroup({
+        showCoverageOnHover: false, maxClusterRadius: 45, chunkedLoading: true, spiderfyOnMaxZoom: true,
+        iconCreateFunction: function (c) {
+            var n = c.getChildCount(), s = n < 10 ? 30 : n < 100 ? 38 : n < 500 ? 46 : 54;
+            return L.divIcon({ html: '<div class="mk-cluster" style="width:' + s + 'px;height:' + s + 'px">' + n + '</div>', className: '', iconSize: [s, s] });
         }
-    }
-    <?php endif; ?>
-    <?php endforeach; ?>
+    }).addTo(carte);
+    var couchePoi = L.layerGroup(), coucheZones = L.layerGroup(), coucheDensite = null;
+    var D = { sgdi: [], osm: [], poi: [] }, regions = {}, limitesPays = null;
 
-    // Afficher le résultat
-    let resultHTML = '';
-
-    if (violations.length === 0) {
-        resultHTML = `
-            <div class="alert alert-success">
-                <h5><i class="fas fa-check-circle"></i> ✅ CONFORME - Aucune violation détectée</h5>
-                <p class="mb-0">Ce point respecte la zone de contrainte de 500m autour des stations-service existantes.</p>
-                <p class="mb-0 mt-2"><strong>Vous pouvez créer un dossier avec ces coordonnées GPS.</strong></p>
-            </div>
-        `;
-    } else {
-        resultHTML = `
-            <div class="alert alert-danger">
-                <h5><i class="fas fa-times-circle"></i> ❌ VIOLATION - ${violations.length} station(s) trop proche(s)</h5>
-                <p class="mb-2">Ce point viole la contrainte de distance minimale de 500m.</p>
-                <div style="max-height: 200px; overflow-y: auto;">
-                    <table class="table table-sm mb-0">
-                        <thead>
-                            <tr>
-                                <th>Station</th>
-                                <th>Distance</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-        `;
-
-        violations.forEach(v => {
-            const deficit = 500 - v.distance;
-            resultHTML += `
-                <tr>
-                    <td><small><strong>${v.numero}</strong><br>${v.nom}</small></td>
-                    <td><span class="badge bg-danger">${v.distance}m</span><br><small class="text-danger">Manque ${deficit}m</small></td>
-                    <td><button class="btn btn-sm btn-outline-primary" onclick="map.setView([${v.lat}, ${v.lng}], 16)"><i class="fas fa-map-pin"></i></button></td>
-                </tr>
-            `;
+    /* ---------- Contours des régions ---------- */
+    fetch(URL_REGIONS).then(function (r) { return r.json(); }).then(function (liste) {
+        var groupe = L.featureGroup();
+        liste.forEach(function (r) {
+            regions[r.nom] = L.polygon(r.ring, { color: '#667eea', weight: 1.5, opacity: .7, fill: false, interactive: false }).addTo(groupe);
         });
+        groupe.addTo(carte);
+        limitesPays = groupe.getBounds();
+        if (!DOSSIER_CIBLE) carte.fitBounds(limitesPays, { padding: [10, 10] });
+        remplirRegions();
+    }).catch(function () { /* la carte reste utilisable sans les contours */ });
 
-        resultHTML += `
-                        </tbody>
-                    </table>
-                </div>
-                <p class="mb-0 mt-2"><strong>⚠️ Ces coordonnées ne peuvent PAS être utilisées pour une nouvelle demande.</strong></p>
-            </div>
-        `;
+    function remplirRegions() {
+        var sel = $('f-region'), actuelle = sel.value;
+        var noms = Object.keys(regions).sort(function (a, b) { return a.localeCompare(b, 'fr'); });
+        sel.innerHTML = '<option value="">Toutes les régions</option>' + noms.map(function (n) { return '<option>' + esc(n) + '</option>'; }).join('');
+        sel.value = actuelle;
     }
 
-    document.getElementById('testResult').innerHTML = resultHTML;
-    document.getElementById('testResult').style.display = 'block';
-});
-
-document.getElementById('btnClearTest').addEventListener('click', function() {
-    if (testMarker) map.removeLayer(testMarker);
-    if (testCircle) map.removeLayer(testCircle);
-    document.getElementById('test_latitude').value = '';
-    document.getElementById('test_longitude').value = '';
-    document.getElementById('testResult').style.display = 'none';
-    document.getElementById('testResult').innerHTML = '';
-});
-
-// ========== Outil de mesure de distance ==========
-let measureMode = false;
-let measurePoints = [];
-let measureLine = null;
-let measureMarkers = [];
-
-document.getElementById('btnMeasure').addEventListener('click', function() {
-    if (!measureMode) {
-        // Activer le mode mesure
-        measureMode = true;
-        this.classList.remove('btn-outline-primary');
-        this.classList.add('btn-primary');
-        this.innerHTML = '<i class="fas fa-times"></i> Annuler la mesure';
-
-        alert('Mode mesure activé !\n\n1. Cliquez sur un premier point sur la carte\n2. Cliquez sur un second point\n3. La distance en mètres sera affichée\n\nParfait pour vérifier les 500m !');
-    } else {
-        // Désactiver le mode mesure
-        clearMeasure();
-        measureMode = false;
-        this.classList.remove('btn-primary');
-        this.classList.add('btn-outline-primary');
-        this.innerHTML = '<i class="fas fa-ruler"></i> Mesurer une distance';
+    /* ---------- Marqueurs ---------- */
+    function marqueurSgdi(p) {
+        var s = STATUTS[p[9]] || [p[9], 'preparation'];
+        var m = L.marker([p[1], p[2]], { icon: L.divIcon({ className: '', html: '<span class="mk mk-' + p[3] + '"></span>', iconSize: [16, 16], iconAnchor: [8, 8] }) });
+        m.bindPopup(function () {
+            return '<h3>' + esc(p[5] || 'Demandeur non renseigné') + '</h3>' +
+                '<div>' + esc(TYPES[p[3]] || p[3]) + (p[4] ? ' · ' + esc(p[4].charAt(0).toUpperCase() + p[4].slice(1)) : '') + '</div>' +
+                (p[6] ? '<div>Opérateur : <strong>' + esc(p[6]) + '</strong></div>' : '') +
+                '<div class="text-muted-sgdi">' + esc([p[7], p[8]].filter(Boolean).join(', ')) + '</div>' +
+                '<div class="my-2"><span class="status-badge phase-' + s[1] + '">' + esc(s[0]) + '</span></div>' +
+                '<div class="d-flex justify-content-between align-items-center gap-2"><span class="small text-muted-sgdi">' + esc(p[10]) + '</span>' +
+                '<a class="btn btn-sm btn-primary" href="' + URL_DOSSIER + p[0] + '">Ouvrir le dossier</a></div>';
+        });
+        m._sgdi = p;
+        return m;
     }
-});
+    function marqueurOsm(p, absent) {
+        var m = L.marker([p[0], p[1]], { icon: L.divIcon({ className: '', html: '<span class="mk mk-osm mk-' + p[2] + (absent ? ' is-absent' : '') + '"></span>', iconSize: [16, 16], iconAnchor: [8, 8] }) });
+        m.bindPopup(function () {
+            return '<h3>' + esc(p[3] || (CAT_OSM[p[2]] + ' sans nom')) + '</h3>' +
+                '<div>' + esc(CAT_OSM[p[2]]) + (p[7] && p[2] === 'station' ? ' · GPL disponible' : '') + '</div>' +
+                '<div><strong>' + esc(p[4]) + '</strong></div>' +
+                '<div class="text-muted-sgdi">' + esc([p[5], p[6]].filter(Boolean).join(', ')) + '</div>' +
+                (absent ? '<div class="verdict phase-danger mt-2">Aucun dossier géolocalisé du SGDI à moins de ' + RAYON_CORRESPONDANCE + ' m.</div>' : '') +
+                '<div class="small text-muted-sgdi mt-2">' + p[0].toFixed(5) + ', ' + p[1].toFixed(5) + ' · source OpenStreetMap</div>';
+        });
+        m._osm = p;
+        return m;
+    }
 
-function clearMeasure() {
-    if (measureLine) map.removeLayer(measureLine);
-    measureMarkers.forEach(m => map.removeLayer(m));
-    measurePoints = [];
-    measureMarkers = [];
-    measureLine = null;
-}
-
-map.on('click', function(e) {
-    if (!measureMode) return;
-
-    if (measurePoints.length === 0) {
-        // Premier point
-        measurePoints.push(e.latlng);
-
-        const marker = L.marker(e.latlng, {
-            icon: L.divIcon({
-                className: 'measure-marker',
-                html: '<div style="background: #4CAF50; width: 12px; height: 12px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
-                iconSize: [12, 12],
-                iconAnchor: [6, 6]
+    /* ---------- Chargement et rafraîchissement des données ---------- */
+    var dernierChargement = null, chargementEnCours = false;
+    function charger(manuel) {
+        if (chargementEnCours) return Promise.resolve();
+        chargementEnCours = true;
+        var icone = $('btn-actualiser').querySelector('i');
+        if (manuel && icone) icone.classList.add('spin');
+        return fetch(URL_DONNEES, { credentials: 'same-origin', cache: manuel ? 'no-store' : 'default' })
+            .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            .then(function (json) {
+                D.sgdi = json.sgdi.map(marqueurSgdi);
+                D.poi = json.poi;
+                D.osmMaj = json.osm.maj;
+                // Stations OSM sans dossier SGDI proche
+                var stationsSgdi = json.sgdi.filter(function (p) { return p[3] === 'station_service'; });
+                var absents = 0;
+                D.osm = json.osm.points.map(function (p) {
+                    var absent = false;
+                    if (p[2] === 'station') {
+                        absent = !stationsSgdi.some(function (s) {
+                            return Math.abs(s[1] - p[0]) < .003 && Math.abs(s[2] - p[1]) < .003 && carte.distance([s[1], s[2]], [p[0], p[1]]) < RAYON_CORRESPONDANCE;
+                        });
+                        if (absent) absents++;
+                    }
+                    var m = marqueurOsm(p, absent);
+                    m._absent = absent;
+                    return m;
+                });
+                $('nb-absents').textContent = nf(absents);
+                afficherCouverture(json.couverture);
+                $('nb-poi').textContent = '(' + nf(D.poi.length) + ')';
+                remplirOperateurs(json);
+                dessinerPoi();
+                dernierChargement = new Date();
+                filtrer();
+                if (DOSSIER_CIBLE) { ouvrirDossier(DOSSIER_CIBLE); DOSSIER_CIBLE = 0; }
             })
-        }).addTo(map);
-
-        marker.bindPopup('<strong>Point A</strong>').openPopup();
-        measureMarkers.push(marker);
-
-    } else if (measurePoints.length === 1) {
-        // Second point
-        measurePoints.push(e.latlng);
-
-        const marker = L.marker(e.latlng, {
-            icon: L.divIcon({
-                className: 'measure-marker',
-                html: '<div style="background: #F44336; width: 12px; height: 12px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
-                iconSize: [12, 12],
-                iconAnchor: [6, 6]
+            .catch(function () {
+                $('carte-meta').textContent = 'Impossible de charger les données de la carte. Vérifiez votre connexion puis cliquez sur « Actualiser ».';
             })
-        }).addTo(map);
+            .finally(function () { chargementEnCours = false; if (icone) icone.classList.remove('spin'); });
+    }
 
-        marker.bindPopup('<strong>Point B</strong>').openPopup();
-        measureMarkers.push(marker);
+    function afficherCouverture(cv) {
+        if (!cv || !cv.stations) { $('couverture').textContent = ''; return; }
+        var taux = Math.round(cv.geolocalisees / cv.stations * 100);
+        $('couverture').innerHTML = 'Couverture GPS du SGDI : <strong>' + nf(cv.geolocalisees) + ' / ' + nf(cv.stations) + ' stations (' + taux + ' %)</strong>.' +
+            (taux < 80 ? ' Tant que les dossiers ne sont pas géolocalisés, la comparaison avec OpenStreetMap n\x27est pas significative.' : '') +
+            (URL_GPS ? ' <a href="' + URL_GPS + '">Compléter les coordonnées</a>' : '');
+    }
 
-        // Calculer et afficher la distance
-        const distance = map.distance(measurePoints[0], measurePoints[1]);
-        const distanceRounded = Math.round(distance);
+    function remplirOperateurs(json) {
+        var n = {};
+        json.sgdi.forEach(function (p) { if (p[6]) n[p[6]] = (n[p[6]] || 0) + 1; });
+        json.osm.points.forEach(function (p) { if (p[4]) n[p[4]] = (n[p[4]] || 0) + 1; });
+        var sel = $('f-operateur'), actuel = sel.value;
+        sel.innerHTML = '<option value="">Tous les opérateurs</option>' + Object.keys(n).sort(function (a, b) { return n[b] - n[a]; })
+            .slice(0, 80).map(function (o) { return '<option value="' + esc(o) + '">' + esc(o) + ' (' + n[o] + ')</option>'; }).join('');
+        sel.value = actuel;
+    }
 
-        // Tracer la ligne
-        measureLine = L.polyline(measurePoints, {
-            color: '#2196F3',
-            weight: 3,
-            dashArray: '10, 5'
-        }).addTo(map);
+    /* ---------- Filtres ---------- */
+    function couchesActives() {
+        var c = {};
+        document.querySelectorAll('[data-couche]').forEach(function (i) { c[i.getAttribute('data-couche')] = i.checked; });
+        return c;
+    }
+    function filtrer(zoomRegion) {
+        var c = couchesActives(), region = $('f-region').value, phase = $('f-phase').value,
+            operateur = $('f-operateur').value, q = $('f-recherche').value.trim().toLowerCase(), absentsSeuls = $('osm-absents').checked;
 
-        // Popup avec la distance au milieu de la ligne
-        const midPoint = L.latLng(
-            (measurePoints[0].lat + measurePoints[1].lat) / 2,
-            (measurePoints[0].lng + measurePoints[1].lng) / 2
-        );
-
-        let resultClass = '';
-        let resultIcon = '';
-        let resultText = '';
-
-        if (distanceRounded < 500) {
-            resultClass = 'alert-danger';
-            resultIcon = '❌';
-            resultText = `VIOLATION ! Distance : <strong>${distanceRounded} mètres</strong><br>Manque ${500 - distanceRounded} m pour respecter la contrainte`;
-        } else if (distanceRounded >= 500 && distanceRounded < 550) {
-            resultClass = 'alert-success';
-            resultIcon = '✅';
-            resultText = `CONFORME ! Distance : <strong>${distanceRounded} mètres</strong><br>Contrainte de 500m respectée`;
-        } else {
-            resultClass = 'alert-success';
-            resultIcon = '✅';
-            resultText = `CONFORME ! Distance : <strong>${distanceRounded} mètres</strong><br>Large marge de sécurité`;
+        function okSgdi(p, ignorerRegion) {
+            return (ignorerRegion || !region || p[8] === region) && (!phase || (STATUTS[p[9]] || [])[1] === phase) &&
+                (!operateur || p[6] === operateur) && (!q || (p[10] + ' ' + p[5] + ' ' + p[6] + ' ' + p[7]).toLowerCase().indexOf(q) !== -1);
+        }
+        function okOsm(p, absent, ignorerRegion) {
+            return !phase && (!absentsSeuls || absent) && (ignorerRegion || !region || p[6] === region) &&
+                (!operateur || p[4] === operateur) && (!q || (p[3] + ' ' + p[4] + ' ' + p[5]).toLowerCase().indexOf(q) !== -1);
         }
 
-        L.popup()
-            .setLatLng(midPoint)
-            .setContent(`
-                <div class="alert ${resultClass} mb-0" style="padding: 15px; min-width: 250px;">
-                    <h6>${resultIcon} Mesure de Distance</h6>
-                    <p class="mb-0">${resultText}</p>
-                </div>
-            `)
-            .openOn(map);
+        var visibles = [], compteurs = {}, parRegion = {};
+        D.sgdi.forEach(function (m) {
+            var p = m._sgdi, cle = 'sgdi:' + p[3];
+            if (okSgdi(p, false)) compteurs[cle] = (compteurs[cle] || 0) + 1;
+            if (!c[cle]) return;
+            if (okSgdi(p, true)) parRegion[p[8]] = (parRegion[p[8]] || 0) + 1;
+            if (okSgdi(p, false)) visibles.push(m);
+        });
+        D.osm.forEach(function (m) {
+            var p = m._osm, cle = 'osm:' + p[2];
+            if (okOsm(p, m._absent, false)) compteurs[cle] = (compteurs[cle] || 0) + 1;
+            if (!c[cle]) return;
+            if (okOsm(p, m._absent, true)) parRegion[p[6]] = (parRegion[p[6]] || 0) + 1;
+            if (okOsm(p, m._absent, false)) visibles.push(m);
+        });
 
-        // Réinitialiser pour une nouvelle mesure
-        setTimeout(() => {
-            clearMeasure();
-        }, 100);
+        grappe.clearLayers();
+        grappe.addLayers(visibles);
+        document.querySelectorAll('[data-compteur]').forEach(function (el) { el.textContent = nf(compteurs[el.getAttribute('data-compteur')] || 0); });
+
+        var noms = Object.keys(parRegion).filter(Boolean).sort(function (a, b) { return parRegion[b] - parRegion[a]; });
+        var max = Math.max.apply(null, noms.map(function (n) { return parRegion[n]; }).concat([1]));
+        $('par-region').innerHTML = noms.length ? noms.map(function (n) {
+            return '<li data-region="' + esc(n) + '"' + (n === region ? ' style="font-weight:700"' : '') + ' title="Zoomer sur la région ' + esc(n) + '"><span>' + esc(n) + '</span>' +
+                '<span class="bar" style="width:' + (parRegion[n] / max * 100).toFixed(1) + '%"></span><span class="val">' + nf(parRegion[n]) + '</span></li>';
+        }).join('') : '<li class="text-muted-sgdi">Aucun point</li>';
+
+        if (coucheDensite) { carte.removeLayer(coucheDensite); coucheDensite = null; }
+        if ($('l-densite').checked && L.heatLayer) {
+            coucheDensite = L.heatLayer(visibles.map(function (m) { var ll = m.getLatLng(); return [ll.lat, ll.lng, .6]; }),
+                { radius: 22, blur: 18, minOpacity: .25, gradient: { .3: '#667eea', .6: '#f39c12', 1: '#e74c3c' } }).addTo(carte);
+        }
+        if (zoomRegion) {
+            var b = region && regions[region] ? regions[region].getBounds() : limitesPays;
+            if (b) carte.flyToBounds(b, { padding: [20, 20], duration: .6 });
+        }
+
+        var h = dernierChargement ? dernierChargement.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
+        var osm = D.osmMaj ? new Date(D.osmMaj).toLocaleDateString('fr-FR') : 'inconnue';
+        $('carte-meta').textContent = nf(visibles.length) + ' points affichés · dossiers SGDI actualisés à ' + h +
+            ' (automatiquement toutes les 5 min) · référence OpenStreetMap du ' + osm;
     }
-});
+
+    /* ---------- Points d'intérêt et zones de contrainte ---------- */
+    function dessinerPoi() {
+        couchePoi.clearLayers(); coucheZones.clearLayers();
+        D.poi.forEach(function (p) {
+            L.marker([p[0], p[1]], { icon: L.divIcon({ className: '', html: '<span class="mk mk-poi" style="--poi-couleur:' + esc(p[6]) + '"></span>', iconSize: [14, 14], iconAnchor: [7, 7] }) })
+                .bindPopup('<h3>' + esc(p[2]) + '</h3><div>' + esc(p[3]) + '</div><div class="small mt-1">Distance minimale : <strong>' + p[4] + ' m</strong> (' + p[5] + ' m en zone rurale)</div>')
+                .addTo(couchePoi);
+            L.circle([p[0], p[1]], { radius: p[4], className: 'zone-contrainte', interactive: false }).addTo(coucheZones);
+        });
+        D.sgdi.forEach(function (m) {
+            if (m._sgdi[3] === 'station_service') L.circle(m.getLatLng(), { radius: DISTANCE_URBAINE, className: 'zone-contrainte', interactive: false }).addTo(coucheZones);
+        });
+    }
+    $('l-poi').addEventListener('change', function () { this.checked ? couchePoi.addTo(carte) : carte.removeLayer(couchePoi); });
+    $('l-zones').addEventListener('change', function () { this.checked ? coucheZones.addTo(carte) : carte.removeLayer(coucheZones); });
+
+    /* ---------- Vérifier un emplacement ---------- */
+    var mode = null, traceVerif = [], mesure = { points: [], calques: [] };
+    function changerMode(m) {
+        mode = mode === m ? null : m;
+        $('btn-verifier').classList.toggle('active', mode === 'verifier');
+        $('btn-mesurer').classList.toggle('active', mode === 'mesurer');
+        document.querySelector('.map-layout').classList.toggle('map-mode-clic', !!mode);
+        if (mode === 'verifier') $('carte-verif').hidden = false;
+        if (mode !== 'mesurer') effacerMesure();
+    }
+    $('btn-verifier').addEventListener('click', function () { changerMode('verifier'); });
+    $('btn-mesurer').addEventListener('click', function () { changerMode('mesurer'); });
+
+    function verifier(latlng) {
+        traceVerif.forEach(function (z) { carte.removeLayer(z); });
+        traceVerif = [L.circle(latlng, { radius: DISTANCE_URBAINE, className: 'zone-urbaine', interactive: false }).addTo(carte),
+                      L.circle(latlng, { radius: DISTANCE_RURALE, className: 'zone-rurale', interactive: false }).addTo(carte),
+                      L.marker(latlng).addTo(carte)];
+        // Stations : dossiers SGDI + stations OSM absentes du SGDI
+        var stations = D.sgdi.filter(function (m) { return m._sgdi[3] === 'station_service'; }).map(function (m) { return { nom: m._sgdi[5] + ' (' + m._sgdi[10] + ')', ll: m.getLatLng() }; })
+            .concat(D.osm.filter(function (m) { return m._absent; }).map(function (m) { return { nom: (m._osm[3] || 'Station') + ' (OpenStreetMap)', ll: m.getLatLng() }; }));
+        var proches = stations.map(function (s) { return { nom: s.nom, d: carte.distance(latlng, s.ll) }; })
+            .filter(function (x) { return x.d < DISTANCE_URBAINE; }).sort(function (a, b) { return a.d - b.d; });
+        var poi = D.poi.map(function (p) { return { nom: p[2] + ' (' + p[3] + ')', d: carte.distance(latlng, [p[0], p[1]]), min: p[4], minRural: p[5] }; })
+            .filter(function (x) { return x.d < x.min; }).sort(function (a, b) { return a.d - b.d; });
+
+        var nonConformeRural = proches.some(function (x) { return x.d < DISTANCE_RURALE; }) || poi.some(function (x) { return x.d < x.minRural; });
+        var nonConformeUrbain = proches.length > 0 || poi.length > 0;
+        var phase = !nonConformeUrbain ? 'succes' : nonConformeRural ? 'danger' : 'attention';
+        var titre = !nonConformeUrbain ? 'Emplacement conforme : aucune station à moins de 500 m ni point d\'intérêt dans sa zone de protection.'
+            : nonConformeRural ? 'Non conforme, en zone urbaine comme en zone rurale.'
+            : 'Non conforme en zone urbaine (500 m), conforme en zone rurale (400 m).';
+        var liste = proches.slice(0, 5).map(function (x) { return '<li>' + esc(x.nom) + ' : ' + Math.round(x.d) + ' m (manque ' + (DISTANCE_URBAINE - Math.round(x.d)) + ' m)</li>'; })
+            .concat(poi.slice(0, 5).map(function (x) { return '<li>' + esc(x.nom) + ' : ' + Math.round(x.d) + ' m (minimum ' + x.min + ' m)</li>'; }));
+        $('v-resultat').innerHTML = '<div class="verdict phase-' + phase + '"><strong>' + esc(titre) + '</strong>' + (liste.length ? '<ul>' + liste.join('') + '</ul>' : '') + '</div>' +
+            '<p class="small text-muted-sgdi mt-2 mb-0">Point vérifié : ' + latlng.lat.toFixed(5) + ', ' + latlng.lng.toFixed(5) + '</p>';
+        $('v-lat').value = latlng.lat.toFixed(6); $('v-lon').value = latlng.lng.toFixed(6);
+        carte.flyToBounds(traceVerif[0].getBounds(), { padding: [40, 40], maxZoom: 16, duration: .6 });
+    }
+    $('form-coord').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var lat = parseFloat($('v-lat').value.replace(',', '.')), lon = parseFloat($('v-lon').value.replace(',', '.'));
+        if (isNaN(lat) || isNaN(lon) || lat < 1.5 || lat > 13.5 || lon < 8 || lon > 16.5) {
+            $('v-resultat').innerHTML = '<div class="verdict phase-danger">Coordonnées invalides : la latitude doit être entre 1,5 et 13,5 et la longitude entre 8 et 16,5 (Cameroun).</div>';
+            return;
+        }
+        verifier(L.latLng(lat, lon));
+    });
+
+    /* ---------- Mesurer une distance ---------- */
+    function effacerMesure() { mesure.calques.forEach(function (c) { carte.removeLayer(c); }); mesure = { points: [], calques: [] }; }
+    function mesurer(latlng) {
+        mesure.points.push(latlng);
+        mesure.calques.push(L.circleMarker(latlng, { radius: 5, color: '#667eea', fillOpacity: 1 }).addTo(carte));
+        if (mesure.points.length > 1) {
+            var total = 0;
+            for (var i = 1; i < mesure.points.length; i++) total += carte.distance(mesure.points[i - 1], mesure.points[i]);
+            mesure.calques.push(L.polyline(mesure.points.slice(-2), { className: 'trace-mesure' }).addTo(carte));
+            L.popup({ closeButton: false, autoClose: false }).setLatLng(latlng)
+                .setContent('<strong>' + (total < 1000 ? Math.round(total) + ' m' : (total / 1000).toFixed(2).replace('.', ',') + ' km') + '</strong><div class="small text-muted-sgdi">Cliquez à nouveau sur « Mesurer » pour effacer</div>')
+                .openOn(carte);
+        }
+    }
+    carte.on('click', function (e) { if (mode === 'verifier') verifier(e.latlng); else if (mode === 'mesurer') mesurer(e.latlng); });
+
+    /* ---------- Ouvrir un dossier depuis la liste (?dossier=ID) ---------- */
+    function ouvrirDossier(id) {
+        var m = D.sgdi.filter(function (x) { return x._sgdi[0] === id; })[0];
+        if (!m) { $('carte-meta').textContent = 'Ce dossier n\'a pas de coordonnées GPS exploitables.'; return; }
+        grappe.zoomToShowLayer(m, function () { m.openPopup(); });
+    }
+
+    /* ---------- Événements ---------- */
+    document.querySelectorAll('[data-couche]').forEach(function (i) { i.addEventListener('change', function () { filtrer(); }); });
+    ['osm-absents', 'l-densite', 'f-phase', 'f-operateur'].forEach(function (id) { $(id).addEventListener('change', function () { filtrer(); }); });
+    $('osm-absents').addEventListener('change', function () {
+        if (this.checked) document.querySelector('[data-couche="osm:station"]').checked = true;
+        filtrer();
+    });
+    $('f-region').addEventListener('change', function () { filtrer(true); });
+    var minuterie;
+    $('f-recherche').addEventListener('input', function () { clearTimeout(minuterie); minuterie = setTimeout(filtrer, 250); });
+    $('par-region').addEventListener('click', function (e) {
+        var li = e.target.closest('li[data-region]'); if (!li) return;
+        var r = li.getAttribute('data-region');
+        $('f-region').value = $('f-region').value === r ? '' : r;
+        filtrer(true);
+    });
+    $('btn-actualiser').addEventListener('click', function () { charger(true); });
+
+    var btnSync = $('btn-sync-osm');
+    if (btnSync) btnSync.addEventListener('click', function () {
+        $('carte-meta').textContent = 'Synchronisation avec OpenStreetMap en cours (jusqu\'à 2 minutes)…';
+        var corps = new URLSearchParams({ action: 'synchroniser_osm', csrf_token: CSRF });
+        fetch(URL_DONNEES, { method: 'POST', body: corps, credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (j) {
+                if (!j.ok) throw new Error(j.erreur || 'Erreur');
+                return charger(true).then(function () {
+                    $('carte-meta').textContent = 'Référence OpenStreetMap mise à jour : ' + nf(j.stats.station || 0) + ' stations, ' + nf(j.stats.gpl || 0) + ' points GPL, ' + nf(j.stats.depot || 0) + ' dépôts.';
+                });
+            })
+            .catch(function (e) { $('carte-meta').textContent = e.message || 'La synchronisation a échoué.'; });
+    });
+
+    // Rafraîchissement automatique toutes les 5 minutes, seulement si l'onglet est visible
+    setInterval(function () { if (!document.hidden) charger(false); }, 5 * 60 * 1000);
+
+    charger(false);
+})();
 </script>
 
-<!-- Mobile Responsive pour cartes -->
-<script src="../../assets/js/map-mobile-responsive.js"></script>
 <?php require_once '../../includes/footer.php'; ?>
