@@ -189,6 +189,39 @@ function uiPageHeader($titre, $sous_titre = '', $fil_ariane = [], $html_actions 
 }
 
 /**
+ * En-tête des pages d'action sur un dossier (commission, paiement, visa…) :
+ * fil d'Ariane jusqu'au dossier, titre de l'action, rappel du demandeur, du type et du statut.
+ *
+ * @param array $dossier Doit contenir id, numero ; nom_demandeur, type_infrastructure, sous_type, statut si disponibles
+ */
+function uiEnteteDossier(array $dossier, $titre_action, $html_actions = '') {
+    $numero = $dossier['numero'] ?? ('#' . ($dossier['id'] ?? ''));
+    $url_dossier = url('modules/dossiers/view.php?id=' . (int) ($dossier['id'] ?? 0));
+    $html = '<div class="page-header"><div>'
+          . '<nav aria-label="Fil d\'Ariane"><ol class="breadcrumb">'
+          . '<li class="breadcrumb-item"><a href="' . url('modules/dossiers/list.php') . '">Dossiers</a></li>'
+          . '<li class="breadcrumb-item"><a href="' . htmlspecialchars($url_dossier) . '">' . htmlspecialchars($numero) . '</a></li>'
+          . '<li class="breadcrumb-item active" aria-current="page">' . htmlspecialchars($titre_action) . '</li>'
+          . '</ol></nav>'
+          . '<h1 class="page-title">' . htmlspecialchars($titre_action) . '</h1>'
+          . '<p class="page-subtitle d-flex flex-wrap align-items-center gap-2">';
+    if (!empty($dossier['nom_demandeur'])) {
+        $html .= '<strong>' . htmlspecialchars($dossier['nom_demandeur']) . '</strong> ·';
+    }
+    $html .= ' <span class="mono">' . htmlspecialchars($numero) . '</span>';
+    if (!empty($dossier['type_infrastructure']) && function_exists('getTypeLabel')) {
+        $html .= ' · <span>' . htmlspecialchars(getTypeLabel($dossier['type_infrastructure'], $dossier['sous_type'] ?? null)) . '</span>';
+    }
+    if (!empty($dossier['statut'])) {
+        $html .= ' · ' . uiStatutBadge($dossier['statut']);
+    }
+    $html .= '</p></div><div class="page-actions">'
+           . '<a class="btn btn-ghost" href="' . htmlspecialchars($url_dossier) . '"><i class="fas fa-arrow-left"></i> Retour au dossier</a>'
+           . $html_actions . '</div></div>';
+    return $html;
+}
+
+/**
  * État vide (liste sans résultat, etc.)
  */
 function uiEmptyState($titre, $message = '', $icon = 'fa-folder-open', $html_action = '') {

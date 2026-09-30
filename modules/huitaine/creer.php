@@ -60,22 +60,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $page_title = 'Créer une huitaine - Dossier ' . $dossier['numero'];
+require_once '../../includes/ui.php';
 require_once '../../includes/header.php';
 ?>
 
 <div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col">
-            <h1 class="h3">
-                <i class="fas fa-exclamation-triangle text-warning"></i>
-                Créer une huitaine de régularisation
-            </h1>
-            <p class="text-muted">
-                Dossier: <strong><?php echo sanitize($dossier['numero']); ?></strong> -
-                <?php echo sanitize($dossier['nom_demandeur']); ?>
-            </p>
-        </div>
-    </div>
+    <?php echo uiEnteteDossier($dossier, 'Créer une huitaine de régularisation'); ?>
 
     <?php if (!empty($errors)): ?>
     <div class="alert alert-danger">

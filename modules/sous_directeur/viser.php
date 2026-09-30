@@ -93,17 +93,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $page_title = 'Viser le dossier ' . $dossier['numero'];
+require_once '../../includes/ui.php';
 require_once '../../includes/header.php';
 ?>
 
 <div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col">
-            <a href="<?php echo url('modules/sous_directeur/dashboard.php'); ?>" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Retour
-            </a>
-        </div>
-    </div>
+    <?php echo uiEnteteDossier($dossier, 'Visa du Sous-Directeur (2/3)'); ?>
 
     <div class="row">
         <div class="col-lg-8">

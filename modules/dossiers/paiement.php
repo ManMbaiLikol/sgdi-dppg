@@ -188,20 +188,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $montant_requis = $note_frais['montant_total'];
 
 $page_title = 'Enregistrement paiement - Dossier ' . $dossier['numero'];
+require_once '../../includes/ui.php';
 require_once '../../includes/header.php';
 ?>
 
+<?php echo uiEnteteDossier($dossier, 'Enregistrement du paiement'); ?>
+
 <div class="row">
-    <div class="col-md-8 offset-md-2">
+    <div class="col-xl-9">
         <div class="card">
-            <div class="card-header bg-success text-white">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-money-bill"></i> Enregistrement du paiement
-                </h5>
-                <p class="mb-0">
-                    Dossier: <strong><?php echo sanitize($dossier['numero']); ?></strong> -
-                    <?php echo sanitize($dossier['nom_demandeur']); ?>
-                </p>
+            <div class="card-header">
+                <h2 class="card-title-sm"><i class="fas fa-money-bill me-1" aria-hidden="true"></i> Enregistrement du paiement</h2>
+                <span class="text-muted-sgdi small">Le Chef de Service et les membres de la commission sont notifiés dès l&#039;enregistrement</span>
             </div>
 
             <div class="card-body">

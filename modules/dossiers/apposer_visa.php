@@ -142,32 +142,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $page_title = 'Apposer visa - ' . $dossier['numero'];
+require_once '../../includes/ui.php';
 require_once '../../includes/header.php';
 ?>
 
 <div class="container-fluid">
-    <!-- En-tête -->
-    <div class="row mb-4">
-        <div class="col">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item">
-                        <a href="<?php echo url('dashboard.php'); ?>">
-                            <i class="fas fa-home"></i> Tableau de bord
-                        </a>
-                    </li>
-                    <li class="breadcrumb-item">
-                        <a href="<?php echo url('modules/dossiers/viser_inspections.php'); ?>">
-                            <i class="fas fa-stamp"></i> Viser les dossiers
-                        </a>
-                    </li>
-                    <li class="breadcrumb-item active" aria-current="page">
-                        Apposer visa - <?php echo sanitize($dossier['numero']); ?>
-                    </li>
-                </ol>
-            </nav>
-        </div>
-    </div>
+    <?php echo uiEnteteDossier($dossier, 'Visa du Chef de Service (1/3)', '<a class="btn btn-outline-secondary" href="' . url('modules/dossiers/viser_inspections.php') . '"><i class="fas fa-list"></i> Dossiers à viser</a>'); ?>
 
     <div class="row">
         <!-- Informations du dossier -->

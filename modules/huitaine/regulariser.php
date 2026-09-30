@@ -80,22 +80,13 @@ if ($maintenant > $date_limite) {
 }
 
 $page_title = 'Régulariser une huitaine';
+require_once '../../includes/ui.php';
 require_once '../../includes/header.php';
 ?>
 
 <div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col">
-            <h1 class="h3">
-                <i class="fas fa-check-circle text-success"></i>
-                Régulariser une huitaine
-            </h1>
-            <p class="text-muted">
-                Dossier: <strong><?php echo sanitize($huitaine['numero']); ?></strong> -
-                <?php echo sanitize($huitaine['nom_demandeur']); ?>
-            </p>
-        </div>
-    </div>
+    <?php echo uiEnteteDossier(['id' => $huitaine['dossier_id'], 'numero' => $huitaine['numero'], 'nom_demandeur' => $huitaine['nom_demandeur'],
+        'type_infrastructure' => $huitaine['type_infrastructure'], 'sous_type' => $huitaine['sous_type'], 'statut' => 'en_huitaine'], 'Régulariser la huitaine'); ?>
 
     <?php if (!empty($errors)): ?>
     <div class="alert alert-danger">

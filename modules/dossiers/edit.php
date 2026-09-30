@@ -125,41 +125,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+require_once '../../includes/ui.php';
 require_once '../../includes/header.php';
 ?>
 
 <div class="container-fluid">
     <div class="row justify-content-center">
         <div class="col-lg-10">
-            <!-- En-tête -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h1 class="h3 mb-0">
-                        <?php echo $page_title; ?>
-                        <?php if ($dossier['est_historique']): ?>
-                            <span class="badge bg-secondary">Historique</span>
-                        <?php endif; ?>
-                    </h1>
-                    <p class="text-muted">
-                        Modification des informations du dossier
-                        <?php if ($is_admin && $dossier['est_historique']): ?>
-                            <span class="badge bg-warning text-dark">
-                                <i class="fas fa-shield-alt"></i> Mode Admin
-                            </span>
-                        <?php endif; ?>
-                    </p>
-                </div>
-                <div>
-                    <a href="<?php echo url('modules/dossiers/view.php?id=' . $dossier_id); ?>" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left"></i> Retour au dossier
-                    </a>
-                    <?php if ($_SESSION['user_role'] === 'chef_service' && in_array($dossier['statut'], ['brouillon', 'en_cours'])): ?>
-                    <a href="<?php echo url('modules/dossiers/upload_documents.php?id=' . $dossier_id); ?>" class="btn btn-info">
-                        <i class="fas fa-upload"></i> Uploader documents
-                    </a>
-                    <?php endif; ?>
-                </div>
-            </div>
+            <?php
+            $actions_edit = ($dossier['est_historique'] ? '<span class="status-badge phase-preparation">Dossier historique</span>' : '')
+                . ($is_admin && $dossier['est_historique'] ? '<span class="status-badge phase-attention"><i class="fas fa-shield-halved me-1"></i>Mode administrateur</span>' : '');
+            if ($_SESSION['user_role'] === 'chef_service' && in_array($dossier['statut'], ['brouillon', 'en_cours'])) {
+                $actions_edit .= '<a class="btn btn-outline-secondary" href="' . url('modules/dossiers/upload_documents.php?id=' . (int) $dossier_id) . '"><i class="fas fa-upload"></i> Documents</a>';
+            }
+            echo uiEnteteDossier($dossier, 'Modifier le dossier', $actions_edit);
+            ?>
 
             <!-- Alertes -->
             <?php if ($is_admin && $dossier['est_historique']): ?>

@@ -114,32 +114,14 @@ $documents_requis = getDocumentsRequis($dossier['type_infrastructure'], $dossier
 $documents_uploaded = getDocumentsUploadedByType($dossier_id);
 
 $page_title = 'Upload documents - ' . $dossier['numero'];
+require_once '../../includes/ui.php';
 require_once '../../includes/header.php';
 ?>
 
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
-            <!-- En-tête -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h1 class="h3 mb-1">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                        Upload des documents
-                    </h1>
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="<?php echo url('dashboard.php'); ?>">Dashboard</a></li>
-                            <li class="breadcrumb-item"><a href="<?php echo url('modules/dossiers/list.php'); ?>">Dossiers</a></li>
-                            <li class="breadcrumb-item"><a href="<?php echo url('modules/dossiers/view.php?id=' . $dossier_id); ?>">Dossier <?php echo htmlspecialchars($dossier['numero']); ?></a></li>
-                            <li class="breadcrumb-item active">Upload documents</li>
-                        </ol>
-                    </nav>
-                </div>
-                <a href="<?php echo url('modules/dossiers/view.php?id=' . $dossier_id); ?>" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left"></i> Retour
-                </a>
-            </div>
+            <?php echo uiEnteteDossier($dossier, 'Documents du dossier'); ?>
 
             <!-- Messages -->
             <?php if (!empty($errors)): ?>

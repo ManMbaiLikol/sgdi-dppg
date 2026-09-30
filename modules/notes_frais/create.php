@@ -59,22 +59,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+require_once '../../includes/ui.php';
 require_once '../../includes/header.php';
 ?>
 
 <div class="container-fluid">
-    <!-- En-tête -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="h3 mb-0"><?php echo $page_title; ?></h1>
-            <p class="text-muted">Créer une nouvelle note de frais d'inspection</p>
-        </div>
-        <div>
-            <a href="<?php echo url('modules/notes_frais/list.php'); ?>" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-left"></i> Retour à la liste
-            </a>
-        </div>
-    </div>
+    <?php echo uiPageHeader('Nouvelle note de frais', 'Frais d\'inspection à régler par le demandeur',
+        [['label' => 'Tableau de bord', 'url' => url('dashboard.php')], ['label' => 'Notes de frais', 'url' => url('modules/notes_frais/list.php')], ['label' => 'Nouvelle note']],
+        '<a class="btn btn-ghost" href="' . url('modules/notes_frais/list.php') . '"><i class="fas fa-arrow-left"></i> Retour à la liste</a>'); ?>
 
     <div class="row justify-content-center">
         <div class="col-md-8">

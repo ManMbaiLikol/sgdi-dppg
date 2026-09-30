@@ -140,20 +140,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $page_title = 'Constitution de commission - Dossier ' . $dossier['numero'];
+require_once '../../includes/ui.php';
 require_once '../../includes/header.php';
 ?>
 
+<?php echo uiEnteteDossier($dossier, 'Constitution de la commission'); ?>
+
 <div class="row">
-    <div class="col-md-8 offset-md-2">
+    <div class="col-xl-9">
         <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-users"></i> Constitution de la commission d'inspection
-                </h5>
-                <p class="mb-0">
-                    Dossier: <strong><?php echo sanitize($dossier['numero']); ?></strong> -
-                    <?php echo sanitize($dossier['nom_demandeur']); ?>
-                </p>
+            <div class="card-header">
+                <h2 class="card-title-sm"><i class="fas fa-users me-1" aria-hidden="true"></i> Constitution de la commission</h2>
+                <span class="text-muted-sgdi small">Trois membres obligatoires : cadre DPPG, cadre DAJ et chef de commission</span>
             </div>
 
             <div class="card-body">
