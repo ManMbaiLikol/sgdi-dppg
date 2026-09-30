@@ -141,7 +141,8 @@ echo uiPageHeader(
     var grappe = L.markerClusterGroup({
         showCoverageOnHover: false, maxClusterRadius: 45, chunkedLoading: true, spiderfyOnMaxZoom: true,
         iconCreateFunction: function (c) {
-            var n = c.getChildCount(), s = n < 10 ? 30 : n < 100 ? 38 : n < 500 ? 46 : 54;
+            // Un marqueur de localité compte pour tous les dossiers qu'il regroupe
+            var n = c.getAllChildMarkers().reduce(function (t, m) { return t + (m._poids || 1); }, 0), s = n < 10 ? 30 : n < 100 ? 38 : n < 500 ? 46 : 54;
             return L.divIcon({ html: '<div class="mk-cluster" style="width:' + s + 'px;height:' + s + 'px">' + n + '</div>', className: '', iconSize: [s, s] });
         }
     }).addTo(carte);
@@ -182,6 +183,43 @@ echo uiPageHeader(
                 '<a class="btn btn-sm btn-primary" href="' + URL_DOSSIER + p[0] + '">Ouvrir le dossier</a></div>';
         });
         m._sgdi = p;
+        return m;
+    }
+    // Dossiers placés au centre de la même localité : un seul marqueur qui les liste,
+    // au lieu d'une pile de points aux coordonnées identiques
+    var groupesApprox = [];
+    function regrouperApprox(liste) {
+        var groupes = {}, res = [];
+        liste.forEach(function (m) {
+            var p = m._sgdi;
+            if (!p || !p[11]) { res.push(m); return; }
+            var k = p[1] + ',' + p[2];
+            (groupes[k] = groupes[k] || []).push(m);
+        });
+        groupesApprox = [];
+        Object.keys(groupes).forEach(function (k) {
+            var g = groupes[k];
+            if (g.length === 1) { res.push(g[0]); return; }
+            var m = marqueurGroupe(g);
+            groupesApprox.push(m);
+            res.push(m);
+        });
+        return res;
+    }
+    function marqueurGroupe(g) {
+        var p0 = g[0]._sgdi, n = g.length;
+        var m = L.marker([p0[1], p0[2]], { icon: L.divIcon({ className: '', html: '<span class="mk-groupe" title="' + n + ' dossiers, position approximative">' + n + '</span>', iconSize: [28, 28], iconAnchor: [14, 14] }) });
+        m.bindPopup(function () {
+            return '<h3>' + n + ' dossiers · ' + esc(p0[7] || 'localité') + '</h3>' +
+                '<div class="verdict phase-attention mb-2">Positions approximatives : centre de la localité, à préciser sur le terrain.</div>' +
+                '<ul class="liste-groupe">' + g.map(function (x) {
+                    var p = x._sgdi, st = STATUTS[p[9]] || [p[9], 'preparation'];
+                    return '<li><a href="' + URL_DOSSIER + p[0] + '"><strong>' + esc(p[5] || 'Demandeur non renseigné') + '</strong></a>' +
+                        '<span class="small text-muted-sgdi">' + esc(p[10]) + (p[6] ? ' · ' + esc(p[6]) : '') + ' · ' + esc(st[0]) + '</span></li>';
+                }).join('') + '</ul>';
+        }, { maxWidth: 340 });
+        m._poids = n;
+        m._membres = g.map(function (x) { return x._sgdi[0]; });
         return m;
     }
     function marqueurOsm(p, absent) {
@@ -295,7 +333,7 @@ echo uiPageHeader(
         });
 
         grappe.clearLayers();
-        grappe.addLayers(visibles);
+        grappe.addLayers(regrouperApprox(visibles));
         document.querySelectorAll('[data-compteur]').forEach(function (el) { el.textContent = nf(compteurs[el.getAttribute('data-compteur')] || 0); });
 
         var noms = Object.keys(parRegion).filter(Boolean).sort(function (a, b) { return parRegion[b] - parRegion[a]; });
@@ -406,6 +444,7 @@ echo uiPageHeader(
     function ouvrirDossier(id) {
         var m = D.sgdi.filter(function (x) { return x._sgdi[0] === id; })[0];
         if (!m) { $('carte-meta').textContent = 'Ce dossier n\'a pas de coordonnées GPS exploitables.'; return; }
+        if (!grappe.hasLayer(m)) m = groupesApprox.filter(function (g) { return g._membres.indexOf(id) !== -1; })[0] || m;
         grappe.zoomToShowLayer(m, function () { m.openPopup(); });
     }
 

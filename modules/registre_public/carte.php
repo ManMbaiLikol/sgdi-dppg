@@ -1,5 +1,6 @@
 <?php
 // Carte publique interactive des infrastructures
+require_once '../../config/app.php';
 require_once '../../config/database.php';
 require_once '../../includes/functions.php';
 require_once '../../includes/map_functions.php';
@@ -281,6 +282,7 @@ $stats = [
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <script src="<?php echo asset('js/carte-groupes.js'); ?>"></script>
     <script>
         // Debug: Vérifier que Leaflet est chargé
         console.log('Leaflet chargé:', typeof L !== 'undefined');
@@ -305,14 +307,14 @@ $stats = [
         const markerCluster = L.markerClusterGroup({
             maxClusterRadius: 50,
             spiderfyOnMaxZoom: true,
-            showCoverageOnHover: false
+            showCoverageOnHover: false,
+            iconCreateFunction: sgdiIconeGrappe
         });
 
 
         // Données des infrastructures
         const infrastructures = <?php echo json_encode($infrastructures); ?>;
         console.log('Nombre d\'infrastructures:', infrastructures.length);
-        console.log('Infrastructures:', infrastructures);
 
         // Fonction pour obtenir la couleur du marqueur
         function getMarkerColor(type) {
@@ -368,13 +370,11 @@ $stats = [
         // Ajouter les marqueurs avec cercles de contrainte de 500m
         console.log('Début ajout des marqueurs...');
         let markersAdded = 0;
-        infrastructures.forEach(infra => {
-            console.log('Traitement infrastructure:', infra.numero, 'Lat:', infra.latitude, 'Lng:', infra.longitude);
+        sgdiRegrouperApprox(infrastructures, markerCluster).forEach(infra => {
             if (infra.latitude && infra.longitude) {
                 const marker = L.marker([infra.latitude, infra.longitude], {
                     icon: createCustomIcon(infra.type_infrastructure)
                 });
-                console.log('Marqueur créé pour:', infra.numero);
                 markersAdded++;
 
                 // Construire le popup selon le type d'infrastructure
@@ -470,7 +470,6 @@ $stats = [
                 marker.bindPopup(infra.approximatif ? popupContent + '<div style="margin-top:6px;padding:4px 8px;border-radius:6px;background:#fff2da;color:#8a5300;font-size:12px">Position approximative (centre de la localité)</div>' : popupContent);
                 markerCluster.addLayer(marker);
 
-                console.log('Marqueur créé');
             }
         });
         console.log('Total marqueurs ajoutés:', markersAdded);

@@ -1,5 +1,6 @@
 <?php
 // Carte publique des infrastructures autorisées - SGDI
+require_once 'config/app.php';
 require_once 'config/database.php';
 require_once 'includes/functions.php';
 require_once 'includes/map_functions.php';
@@ -314,6 +315,7 @@ $stats = [
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="<?php echo asset('js/carte-groupes.js'); ?>"></script>
 
 <script>
 const map = L.map('map').setView([7.3697, 12.3547], 6);
@@ -323,7 +325,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 18
 }).addTo(map);
 
-const markers = L.markerClusterGroup();
+const markers = L.markerClusterGroup({ iconCreateFunction: sgdiIconeGrappe });
 const infrastructures = <?php echo json_encode($infrastructures); ?>;
 
 const iconColors = {
@@ -333,7 +335,7 @@ const iconColors = {
     'centre_emplisseur': '#5f27cd'
 };
 
-infrastructures.forEach(function(infra) {
+sgdiRegrouperApprox(infrastructures, markers).forEach(function(infra) {
     const color = iconColors[infra.type_infrastructure] || '#6c757d';
 
     const icon = L.divIcon({
