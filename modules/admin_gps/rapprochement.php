@@ -24,7 +24,20 @@ $onglet = in_array($_GET['onglet'] ?? '', $onglets, true) ? $_GET['onglet'] : 'u
 // ---------- Actions ----------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exigerCSRF();
-    set_time_limit(120);
+    set_time_limit(300);
+
+    // Tout attribuer d'un coup : les erreurs se corrigent ensuite au cas par cas dans Gestion GPS
+    if (($_POST['action'] ?? '') === 'attribuer_tout') {
+        try {
+            $r = geolocAttribuerTout($_SESSION['user_id']);
+            redirect(url('modules/admin_gps/index.php?est_historique=1&has_gps=a_verifier'),
+                ($r['sure'] + $r['choix_automatique']) . ' station(s) attribuée(s) (dont ' . $r['choix_automatique'] . ' à vérifier), '
+                . $r['approximatif'] . ' dossier(s) placé(s) au centre de leur localité.', 'success');
+        } catch (Exception $e) {
+            error_log('Attribution automatique GPS : ' . $e->getMessage());
+            redirect(url('modules/admin_gps/rapprochement.php'), 'L\'attribution automatique a échoué, rien n\'a été modifié.', 'error');
+        }
+    }
     $propositions = geolocPropositions()['dossiers'];
     $action = $_POST['action'] ?? '';
     $onglet_retour = ['valider_uniques' => 'uniques', 'placer_approx' => 'aucune'][$action] ?? 'ambigus';
@@ -99,6 +112,9 @@ echo uiPageHeader(
     'Positions proposées d\'après OpenStreetMap. Rien n\'est enregistré sans votre validation.',
     [['label' => 'Tableau de bord', 'url' => url('dashboard.php')], ['label' => 'Gestion GPS', 'url' => url('modules/admin_gps/index.php')], ['label' => 'Rapprochement']],
     '<a class="btn btn-ghost" href="' . url('modules/admin_gps/index.php') . '"><i class="fas fa-arrow-left"></i> Gestion GPS</a>'
+    . '<form method="post" class="d-inline" onsubmit="return confirm(\'Attribuer automatiquement toutes les correspondances ?\\n\\nPlusieurs candidates : la meilleure station encore libre (marquée « à vérifier »).\\nAucune station : centre de la localité.\\n\\nLes erreurs se corrigent ensuite dans Gestion GPS.\');">'
+    . csrfField() . '<input type="hidden" name="action" value="attribuer_tout">'
+    . '<button type="submit" class="btn btn-primary"><i class="fas fa-wand-magic-sparkles"></i> Tout attribuer automatiquement</button></form>'
 );
 ?>
 

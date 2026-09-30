@@ -47,6 +47,12 @@ if ($filters['has_gps'] === 'yes') {
     $where[] = 'coordonnees_gps IS NOT NULL AND coordonnees_gps != ""';
 } elseif ($filters['has_gps'] === 'no') {
     $where[] = '(coordonnees_gps IS NULL OR coordonnees_gps = "")';
+} elseif ($filters['has_gps'] === 'a_verifier') {
+    $where[] = 'source_gps LIKE ?';
+    $params[] = 'OSM (attribution automatique%';
+} elseif ($filters['has_gps'] === 'approx') {
+    $where[] = 'source_gps = ?';
+    $params[] = 'Centre de la localité (approximatif)';
 }
 
 if ($filters['est_historique'] === '1') {
@@ -253,6 +259,8 @@ require_once '../../includes/header.php';
                     <option value="">Tous</option>
                     <option value="yes" <?= $filters['has_gps'] === 'yes' ? 'selected' : '' ?>>Avec GPS</option>
                     <option value="no" <?= $filters['has_gps'] === 'no' ? 'selected' : '' ?>>Sans GPS</option>
+                    <option value="a_verifier" <?= $filters['has_gps'] === 'a_verifier' ? 'selected' : '' ?>>Attribution automatique à vérifier</option>
+                    <option value="approx" <?= $filters['has_gps'] === 'approx' ? 'selected' : '' ?>>Position approximative (centre de la localité)</option>
                 </select>
             </div>
             <div class="col-md-2">

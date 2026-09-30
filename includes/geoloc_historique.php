@@ -21,6 +21,8 @@ require_once __DIR__ . '/map_functions.php';
 // Score enregistré dans dossiers.score_matching_osm
 define('GEOLOC_SCORE_UNIQUE', 95);   // correspondance unique validée
 define('GEOLOC_SCORE_CHOIX', 75);    // candidate choisie par un humain parmi plusieurs
+define('GEOLOC_SCORE_AUTO', 60);     // meilleure candidate attribuée automatiquement, à vérifier
+define('GEOLOC_SOURCE_AUTO', 'OSM (attribution automatique – à vérifier)');
 define('GEOLOC_SCORE_APPROX', 30);   // centre de la localité : position approximative
 define('GEOLOC_SCORE_IGNORE', 0);    // « aucune station ne correspond » : plus de candidates proposées
 define('GEOLOC_SOURCE_APPROX', 'Centre de la localité (approximatif)');
@@ -161,7 +163,7 @@ function geolocTrouverLocalite($ville, $region, array $lieux_par_region, array $
  *   candidate : ['lat', 'lon', 'nom', 'marque', 'distance' (m du centre de la localité), 'niveau']
  *   type : 'unique' | 'ambigu' | 'aucune' | 'localite_introuvable'
  */
-function geolocPropositions() {
+function geolocPropositions(array $exclure = []) {
     global $pdo;
 
     // Régions officielles, reconnues malgré les variantes (« Sud_Ouest », « SUD-OUEST »)
@@ -187,6 +189,7 @@ function geolocPropositions() {
         $c = parseGPSCoordinates($r['coordonnees_gps']);
         if ($c) $positions[] = [$c['latitude'], $c['longitude']];
     }
+    foreach ($exclure as $pos) $positions[] = $pos; // stations déjà attribuées (attribution automatique en cours)
     $stations = [];
     foreach (osmDonnees()['points'] as $p) {
         if ($p[2] !== 'station') continue;
@@ -296,7 +299,8 @@ function geolocEcrirePosition($dossier_id, $lat, $lon, $source, $score) {
  */
 function geolocEnregistrer($dossier_id, array $candidate, $score, $user_id) {
     $precisions = ['meme_marque_eloignee' => ' – même marque, plus loin', 'autre_marque' => ' – autre marque dans OSM', 'sans_marque' => ' – sans marque dans OSM'];
-    $source = ($score === GEOLOC_SCORE_UNIQUE ? 'OSM (rapprochement automatique validé)' : 'OSM (choix parmi les candidates)')
+    $sources = [GEOLOC_SCORE_UNIQUE => 'OSM (rapprochement automatique validé)', GEOLOC_SCORE_AUTO => GEOLOC_SOURCE_AUTO];
+    $source = ($sources[$score] ?? 'OSM (choix parmi les candidates)')
             . ($precisions[$candidate['niveau'] ?? ''] ?? '');
     if (!geolocEcrirePosition($dossier_id, $candidate['lat'], $candidate['lon'], $source, $score)) return false;
     addHistoriqueDossier($dossier_id, $user_id, 'modification_gps',
@@ -312,6 +316,80 @@ function geolocPlacerApproximatif($dossier_id, array $localite, $user_id) {
     addHistoriqueDossier($dossier_id, $user_id, 'modification_gps',
         'Position approximative : centre de ' . $localite['nom'] . ' (' . $localite['lat'] . ',' . $localite['lon'] . '), à préciser sur le terrain');
     return true;
+}
+
+/**
+ * Attribution automatique de toutes les correspondances, sans validation une à une.
+ *   - correspondance sûre : la station trouvée ;
+ *   - plusieurs candidates : la meilleure candidate encore libre (même marque d'abord, puis la plus proche du centre) ;
+ *     une station n'est jamais attribuée à deux dossiers ;
+ *   - aucune station libre, ou aucune station OSM : centre de la localité (position approximative).
+ * Les positions gardent une source explicite pour être revues et corrigées au cas par cas.
+ *
+ * @param bool $simulation true : calcule sans rien écrire
+ * @return array Nombre de dossiers par résultat
+ */
+function geolocAttribuerTout($user_id, $simulation = false) {
+    global $pdo;
+    $rang = ['meme_marque' => 0, 'meme_marque_eloignee' => 1, 'autre_marque' => 2, 'sans_marque' => 3];
+    $stats = ['sure' => 0, 'choix_automatique' => 0, 'approximatif' => 0, 'deja_approximatif' => 0, 'localite_introuvable' => 0];
+    $utilisees = [];   // stations attribuées pendant l'exécution : "lat,lon" => [lat, lon]
+    $attribues = [];   // dossiers ayant reçu une station
+    $cle = function ($c) { return round($c['lat'], 5) . ',' . round($c['lon'], 5); };
+
+    if (!$simulation) $pdo->beginTransaction();
+    try {
+        // Passages successifs : quand les stations de la même marque sont toutes prises, le passage suivant
+        // propose le niveau d'après (même marque plus loin, autre marque…), jusqu'à ce que plus rien ne change.
+        for ($passage = 1; ; $passage++) {
+            $propositions = geolocPropositions(array_values($utilisees))['dossiers'];
+
+            // Correspondances sûres d'abord, puis meilleur niveau et station la plus proche du centre
+            $ordre = array_filter($propositions, function ($p) use ($attribues) {
+                return !isset($attribues[$p['dossier']['id']]) && in_array($p['type'], ['unique', 'ambigu'], true);
+            });
+            usort($ordre, function ($a, $b) use ($rang) {
+                $poids = function ($p) use ($rang) { return $p['type'] === 'unique' ? 0 : 1 + $rang[$p['candidates'][0]['niveau']]; };
+                return [$poids($a), $a['candidates'][0]['distance'], $a['dossier']['id']]
+                   <=> [$poids($b), $b['candidates'][0]['distance'], $b['dossier']['id']];
+            });
+
+            $nouveaux = 0;
+            foreach ($ordre as $p) {
+                $choisie = null;
+                foreach ($p['candidates'] as $c) {
+                    if (!isset($utilisees[$cle($c)])) { $choisie = $c; break; }
+                }
+                if (!$choisie) continue;
+                $id = (int) $p['dossier']['id'];
+                $utilisees[$cle($choisie)] = [$choisie['lat'], $choisie['lon']];
+                $attribues[$id] = true;
+                $nouveaux++;
+                $sure = $passage === 1 && $p['type'] === 'unique';
+                $stats[$sure ? 'sure' : 'choix_automatique']++;
+                if (!$simulation) geolocEnregistrer($id, $choisie, $sure ? GEOLOC_SCORE_UNIQUE : GEOLOC_SCORE_AUTO, $user_id);
+            }
+            if (!$nouveaux) break;
+        }
+
+        // Aucune station libre : centre de la localité
+        foreach ($propositions as $id => $p) {
+            if (isset($attribues[$id])) continue;
+            if ($p['type'] === 'localite_introuvable') {
+                $stats['localite_introuvable']++;
+            } elseif ($p['approximatif']) {
+                $stats['deja_approximatif']++;
+            } else {
+                $stats['approximatif']++;
+                if (!$simulation) geolocPlacerApproximatif($id, $p['localite'], $user_id);
+            }
+        }
+        if (!$simulation) $pdo->commit();
+    } catch (Exception $e) {
+        if (!$simulation) $pdo->rollBack();
+        throw $e;
+    }
+    return $stats;
 }
 
 /**
