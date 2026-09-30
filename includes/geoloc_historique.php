@@ -126,6 +126,22 @@ function geolocMemeMarque($nom_sgdi, $marque_sgdi, array $point_osm) {
     return true;
 }
 
+/**
+ * Noms compatibles, pour le contrôle a posteriori : même marque, ou un mot distinctif commun
+ * (« AFRICA PETRO. » et « Africa Petroleum », « SOPROPEC » et « Station Sopropec »)
+ */
+function geolocNomsCompatibles($nom_sgdi, array $point_osm) {
+    if (geolocMemeMarque($nom_sgdi, osmMarque(['name' => $nom_sgdi]), $point_osm)) return true;
+    $cible = geolocMotsMarque(($point_osm[8] ?? '') . ' ' . $point_osm[3]);
+    foreach (geolocMotsMarque($nom_sgdi) as $m) {
+        if (strlen($m) < 4) continue;
+        foreach ($cible as $c) {
+            if (strlen($c) >= 4 && (strpos($c, $m) === 0 || strpos($m, $c) === 0)) return true;
+        }
+    }
+    return false;
+}
+
 function geolocDistance($lat1, $lon1, $lat2, $lon2) {
     $x = deg2rad($lon2 - $lon1) * cos(deg2rad(($lat1 + $lat2) / 2));
     $y = deg2rad($lat2 - $lat1);
@@ -321,7 +337,8 @@ function geolocPlacerApproximatif($dossier_id, array $localite, $user_id) {
 /**
  * Attribution automatique de toutes les correspondances, sans validation une à une.
  *   - correspondance sûre : la station trouvée ;
- *   - plusieurs candidates : la meilleure candidate encore libre (même marque d'abord, puis la plus proche du centre) ;
+ *   - plusieurs candidates : la meilleure candidate encore libre (même marque d'abord, puis la plus proche du centre,
+ *     à défaut une station sans nom ni marque dans OSM, jamais une station d'une autre marque) ;
  *     une station n'est jamais attribuée à deux dossiers ;
  *   - aucune station libre, ou aucune station OSM : centre de la localité (position approximative).
  * Les positions gardent une source explicite pour être revues et corrigées au cas par cas.
@@ -344,10 +361,14 @@ function geolocAttribuerTout($user_id, $simulation = false) {
         for ($passage = 1; ; $passage++) {
             $propositions = geolocPropositions(array_values($utilisees))['dossiers'];
 
+            // Jamais une station d'une autre marque : le nom du dossier ne correspondrait pas à la station réelle
+            $ordre = [];
+            foreach ($propositions as $p) {
+                if (isset($attribues[$p['dossier']['id']]) || !in_array($p['type'], ['unique', 'ambigu'], true)) continue;
+                $p['candidates'] = array_values(array_filter($p['candidates'], function ($c) { return $c['niveau'] !== 'autre_marque'; }));
+                if ($p['candidates']) $ordre[] = $p;
+            }
             // Correspondances sûres d'abord, puis meilleur niveau et station la plus proche du centre
-            $ordre = array_filter($propositions, function ($p) use ($attribues) {
-                return !isset($attribues[$p['dossier']['id']]) && in_array($p['type'], ['unique', 'ambigu'], true);
-            });
             usort($ordre, function ($a, $b) use ($rang) {
                 $poids = function ($p) use ($rang) { return $p['type'] === 'unique' ? 0 : 1 + $rang[$p['candidates'][0]['niveau']]; };
                 return [$poids($a), $a['candidates'][0]['distance'], $a['dossier']['id']]
@@ -390,6 +411,75 @@ function geolocAttribuerTout($user_id, $simulation = false) {
         throw $e;
     }
     return $stats;
+}
+
+/**
+ * Contrôle des correspondances : pour chaque dossier historique placé sur une station OpenStreetMap,
+ * compare son nom avec le nom et la marque de la station OSM à la même position.
+ * @return array liste de ['dossier', 'point' (station OSM ou null), 'verdict' : concordant | discordant | indetermine | introuvable]
+ */
+function geolocControlerCorrespondances() {
+    global $pdo;
+    $stations = array_values(array_filter(osmDonnees()['points'], function ($p) { return $p[2] === 'station'; }));
+    $dossiers = $pdo->query("SELECT id, numero, nom_demandeur, ville, region, coordonnees_gps, source_gps, score_matching_osm
+                             FROM dossiers WHERE est_historique = 1 AND source_gps LIKE 'OSM%' ORDER BY region, ville, nom_demandeur")->fetchAll();
+    $resultats = [];
+    foreach ($dossiers as $d) {
+        $c = parseGPSCoordinates($d['coordonnees_gps']);
+        $point = null;
+        $meilleure = GEOLOC_DISTANCE_DEJA_UTILISEE;
+        if ($c) {
+            foreach ($stations as $p) {
+                if (abs($p[0] - $c['latitude']) > .001 || abs($p[1] - $c['longitude']) > .001) continue;
+                $dist = geolocDistance($c['latitude'], $c['longitude'], $p[0], $p[1]);
+                if ($dist < $meilleure) { $meilleure = $dist; $point = $p; }
+            }
+        }
+        if (!$point) {
+            $verdict = 'introuvable'; // station retirée d'OSM depuis, ou position modifiée à la main
+        } elseif (geolocNomsCompatibles($d['nom_demandeur'], $point)) {
+            $verdict = 'concordant';
+        } elseif ($point[4] === 'Autre / indépendant' && trim(($point[8] ?? '') . $point[3]) === '') {
+            $verdict = 'indetermine'; // station sans nom ni marque dans OSM : rien ne contredit le dossier
+        } else {
+            $verdict = 'discordant';
+        }
+        $resultats[] = ['dossier' => $d, 'point' => $point, 'verdict' => $verdict];
+    }
+    return $resultats;
+}
+
+/**
+ * Corrige les correspondances discordantes attribuées automatiquement : la position est retirée,
+ * puis l'attribution automatique cherche une station libre de la même marque, à défaut le centre de la localité.
+ * Les choix faits à la main dans l'écran de rapprochement ne sont pas modifiés.
+ * @return array ['controle' => liste, 'corriges' => n, 'attribution' => statistiques]
+ */
+function geolocCorrigerDiscordances($user_id, $simulation = false) {
+    global $pdo;
+    $controle = geolocControlerCorrespondances();
+    $a_corriger = array_filter($controle, function ($r) {
+        return $r['verdict'] === 'discordant' && strpos($r['dossier']['source_gps'], 'OSM (choix parmi') !== 0;
+    });
+    if ($simulation) return ['controle' => $controle, 'corriges' => count($a_corriger), 'attribution' => null];
+
+    $pdo->beginTransaction();
+    try {
+        $stmt = $pdo->prepare("UPDATE dossiers SET coordonnees_gps = NULL, latitude = NULL, longitude = NULL, source_gps = NULL, score_matching_osm = NULL
+                               WHERE id = ? AND est_historique = 1");
+        foreach ($a_corriger as $r) {
+            $stmt->execute([$r['dossier']['id']]);
+            addHistoriqueDossier($r['dossier']['id'], $user_id, 'modification_gps',
+                'Position retirée : la station OpenStreetMap attribuée automatiquement (' . ($r['point'][3] ?: 'sans nom') . ', ' . $r['point'][4]
+                . ') ne correspond pas au nom du dossier');
+        }
+        $pdo->commit();
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
+    // Nouvelle attribution (même marque uniquement), sinon centre de la localité
+    return ['controle' => $controle, 'corriges' => count($a_corriger), 'attribution' => geolocAttribuerTout($user_id)];
 }
 
 /**
