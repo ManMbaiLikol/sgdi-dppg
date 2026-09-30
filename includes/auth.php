@@ -253,7 +253,7 @@ function hasPermission($permission_code) {
  * @return bool
  */
 function userHasPermission($user_id, $permission_code) {
-    $permissions = getUserPermissionCodes($user_id);
+    $permissions = chargerPermissionsUtilisateur($user_id);
 
     if ($permissions === null) {
         // Tables absentes ou aucune permission assignée - utiliser le fallback basé sur le rôle
@@ -269,7 +269,7 @@ function userHasPermission($user_id, $permission_code) {
  *
  * @return array|null Codes indexés (code => true), ou null si le fallback par rôle s'applique
  */
-function getUserPermissionCodes($user_id) {
+function chargerPermissionsUtilisateur($user_id) {
     global $pdo;
     static $cache = [];
 
