@@ -466,7 +466,8 @@ $stats = [
 
                 popupContent += `</div>`;
 
-                marker.bindPopup(popupContent);
+                // Position approximative : centre de la localité faute de relevé précis
+                marker.bindPopup(infra.approximatif ? popupContent + '<div style="margin-top:6px;padding:4px 8px;border-radius:6px;background:#fff2da;color:#8a5300;font-size:12px">Position approximative (centre de la localité)</div>' : popupContent);
                 markerCluster.addLayer(marker);
 
                 console.log('Marqueur créé');

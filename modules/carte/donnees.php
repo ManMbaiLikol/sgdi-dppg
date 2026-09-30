@@ -6,7 +6,7 @@
  * POST action=synchroniser_osm (admin, chef de service) : resynchronise la référence OSM
  *
  * Format compact pour limiter le volume :
- *   sgdi : [id, lat, lon, type, nature, demandeur, opérateur, ville, région, statut, numéro]
+ *   sgdi : [id, lat, lon, type, nature, demandeur, opérateur, ville, région, statut, numéro, approximatif (0|1)]
  *   poi  : [lat, lon, nom, catégorie, distance min (m), distance min rurale (m), couleur]
  *   osm  : voir includes/osm_sync.php
  */
@@ -62,7 +62,7 @@ foreach (getAllInfrastructuresForMap([]) as $i) {
         (string) ($i['operateur_proprietaire'] ?: $i['entreprise_beneficiaire']),
         (string) ($i['ville'] ?: $i['arrondissement']),
         osmRegionDuPoint($lat, $lon) ?: (string) $i['region'],
-        $i['statut'], $i['numero'],
+        $i['statut'], $i['numero'], !empty($i['approximatif']) ? 1 : 0,
     ];
 }
 
@@ -83,7 +83,7 @@ try {
     $stations_total = (int) $pdo->query("SELECT COUNT(*) FROM dossiers WHERE type_infrastructure = 'station_service'")->fetchColumn();
 } catch (Exception $e) {
 }
-$stations_geolocalisees = count(array_filter($sgdi, function ($p) { return $p[3] === 'station_service'; }));
+$stations_geolocalisees = count(array_filter($sgdi, function ($p) { return $p[3] === 'station_service' && !$p[11]; }));
 
 header('Cache-Control: private, max-age=60');
 echo json_encode([

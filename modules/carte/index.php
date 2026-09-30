@@ -170,13 +170,14 @@ echo uiPageHeader(
     /* ---------- Marqueurs ---------- */
     function marqueurSgdi(p) {
         var s = STATUTS[p[9]] || [p[9], 'preparation'];
-        var m = L.marker([p[1], p[2]], { icon: L.divIcon({ className: '', html: '<span class="mk mk-' + p[3] + '"></span>', iconSize: [16, 16], iconAnchor: [8, 8] }) });
+        var m = L.marker([p[1], p[2]], { icon: L.divIcon({ className: '', html: '<span class="mk mk-' + p[3] + (p[11] ? ' is-approx' : '') + '"></span>', iconSize: [16, 16], iconAnchor: [8, 8] }) });
         m.bindPopup(function () {
             return '<h3>' + esc(p[5] || 'Demandeur non renseigné') + '</h3>' +
                 '<div>' + esc(TYPES[p[3]] || p[3]) + (p[4] ? ' · ' + esc(p[4].charAt(0).toUpperCase() + p[4].slice(1)) : '') + '</div>' +
                 (p[6] ? '<div>Opérateur : <strong>' + esc(p[6]) + '</strong></div>' : '') +
                 '<div class="text-muted-sgdi">' + esc([p[7], p[8]].filter(Boolean).join(', ')) + '</div>' +
                 '<div class="my-2"><span class="status-badge phase-' + s[1] + '">' + esc(s[0]) + '</span></div>' +
+                (p[11] ? '<div class="verdict phase-attention mb-2">Position approximative : centre de la localité, à préciser sur le terrain.</div>' : '') +
                 '<div class="d-flex justify-content-between align-items-center gap-2"><span class="small text-muted-sgdi">' + esc(p[10]) + '</span>' +
                 '<a class="btn btn-sm btn-primary" href="' + URL_DOSSIER + p[0] + '">Ouvrir le dossier</a></div>';
         });
@@ -211,7 +212,7 @@ echo uiPageHeader(
                 D.poi = json.poi;
                 D.osmMaj = json.osm.maj;
                 // Stations OSM sans dossier SGDI proche
-                var stationsSgdi = json.sgdi.filter(function (p) { return p[3] === 'station_service'; });
+                var stationsSgdi = json.sgdi.filter(function (p) { return p[3] === 'station_service' && !p[11]; });
                 var absents = 0;
                 D.osm = json.osm.points.map(function (p) {
                     var absent = false;
@@ -330,7 +331,7 @@ echo uiPageHeader(
             L.circle([p[0], p[1]], { radius: p[4], className: 'zone-contrainte', interactive: false }).addTo(coucheZones);
         });
         D.sgdi.forEach(function (m) {
-            if (m._sgdi[3] === 'station_service') L.circle(m.getLatLng(), { radius: DISTANCE_URBAINE, className: 'zone-contrainte', interactive: false }).addTo(coucheZones);
+            if (m._sgdi[3] === 'station_service' && !m._sgdi[11]) L.circle(m.getLatLng(), { radius: DISTANCE_URBAINE, className: 'zone-contrainte', interactive: false }).addTo(coucheZones);
         });
     }
     $('l-poi').addEventListener('change', function () { this.checked ? couchePoi.addTo(carte) : carte.removeLayer(couchePoi); });
@@ -355,7 +356,7 @@ echo uiPageHeader(
                       L.circle(latlng, { radius: DISTANCE_RURALE, className: 'zone-rurale', interactive: false }).addTo(carte),
                       L.marker(latlng).addTo(carte)];
         // Stations : dossiers SGDI + stations OSM absentes du SGDI
-        var stations = D.sgdi.filter(function (m) { return m._sgdi[3] === 'station_service'; }).map(function (m) { return { nom: m._sgdi[5] + ' (' + m._sgdi[10] + ')', ll: m.getLatLng() }; })
+        var stations = D.sgdi.filter(function (m) { return m._sgdi[3] === 'station_service' && !m._sgdi[11]; }).map(function (m) { return { nom: m._sgdi[5] + ' (' + m._sgdi[10] + ')', ll: m.getLatLng() }; })
             .concat(D.osm.filter(function (m) { return m._absent; }).map(function (m) { return { nom: (m._osm[3] || 'Station') + ' (OpenStreetMap)', ll: m.getLatLng() }; }));
         var proches = stations.map(function (s) { return { nom: s.nom, d: carte.distance(latlng, s.ll) }; })
             .filter(function (x) { return x.d < DISTANCE_URBAINE; }).sort(function (a, b) { return a.d - b.d; });

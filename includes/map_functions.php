@@ -331,7 +331,7 @@ function getAllInfrastructuresForMap($filters = []) {
     $sql = "SELECT id, numero, type_infrastructure, sous_type, nom_demandeur,
                    ville, region, quartier, arrondissement, departement, lieu_dit,
                    coordonnees_gps, statut, date_creation,
-                   operateur_proprietaire, entreprise_beneficiaire
+                   operateur_proprietaire, entreprise_beneficiaire, source_gps
             FROM dossiers
             WHERE coordonnees_gps IS NOT NULL
             AND coordonnees_gps != ''";
@@ -371,6 +371,8 @@ function getAllInfrastructuresForMap($filters = []) {
         if ($coords) {
             $infra['latitude'] = $coords['latitude'];
             $infra['longitude'] = $coords['longitude'];
+            // Centre de la localité faute de mieux : à signaler sur les cartes, pas pour les distances
+            $infra['approximatif'] = ($infra['source_gps'] ?? '') === 'Centre de la localité (approximatif)';
             $result[] = $infra;
         }
     }

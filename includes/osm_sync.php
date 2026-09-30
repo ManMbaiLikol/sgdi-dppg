@@ -182,12 +182,16 @@ function osmSynchroniser($fichier = OSM_FICHIER_CACHE) {
  */
 function osmSynchroniserLieux($fichier = OSM_FICHIER_LIEUX) {
     $brut = osmRequete('[out:json][timeout:120];area["ISO3166-1"="CM"][admin_level=2]->.cm;'
-        . 'node["place"~"^(city|town|village|suburb|neighbourhood|quarter|hamlet)$"]["name"](area.cm);out;');
+        . 'nwr["place"~"^(city|town|village|suburb|neighbourhood|quarter|hamlet|locality)$"]["name"](area.cm);out center tags;');
     $lieux = [];
     foreach ($brut['elements'] as $e) {
-        $region = osmRegionDuPoint($e['lat'], $e['lon']);
+        // Point, ou centre du contour (quartiers décrits par une surface)
+        $lat = $e['lat'] ?? ($e['center']['lat'] ?? null);
+        $lon = $e['lon'] ?? ($e['center']['lon'] ?? null);
+        if ($lat === null) continue;
+        $region = osmRegionDuPoint($lat, $lon);
         if ($region === '') continue;
-        $lieux[] = [trim($e['tags']['name']), round($e['lat'], 5), round($e['lon'], 5), $e['tags']['place'], $region];
+        $lieux[] = [trim($e['tags']['name']), round($lat, 5), round($lon, 5), $e['tags']['place'], $region];
     }
     if (count($lieux) < 1000) {
         throw new RuntimeException('Réponse Overpass incomplète (' . count($lieux) . ' lieux)');

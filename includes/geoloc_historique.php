@@ -4,9 +4,14 @@
  *
  * Les dossiers historiques (import MINEE) n'ont que la marque (nom_demandeur), la localité (ville)
  * et la région. Pour chacun :
- *   1. la localité est retrouvée parmi les lieux habités OSM de la même région (tolérance aux coquilles) ;
- *   2. les stations OSM de la même marque sont cherchées dans un rayon adapté à la taille du lieu ;
- *   3. le résultat est « unique » (une station pour un dossier), « ambigu » (choix humain) ou sans candidate.
+ *   1. la localité est retrouvée parmi les lieux habités OSM (tolérance aux coquilles, variantes de nom,
+ *      autre région si le nom est unique au Cameroun) ;
+ *   2. les stations candidates sont cherchées par niveau de confiance :
+ *        a. même marque dans le rayon du lieu,
+ *        b. même marque un peu plus loin (rayon élargi),
+ *        c. station d'une autre marque ou sans marque dans le rayon (station reprise, rebaptisée ou mal renseignée) ;
+ *   3. le dossier est « unique » (niveau a, une station pour un dossier), « ambigu » (choix humain),
+ *      « aucune » (localité trouvée, pas de station : position approximative possible) ou « localité introuvable ».
  * Aucune coordonnée n'est écrite sans validation humaine.
  */
 
@@ -16,12 +21,32 @@ require_once __DIR__ . '/map_functions.php';
 // Score enregistré dans dossiers.score_matching_osm
 define('GEOLOC_SCORE_UNIQUE', 95);   // correspondance unique validée
 define('GEOLOC_SCORE_CHOIX', 75);    // candidate choisie par un humain parmi plusieurs
-define('GEOLOC_SCORE_IGNORE', 0);    // « aucune ne correspond » : ne plus proposer
+define('GEOLOC_SCORE_APPROX', 30);   // centre de la localité : position approximative
+define('GEOLOC_SCORE_IGNORE', 0);    // « aucune station ne correspond » : plus de candidates proposées
+define('GEOLOC_SOURCE_APPROX', 'Centre de la localité (approximatif)');
 define('GEOLOC_DISTANCE_DEJA_UTILISEE', 30); // une station OSM à moins de 30 m d'un dossier géolocalisé est déjà attribuée
+define('GEOLOC_FACTEUR_RAYON_ELARGI', 2.5);
+define('GEOLOC_MAX_CANDIDATES_AUTRES', 8);
+
+// Libellés des niveaux de candidates
+function geolocNiveaux() {
+    return [
+        'meme_marque' => ['Même marque', 'succes'],
+        'meme_marque_eloignee' => ['Même marque, plus loin', 'instruction'],
+        'autre_marque' => ['Autre marque dans OSM', 'attention'],
+        'sans_marque' => ['Sans marque dans OSM', 'preparation'],
+    ];
+}
+
+// Une position enregistrée est-elle approximative (centre de localité) ?
+function geolocEstApproximatif($source_gps) {
+    return $source_gps === GEOLOC_SOURCE_APPROX;
+}
 
 // Rayon de recherche autour du centre du lieu, selon son type OSM
 function geolocRayon($type) {
-    $rayons = ['city' => 12000, 'town' => 6000, 'village' => 4000, 'hamlet' => 3000, 'suburb' => 3000, 'quarter' => 2500, 'neighbourhood' => 2000];
+    $rayons = ['city' => 12000, 'town' => 6000, 'village' => 4000, 'hamlet' => 3000, 'suburb' => 3000,
+               'quarter' => 2500, 'neighbourhood' => 2000, 'locality' => 2500];
     return $rayons[$type] ?? 3000;
 }
 
@@ -36,7 +61,43 @@ function geolocNormaliser($s) {
 function geolocSimilarite($a, $b) {
     if ($a === $b) return 1.0;
     if ($a === '' || $b === '') return 0.0;
-    return 1 - levenshtein($a, $b) / max(strlen($a), strlen($b));
+    // Espaces ignorés : « Biyem Assi » = « Biyemassi »
+    $a2 = str_replace(' ', '', $a);
+    $b2 = str_replace(' ', '', $b);
+    if ($a2 === $b2) return 0.99;
+    return 1 - levenshtein($a2, $b2) / max(strlen($a2), strlen($b2));
+}
+
+/**
+ * Variantes d'un nom de localité, de la plus fidèle à la plus large :
+ * « Tsinga village » → « tsinga » ; « Nkozoa par Yaoundé » → « nkozoa » ; « Bangangté I » → « bangangte » ;
+ * « Nouvelle Gare Routière Bamougoum » → … → « bamougoum »
+ */
+function geolocMotsAccessoires() {
+    return ['village', 'centre', 'center', 'ville', 'carrefour', 'marche', 'gare', 'routiere', 'nouvelle', 'nouveau',
+            'sud', 'nord', 'est', 'ouest', 'i', 'ii', 'iii', 'iv', 'v', '1', '2', '3', 'bis', 'quartier', 'entree', 'sortie'];
+}
+
+// Nom sans ses mots accessoires (« Mimboman I » → « mimboman »)
+function geolocNomSimplifie($nom) {
+    $mots = array_filter(explode(' ', geolocNormaliser($nom)), function ($m) { return !in_array($m, geolocMotsAccessoires(), true); });
+    return implode(' ', $mots);
+}
+
+function geolocVariantesLocalite($ville) {
+    $accessoires = geolocMotsAccessoires();
+    $n = geolocNormaliser($ville);
+    if ($n === '') return [];
+    $variantes = [$n];
+    $n = trim(preg_replace('/\s+par\s+.*$/', '', $n));
+    $variantes[] = $n;
+    $mots = array_values(array_filter(explode(' ', $n), function ($m) use ($accessoires) { return !in_array($m, $accessoires, true); }));
+    if ($mots) $variantes[] = implode(' ', $mots);
+    // En dernier recours, chaque mot distinctif (le dernier d'abord : « … Bamougoum »)
+    foreach (array_reverse($mots) as $m) {
+        if (strlen($m) >= 5) $variantes[] = $m;
+    }
+    return array_values(array_unique(array_filter($variantes)));
 }
 
 // Mots distinctifs d'un nom de distributeur (sans « petroleum », « sarl »…)
@@ -70,10 +131,34 @@ function geolocDistance($lat1, $lon1, $lat2, $lon2) {
 }
 
 /**
- * Propositions de géolocalisation pour les dossiers historiques sans coordonnées.
+ * Retrouve la localité d'un dossier. Renvoie le lieu OSM (+ 'autre_region' => bool) ou null.
+ */
+function geolocTrouverLocalite($ville, $region, array $lieux_par_region, array $lieux_par_nom) {
+    foreach (geolocVariantesLocalite($ville) as $v) {
+        // 1. Dans la région du dossier : lieu le plus ressemblant, à égalité le plus grand
+        $meilleur = null;
+        $score = 0;
+        foreach ($lieux_par_region[$region] ?? [] as $l) {
+            $s = max(geolocSimilarite($v, $l['n']), geolocSimilarite($v, $l['n2']));
+            if ($s >= 0.85 && ($s > $score || ($s == $score && geolocRayon($l['type']) > geolocRayon($meilleur['type'])))) {
+                $meilleur = $l;
+                $score = $s;
+            }
+        }
+        if ($meilleur) return $meilleur + ['autre_region' => false];
+        // 2. Ailleurs au Cameroun, seulement si le nom exact est unique (région mal saisie)
+        if (isset($lieux_par_nom[$v]) && count($lieux_par_nom[$v]) === 1) {
+            return $lieux_par_nom[$v][0] + ['autre_region' => true];
+        }
+    }
+    return null;
+}
+
+/**
+ * Propositions de géolocalisation pour les dossiers historiques sans position précise.
  *
  * @return array ['dossiers' => [id => [dossier, localite, candidates[], type]], 'stats' => [...]]
- *   candidate : ['lat', 'lon', 'nom', 'marque', 'distance' (m du centre de la localité)]
+ *   candidate : ['lat', 'lon', 'nom', 'marque', 'distance' (m du centre de la localité), 'niveau']
  *   type : 'unique' | 'ambigu' | 'aucune' | 'localite_introuvable'
  */
 function geolocPropositions() {
@@ -83,15 +168,22 @@ function geolocPropositions() {
     $regions = [];
     foreach (osmRegions() as $r) $regions[geolocNormaliser($r['nom'])] = $r['nom'];
 
-    // Lieux habités indexés par région
-    $lieux = [];
+    // Lieux habités, par région et par nom
+    $lieux_par_region = [];
+    $lieux_par_nom = [];
     foreach (osmLieux() as $l) {
-        $lieux[$l[4]][] = ['n' => geolocNormaliser($l[0]), 'nom' => $l[0], 'lat' => $l[1], 'lon' => $l[2], 'type' => $l[3]];
+        $lieu = ['n' => geolocNormaliser($l[0]), 'n2' => geolocNomSimplifie($l[0]), 'nom' => $l[0], 'lat' => $l[1], 'lon' => $l[2], 'type' => $l[3], 'region' => $l[4]];
+        $lieux_par_region[$l[4]][] = $lieu;
+        $lieux_par_nom[$lieu['n']][] = $lieu;
+        if ($lieu['n2'] !== $lieu['n'] && $lieu['n2'] !== '') $lieux_par_nom[$lieu['n2']][] = $lieu;
     }
 
-    // Stations OSM, hors celles déjà attribuées à un dossier géolocalisé
+    // Stations OSM, hors celles déjà attribuées à un dossier précisément géolocalisé
     $positions = [];
-    foreach ($pdo->query("SELECT coordonnees_gps FROM dossiers WHERE coordonnees_gps IS NOT NULL AND coordonnees_gps <> ''") as $r) {
+    $stmt = $pdo->prepare("SELECT coordonnees_gps FROM dossiers WHERE coordonnees_gps IS NOT NULL AND coordonnees_gps <> ''
+                           AND (source_gps IS NULL OR source_gps <> ?)");
+    $stmt->execute([GEOLOC_SOURCE_APPROX]);
+    foreach ($stmt as $r) {
         $c = parseGPSCoordinates($r['coordonnees_gps']);
         if ($c) $positions[] = [$c['latitude'], $c['longitude']];
     }
@@ -104,10 +196,13 @@ function geolocPropositions() {
         $stations[] = $p;
     }
 
-    $dossiers = $pdo->query("SELECT id, numero, nom_demandeur, ville, region FROM dossiers
-                             WHERE est_historique = 1 AND (coordonnees_gps IS NULL OR coordonnees_gps = '')
-                             AND (score_matching_osm IS NULL OR score_matching_osm <> " . GEOLOC_SCORE_IGNORE . ")
-                             ORDER BY region, ville, nom_demandeur")->fetchAll();
+    // Dossiers sans position, ou avec une position seulement approximative
+    $stmt = $pdo->prepare("SELECT id, numero, nom_demandeur, ville, region, score_matching_osm, source_gps FROM dossiers
+                           WHERE est_historique = 1
+                           AND (coordonnees_gps IS NULL OR coordonnees_gps = '' OR source_gps = ?)
+                           ORDER BY region, ville, nom_demandeur");
+    $stmt->execute([GEOLOC_SOURCE_APPROX]);
+    $dossiers = $stmt->fetchAll();
 
     $cache_localites = [];
     $resultats = [];
@@ -116,72 +211,117 @@ function geolocPropositions() {
         $region = $regions[geolocNormaliser($d['region'])] ?? '';
         $cle_loc = $region . '|' . geolocNormaliser($d['ville']);
         if (!array_key_exists($cle_loc, $cache_localites)) {
-            // Lieu de même nom le plus ressemblant ; à égalité, le plus grand (ville avant village)
-            $meilleur = null;
-            $score = 0;
-            $v = geolocNormaliser($d['ville']);
-            foreach ($lieux[$region] ?? [] as $l) {
-                $s = geolocSimilarite($v, $l['n']);
-                if ($s >= 0.85 && ($s > $score || ($s == $score && geolocRayon($l['type']) > geolocRayon($meilleur['type'])))) {
-                    $meilleur = $l;
-                    $score = $s;
-                }
-            }
-            $cache_localites[$cle_loc] = $meilleur;
+            $cache_localites[$cle_loc] = geolocTrouverLocalite($d['ville'], $region, $lieux_par_region, $lieux_par_nom);
         }
         $localite = $cache_localites[$cle_loc];
-        $resultats[$d['id']] = ['dossier' => $d, 'localite' => $localite, 'candidates' => [], 'type' => 'localite_introuvable'];
+        $resultats[$d['id']] = ['dossier' => $d, 'localite' => $localite, 'candidates' => [], 'type' => 'localite_introuvable',
+                                'approximatif' => geolocEstApproximatif($d['source_gps'])];
         if (!$localite) continue;
 
-        $marque = osmMarque(['name' => $d['nom_demandeur']]);
-        foreach ($stations as $p) {
-            if (!geolocMemeMarque($d['nom_demandeur'], $marque, $p)) continue;
-            $dist = geolocDistance($localite['lat'], $localite['lon'], $p[0], $p[1]);
-            if ($dist <= geolocRayon($localite['type'])) {
-                $resultats[$d['id']]['candidates'][] = ['lat' => $p[0], 'lon' => $p[1], 'nom' => $p[3] ?: 'Station sans nom', 'marque' => $p[4], 'distance' => (int) round($dist)];
-            }
+        // « Aucune ne correspond » déjà indiqué : plus de candidates, position approximative seulement
+        if ((string) $d['score_matching_osm'] === (string) GEOLOC_SCORE_IGNORE) {
+            $resultats[$d['id']]['type'] = 'aucune';
+            continue;
         }
-        usort($resultats[$d['id']]['candidates'], function ($a, $b) { return $a['distance'] - $b['distance']; });
+
+        $marque = osmMarque(['name' => $d['nom_demandeur']]);
+        $rayon = geolocRayon($localite['type']);
+        $par_niveau = ['meme_marque' => [], 'meme_marque_eloignee' => [], 'autre_marque' => [], 'sans_marque' => []];
+        foreach ($stations as $p) {
+            $dist = geolocDistance($localite['lat'], $localite['lon'], $p[0], $p[1]);
+            if ($dist > $rayon * GEOLOC_FACTEUR_RAYON_ELARGI) continue;
+            $meme = geolocMemeMarque($d['nom_demandeur'], $marque, $p);
+            if ($meme) {
+                $niveau = $dist <= $rayon ? 'meme_marque' : 'meme_marque_eloignee';
+            } elseif ($dist <= $rayon) {
+                $niveau = ($p[4] === 'Autre / indépendant' && trim($p[8] ?? '') === '') ? 'sans_marque' : 'autre_marque';
+            } else {
+                continue;
+            }
+            $par_niveau[$niveau][] = ['lat' => $p[0], 'lon' => $p[1], 'nom' => $p[3] ?: 'Station sans nom',
+                                      'marque' => $p[4], 'distance' => (int) round($dist), 'niveau' => $niveau];
+        }
+        foreach ($par_niveau as &$liste) {
+            usort($liste, function ($a, $b) { return $a['distance'] - $b['distance']; });
+        }
+        unset($liste);
+
+        // Le niveau le plus sûr disponible ; stations d'autres marques ou sans marque seulement à défaut
+        if ($par_niveau['meme_marque']) {
+            $candidates = $par_niveau['meme_marque'];
+        } elseif ($par_niveau['meme_marque_eloignee']) {
+            $candidates = $par_niveau['meme_marque_eloignee'];
+        } else {
+            $candidates = array_slice(array_merge($par_niveau['autre_marque'], $par_niveau['sans_marque']), 0, GEOLOC_MAX_CANDIDATES_AUTRES);
+            usort($candidates, function ($a, $b) { return $a['distance'] - $b['distance']; });
+        }
+        $resultats[$d['id']]['candidates'] = $candidates;
         $groupes[geolocNormaliser($d['nom_demandeur']) . '|' . $cle_loc][] = $d['id'];
     }
 
-    // Unique : un seul dossier de cette marque dans la localité, et une seule station candidate
+    // Unique : même marque dans le rayon, un seul dossier de cette marque dans la localité, une seule station
     foreach ($groupes as $ids) {
         foreach ($ids as $id) {
-            $n = count($resultats[$id]['candidates']);
-            $resultats[$id]['type'] = $n === 0 ? 'aucune' : (count($ids) === 1 && $n === 1 ? 'unique' : 'ambigu');
+            $c = $resultats[$id]['candidates'];
+            if (!$c) {
+                $resultats[$id]['type'] = 'aucune';
+            } elseif (count($ids) === 1 && count($c) === 1 && $c[0]['niveau'] === 'meme_marque' && !$resultats[$id]['localite']['autre_region']) {
+                $resultats[$id]['type'] = 'unique';
+            } else {
+                $resultats[$id]['type'] = 'ambigu';
+            }
         }
     }
 
-    $stats = ['unique' => 0, 'ambigu' => 0, 'aucune' => 0, 'localite_introuvable' => 0];
-    foreach ($resultats as $r) $stats[$r['type']]++;
+    $stats = ['unique' => 0, 'ambigu' => 0, 'aucune' => 0, 'localite_introuvable' => 0, 'approximatifs' => 0];
+    foreach ($resultats as $r) {
+        $stats[$r['type']]++;
+        if ($r['approximatif']) $stats['approximatifs']++;
+    }
     return ['dossiers' => $resultats, 'stats' => $stats];
 }
 
+// Écrit une position si le dossier n'en a pas, ou seulement une approximative
+function geolocEcrirePosition($dossier_id, $lat, $lon, $source, $score) {
+    global $pdo;
+    $stmt = $pdo->prepare("UPDATE dossiers SET coordonnees_gps = ?, latitude = ?, longitude = ?, source_gps = ?, score_matching_osm = ?
+                           WHERE id = ? AND est_historique = 1 AND (coordonnees_gps IS NULL OR coordonnees_gps = '' OR source_gps = ?)");
+    $stmt->execute([$lat . ',' . $lon, $lat, $lon, $source, $score, $dossier_id, GEOLOC_SOURCE_APPROX]);
+    return $stmt->rowCount() === 1;
+}
+
 /**
- * Enregistre la position d'un dossier historique après validation humaine.
+ * Enregistre la position d'une station OSM après validation humaine.
  * La position doit être l'une des candidates calculées pour ce dossier (pas de coordonnées arbitraires).
  */
 function geolocEnregistrer($dossier_id, array $candidate, $score, $user_id) {
-    global $pdo;
-    $gps = $candidate['lat'] . ',' . $candidate['lon'];
-    $stmt = $pdo->prepare("UPDATE dossiers SET coordonnees_gps = ?, latitude = ?, longitude = ?, source_gps = ?, score_matching_osm = ?
-                           WHERE id = ? AND est_historique = 1 AND (coordonnees_gps IS NULL OR coordonnees_gps = '')");
-    $stmt->execute([$gps, $candidate['lat'], $candidate['lon'],
-        $score === GEOLOC_SCORE_UNIQUE ? 'OSM (rapprochement automatique validé)' : 'OSM (choix parmi les candidates)', $score, $dossier_id]);
-    if ($stmt->rowCount() !== 1) return false;
+    $precisions = ['meme_marque_eloignee' => ' – même marque, plus loin', 'autre_marque' => ' – autre marque dans OSM', 'sans_marque' => ' – sans marque dans OSM'];
+    $source = ($score === GEOLOC_SCORE_UNIQUE ? 'OSM (rapprochement automatique validé)' : 'OSM (choix parmi les candidates)')
+            . ($precisions[$candidate['niveau'] ?? ''] ?? '');
+    if (!geolocEcrirePosition($dossier_id, $candidate['lat'], $candidate['lon'], $source, $score)) return false;
     addHistoriqueDossier($dossier_id, $user_id, 'modification_gps',
-        'Position GPS issue d\'OpenStreetMap (' . $candidate['nom'] . ', ' . $candidate['marque'] . ') : ' . $gps);
+        'Position GPS issue d\'OpenStreetMap (' . $candidate['nom'] . ', ' . $candidate['marque'] . ') : ' . $candidate['lat'] . ',' . $candidate['lon']);
     return true;
 }
 
 /**
- * « Aucune candidate ne correspond » : le dossier n'est plus proposé (reste à géolocaliser sur le terrain)
+ * Position approximative : centre de la localité retrouvée (station absente d'OpenStreetMap)
+ */
+function geolocPlacerApproximatif($dossier_id, array $localite, $user_id) {
+    if (!geolocEcrirePosition($dossier_id, $localite['lat'], $localite['lon'], GEOLOC_SOURCE_APPROX, GEOLOC_SCORE_APPROX)) return false;
+    addHistoriqueDossier($dossier_id, $user_id, 'modification_gps',
+        'Position approximative : centre de ' . $localite['nom'] . ' (' . $localite['lat'] . ',' . $localite['lon'] . '), à préciser sur le terrain');
+    return true;
+}
+
+/**
+ * « Aucune station ne correspond » : plus de candidates proposées (position approximative toujours possible)
  */
 function geolocIgnorer($dossier_id, $user_id) {
     global $pdo;
-    $stmt = $pdo->prepare("UPDATE dossiers SET score_matching_osm = ? WHERE id = ? AND est_historique = 1 AND (coordonnees_gps IS NULL OR coordonnees_gps = '')");
-    $stmt->execute([GEOLOC_SCORE_IGNORE, $dossier_id]);
+    $stmt = $pdo->prepare("UPDATE dossiers SET score_matching_osm = ? WHERE id = ? AND est_historique = 1
+                           AND (coordonnees_gps IS NULL OR coordonnees_gps = '' OR source_gps = ?)");
+    $stmt->execute([GEOLOC_SCORE_IGNORE, $dossier_id, GEOLOC_SOURCE_APPROX]);
     if ($stmt->rowCount() === 1) {
         addHistoriqueDossier($dossier_id, $user_id, 'rapprochement_gps_ignore', 'Aucune station OpenStreetMap ne correspond : position à relever sur le terrain');
         return true;

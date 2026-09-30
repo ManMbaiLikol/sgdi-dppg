@@ -610,6 +610,8 @@ fieldset legend.form-label { font-size: .875rem; float: none; width: auto; margi
 .mk-osm.mk-gpl { --c: var(--layer-gpl); }
 .mk-osm.mk-depot { --c: var(--layer-emplisseur); border-radius: 3px; }
 .mk-osm.is-absent { --c: var(--layer-alerte); box-shadow: 0 0 0 4px color-mix(in srgb, var(--layer-alerte) 30%, transparent); }
+/* Position approximative (centre de la localité) : contour en pointillés, semi-transparent */
+.mk.is-approx { opacity: .75; border-style: dashed; border-color: var(--c); background: color-mix(in srgb, var(--c) 35%, #fff); }
 .mk-poi { --c: var(--poi-couleur, #e74c3c); width: 12px; height: 12px; transform: rotate(45deg); border-radius: 2px; }
 .mk-cluster {
     display: grid; place-items: center; border-radius: 50%; color: #fff; font-weight: 700; font-size: .75rem;
