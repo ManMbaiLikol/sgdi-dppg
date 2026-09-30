@@ -85,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$nouveau_statut, $dossier_id]);
 
             // Ajouter dans l'historique
-            $sql = "INSERT INTO historique_dossier (dossier_id, user_id, action, commentaire, date_action)
+            $sql = "INSERT INTO historique (dossier_id, user_id, action, description, date_action)
                     VALUES (?, ?, 'visa_sous_directeur', ?, NOW())";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
@@ -105,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$nouveau_statut, $dossier_id]);
 
             // Ajouter dans l'historique
-            $sql = "INSERT INTO historique_dossier (dossier_id, user_id, action, commentaire, date_action)
+            $sql = "INSERT INTO historique (dossier_id, user_id, action, description, date_action)
                     VALUES (?, ?, 'visa_sous_directeur_rejete', ?, NOW())";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
@@ -125,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$nouveau_statut, $dossier_id]);
 
             // Ajouter dans l'historique
-            $sql = "INSERT INTO historique_dossier (dossier_id, user_id, action, commentaire, date_action)
+            $sql = "INSERT INTO historique (dossier_id, user_id, action, description, date_action)
                     VALUES (?, ?, 'demande_modification_sous_directeur', ?, NOW())";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
@@ -139,6 +139,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $pdo->commit();
+
+        // Prévenir l'étape suivante du circuit (après l'enregistrement : un échec d'envoi n'annule pas le visa)
+        if ($action === 'approuve') {
+            require_once __DIR__ . '/../../includes/notifications.php';
+            notifierVisa($dossier_id, 'sous_directeur', 'approuve');
+        }
         redirect(url('modules/dossiers/viser_sous_directeur.php'), $message, $type);
 
     } catch (Exception $e) {

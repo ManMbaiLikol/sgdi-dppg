@@ -85,14 +85,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Mettre à jour le statut du dossier
         $nouveau_statut = '';
+        // dossiers.statut n'accepte que les valeurs du workflow : approuvé → autorise, refusé → rejete,
+        // ajourné → le dossier reste en attente de décision (visa_directeur)
         if ($decision === 'approuve') {
-            $nouveau_statut = 'approuve';
+            $nouveau_statut = 'autorise';
             $commentaire = 'Décision ministérielle : APPROUVÉ - Arrêté n° ' . $numero_arrete;
         } elseif ($decision === 'refuse') {
-            $nouveau_statut = 'refuse';
+            $nouveau_statut = 'rejete';
             $commentaire = 'Décision ministérielle : REFUSÉ - Arrêté n° ' . $numero_arrete;
         } else { // ajourne
-            $nouveau_statut = 'ajourne';
+            $nouveau_statut = 'visa_directeur';
             $commentaire = 'Décision ministérielle : AJOURNÉ - Arrêté n° ' . $numero_arrete;
         }
 
@@ -101,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$nouveau_statut, $dossier_id]);
 
         // Ajouter dans l'historique
-        $sql = "INSERT INTO historique_dossier (dossier_id, user_id, action, commentaire, date_action)
+        $sql = "INSERT INTO historique (dossier_id, user_id, action, description, date_action)
                 VALUES (?, ?, ?, ?, NOW())";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([

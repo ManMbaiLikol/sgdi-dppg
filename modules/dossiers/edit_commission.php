@@ -159,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (!empty($modifications)) {
                         $description = "Modification de la commission:\n" . implode("\n", $modifications);
 
-                        $sql_hist = "INSERT INTO historique_dossier (dossier_id, user_id, action, description, date_action)
+                        $sql_hist = "INSERT INTO historique (dossier_id, user_id, action, description, date_action)
                                     VALUES (?, ?, 'modification_commission', ?, NOW())";
                         $stmt_hist = $pdo->prepare($sql_hist);
                         $stmt_hist->execute([$dossier_id, $_SESSION['user_id'], $description]);

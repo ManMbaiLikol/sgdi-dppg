@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$nouveau_statut, $dossier_id]);
 
             // Ajouter dans l'historique
-            $sql = "INSERT INTO historique_dossier (dossier_id, user_id, action, commentaire, date_action)
+            $sql = "INSERT INTO historique (dossier_id, user_id, action, description, date_action)
                     VALUES (?, ?, 'visa_chef_service', ?, NOW())";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
@@ -93,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$nouveau_statut, $dossier_id]);
 
             // Ajouter dans l'historique
-            $sql = "INSERT INTO historique_dossier (dossier_id, user_id, action, commentaire, date_action)
+            $sql = "INSERT INTO historique (dossier_id, user_id, action, description, date_action)
                     VALUES (?, ?, 'visa_chef_service_rejete', ?, NOW())";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$nouveau_statut, $dossier_id]);
 
             // Ajouter dans l'historique
-            $sql = "INSERT INTO historique_dossier (dossier_id, user_id, action, commentaire, date_action)
+            $sql = "INSERT INTO historique (dossier_id, user_id, action, description, date_action)
                     VALUES (?, ?, 'demande_modification_visa', ?, NOW())";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([

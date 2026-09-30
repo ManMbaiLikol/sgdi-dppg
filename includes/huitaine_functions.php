@@ -22,6 +22,11 @@ function creerHuitaine($dossier_id, $type_irregularite, $description, $user_id) 
 
         $huitaine_id = $pdo->lastInsertId();
 
+        // Statut actuel : mémorisé dans l'historique pour être rétabli à la régularisation
+        $stmt = $pdo->prepare("SELECT statut FROM dossiers WHERE id = ?");
+        $stmt->execute([$dossier_id]);
+        $statut_avant_huitaine = $stmt->fetchColumn() ?: null;
+
         // Mettre à jour le statut du dossier
         $sql = "UPDATE dossiers SET statut = 'en_huitaine' WHERE id = ?";
         $stmt = $pdo->prepare($sql);
@@ -39,7 +44,7 @@ function creerHuitaine($dossier_id, $type_irregularite, $description, $user_id) 
             $user_id,
             'huitaine_creee',
             "Huitaine créée : $description",
-            null,
+            $statut_avant_huitaine,
             'en_huitaine'
         );
 
@@ -116,26 +121,29 @@ function regulariserHuitaine($huitaine_id, $commentaire, $user_id) {
 
         // Restaurer le statut précédent du dossier
         $sql = "UPDATE dossiers
-                SET statut = (
+                SET statut = COALESCE((
                     SELECT ancien_statut
-                    FROM historique_dossier
+                    FROM historique
                     WHERE dossier_id = ?
                     AND nouveau_statut = 'en_huitaine'
+                    AND ancien_statut IS NOT NULL
                     ORDER BY date_action DESC
                     LIMIT 1
-                )
+                ), statut) -- sans statut antérieur connu, le statut n'est pas vidé
                 WHERE id = ?";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$huitaine['dossier_id'], $huitaine['dossier_id']]);
 
-        // Ajouter à l'historique du dossier
+        // Ajouter à l'historique du dossier, avec le statut rétabli
+        $stmt = $pdo->prepare("SELECT statut FROM dossiers WHERE id = ?");
+        $stmt->execute([$huitaine['dossier_id']]);
         addHistoriqueDossier(
             $huitaine['dossier_id'],
             $user_id,
             'huitaine_regularisee',
             "Huitaine régularisée : $commentaire",
             'en_huitaine',
-            null
+            $stmt->fetchColumn() ?: null
         );
 
         // Notification

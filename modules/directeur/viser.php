@@ -76,6 +76,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $pdo->commit();
 
+                // Prévenir l'étape suivante du circuit (après l'enregistrement : un échec d'envoi n'annule pas le visa)
+                if ($action === 'approuve') {
+                    require_once __DIR__ . '/../../includes/notifications.php';
+                    notifierVisa($dossier_id, 'directeur', 'approuve');
+                }
+
                 redirect(url('modules/directeur/dashboard.php'), 'Visa enregistré avec succès', 'success');
 
             } catch (Exception $e) {
