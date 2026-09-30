@@ -369,6 +369,11 @@ a.kpi-link:hover .card { border-color: var(--bs-primary-border-subtle); box-shad
     border-top: 1px solid var(--sgdi-border);
 }
 .task-item:first-child { border-top: 0; }
+.task-list > li > .task-item { border-top: 0; color: inherit; text-decoration: none; }
+.task-list > li + li > .task-item { border-top: 1px solid var(--sgdi-border); }
+.task-item.is-done { opacity: .6; }
+.task-item.is-done .task-icon { filter: grayscale(1); }
+.task-ok { font-size: .75rem; font-weight: 600; color: var(--sgdi-phase-succes-text); white-space: nowrap; }
 .task-item:hover { background: var(--sgdi-surface-2); }
 .task-icon {
     width: 2.25rem; height: 2.25rem; border-radius: .6rem; flex-shrink: 0;
@@ -383,6 +388,16 @@ a.kpi-link:hover .card { border-color: var(--bs-primary-border-subtle); box-shad
     min-width: 2.5rem; text-align: right;
 }
 .task-due { font-size: .75rem; font-weight: 600; color: var(--sgdi-phase-danger-text); }
+
+/* Raccourcis (actions rapides) */
+.shortcut {
+    display: flex; align-items: center; gap: .6rem; height: 100%;
+    padding: .7rem .85rem; border-radius: .6rem;
+    border: 1px solid var(--sgdi-border); background: var(--sgdi-surface);
+    color: var(--sgdi-text); text-decoration: none; font-weight: 500; font-size: .875rem;
+}
+.shortcut:hover { border-color: var(--bs-primary-border-subtle); box-shadow: var(--sgdi-shadow-lg); }
+.shortcut i { color: var(--phase-fg, var(--sgdi-primary)); width: 1.1rem; text-align: center; flex-shrink: 0; }
 
 /* ============================================================
    8. FILTRES
@@ -504,6 +519,60 @@ a.kpi-link:hover .card { border-color: var(--bs-primary-border-subtle); box-shad
 .map-meta { font-size: .75rem; color: var(--sgdi-muted); display: flex; align-items: center; gap: .4rem; }
 .map-live { width: .5rem; height: .5rem; border-radius: 50%; background: var(--sgdi-phase-succes); box-shadow: 0 0 0 0 var(--sgdi-phase-succes); animation: map-pulse 2s infinite; }
 @keyframes map-pulse { 70% { box-shadow: 0 0 0 .5rem transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+.app-footer {
+    display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem;
+    margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--sgdi-border);
+    font-size: .78rem; color: var(--sgdi-muted);
+}
+
+/* ============================================================
+   10 ter. COMPATIBILITÉ avec les anciennes feuilles de style
+   (theme.css, style.css…) tant que tous les modules ne sont pas migrés
+   ============================================================ */
+body.sgdi {
+    --bg-primary: var(--sgdi-surface);
+    --bg-secondary: var(--sgdi-bg);
+    --bg-tertiary: var(--sgdi-surface-2);
+    --text-primary: var(--sgdi-text);
+    --text-secondary: var(--sgdi-muted);
+    --text-muted: var(--sgdi-muted);
+    --border-color: var(--sgdi-border);
+    --card-shadow: var(--sgdi-shadow);
+    --link-color: var(--sgdi-primary);
+    --link-hover: var(--sgdi-primary-hover);
+    --input-bg: var(--sgdi-surface);
+    --input-border: var(--sgdi-border);
+    --table-stripe: var(--sgdi-surface-2);
+    --table-hover: var(--sgdi-surface-2);
+    --primary-color: var(--sgdi-primary);
+    --success-color: var(--sgdi-phase-succes);
+    --warning-color: var(--sgdi-phase-paiement);
+    --danger-color: var(--sgdi-phase-danger);
+    --info-color: var(--sgdi-phase-instruction);
+    --dark-color: var(--sgdi-sidebar-bg);
+    background-color: var(--sgdi-bg);
+}
+/* Liens des composants : theme.css colore tous les liens avec a:not(.btn):not(.nav-link)…
+   et accessibility.css les souligne. « body.sgdi.sgdi » donne la priorité au socle. */
+body.sgdi.sgdi a:is(.app-nav-link, .app-brand, .app-user, .task-item, .shortcut, .kpi-link, .card-link-more, .chip, .cell-main) { text-decoration: none; }
+body.sgdi.sgdi a.app-nav-link { color: var(--sgdi-sidebar-text); }
+body.sgdi.sgdi a.app-nav-link:hover,
+body.sgdi.sgdi a.app-nav-link.active { color: var(--sgdi-sidebar-text-strong); }
+body.sgdi.sgdi a.app-brand, body.sgdi.sgdi a.app-brand:hover { color: var(--sgdi-sidebar-text-strong); }
+body.sgdi.sgdi a:is(.app-user, .shortcut, .cell-main, .chip:not(.active)),
+body.sgdi.sgdi a:is(.app-user, .shortcut, .chip:not(.active)):hover { color: var(--sgdi-text); }
+body.sgdi.sgdi a.cell-main:hover, body.sgdi.sgdi a.card-link-more { color: var(--sgdi-primary); }
+body.sgdi.sgdi a:is(.task-item, .kpi-link), body.sgdi.sgdi a:is(.task-item, .kpi-link):hover { color: inherit; }
+body.sgdi a.app-nav-link, body.sgdi a.app-user, body.sgdi a.app-brand { display: flex; }
+
+/* dark-mode.css force .btn-light en vert : rétablir le bouton blanc du bandeau */
+.sgdi .hero-welcome .btn-light { background: #fff !important; border-color: #fff !important; color: #4b3a8c !important; }
+.sgdi .hero-welcome .btn-light:hover { background: #f1eefb !important; }
+
+/* En-têtes de cartes colorés des anciennes pages : couleurs de la nouvelle palette */
+.sgdi .card-header.bg-primary { background: var(--sgdi-gradient) !important; border: 0; }
+.sgdi .bg-primary:not(.card-header):not(.badge) { background-color: var(--sgdi-primary) !important; }
 
 /* ============================================================
    11. UTILITAIRES

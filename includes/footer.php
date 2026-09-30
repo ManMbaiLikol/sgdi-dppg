@@ -1,9 +1,19 @@
-</div> <!-- Fin du container principal -->
+        <footer class="app-footer">
+            <span><strong>SGDI</strong> · MINEE - Direction des Produits Pétroliers et du Gaz</span>
+            <span>© <?php echo date('Y'); ?></span>
+        </footer>
+    </div></main> <!-- Fin du contenu -->
+<?php if (isLoggedIn()): ?>
+    </div> <!-- .app-main -->
+</div> <!-- .app-shell -->
+<?php else: ?>
+</div> <!-- .app-main -->
+<?php endif; ?>
 
 <!-- jQuery (doit être chargé avant Bootstrap et DataTables) -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <!-- DataTables JS -->
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
@@ -15,14 +25,29 @@
 <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.colVis.min.js"></script>
 <!-- JSZip (Excel) et pdfmake (PDF) : chargés seulement au clic sur un bouton d'export -->
 <script src="<?php echo asset('js/datatables-lazy-export.js'); ?>"></script>
-<!-- Theme JS -->
-<script src="<?php echo asset('js/theme.js'); ?>"></script>
 <!-- DataTables Config -->
 <script src="<?php echo asset('js/datatables-config.js'); ?>"></script>
 <!-- Custom JS -->
 <script src="<?php echo asset('js/app.js'); ?>"></script>
-<!-- Theme Toggle (Mode Sombre/Clair) -->
-<script src="<?php echo asset('js/theme-toggle.js'); ?>"></script>
+<!-- Thème clair / sombre (appliqué dès le <head> par uiThemeInitScript) -->
+<script>
+document.querySelectorAll('#theme-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        var root = document.documentElement;
+        var t = root.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+        root.setAttribute('data-bs-theme', t);
+        root.setAttribute('data-theme', t); // anciennes feuilles de style
+        try { localStorage.setItem('sgdi_theme', t); } catch (e) {}
+    });
+});
+// Raccourci « / » : recherche globale
+document.addEventListener('keydown', function (e) {
+    var champ = document.getElementById('recherche-globale');
+    if (champ && e.key === '/' && !/input|select|textarea/i.test(document.activeElement.tagName) && !document.activeElement.isContentEditable) {
+        e.preventDefault(); champ.focus();
+    }
+});
+</script>
 <!-- Accessibility Enhancements -->
 <script src="<?php echo asset('js/accessibility.js'); ?>"></script>
 <!-- Advanced Tables -->
@@ -119,30 +144,6 @@ if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.
 }
 </script>
 
-<footer class="bg-light mt-5 py-3">
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-md-6">
-                <p class="mb-0 text-muted">
-                    <strong>SGDI</strong> - Système de Gestion des Dossiers d'Implantation
-                </p>
-                <p class="mb-0 text-muted small">
-                    MINEE - Direction des Produits Pétroliers et du Gaz
-                </p>
-            </div>
-            <div class="col-md-6 text-end">
-                <p class="mb-0 text-muted small">
-                    Version MVP 1.0 - <?php echo date('Y'); ?>
-                </p>
-                <?php if (isLoggedIn()): ?>
-                <p class="mb-0 text-muted small">
-                    Connecté en tant que: <strong><?php echo getRoleLabel($_SESSION['user_role']); ?></strong>
-                </p>
-                <?php endif; ?>
-            </div>
-        </div>
-    </div>
-</footer>
 
 </body>
 </html>

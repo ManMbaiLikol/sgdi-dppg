@@ -69,7 +69,8 @@ function getStatutLabel($statut) {
         'autorise' => 'Autorisé',
         'rejete' => 'Rejeté',
         'ferme' => 'Fermé',
-        'suspendu' => 'Suspendu'
+        'suspendu' => 'Suspendu',
+        'historique_autorise' => 'Autorisé (historique)'
     ];
 
     return $labels[$statut] ?? $statut;
@@ -95,7 +96,8 @@ function getStatutClass($statut) {
         'autorise' => 'success',
         'rejete' => 'danger',
         'ferme' => 'secondary',
-        'suspendu' => 'warning'
+        'suspendu' => 'warning',
+        'historique_autorise' => 'success'
     ];
 
     return $classes[$statut] ?? 'secondary';
@@ -169,6 +171,8 @@ function getRoleLabel($role) {
         'billeteur' => 'Billeteur',
         'directeur' => 'Directeur DPPG',
         'chef_commission' => 'Chef de Commission',
+        'sous_directeur' => 'Sous-Directeur SDTD',
+        'cabinet' => 'Cabinet du Ministre',
         'admin' => 'Administrateur'
     ];
 

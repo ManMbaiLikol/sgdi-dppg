@@ -134,46 +134,20 @@ switch ($_SESSION['user_role']) {
 require_once 'includes/header.php';
 ?>
 
-<!-- En-tête de bienvenue -->
-<div class="row mb-4">
-    <div class="col">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
-                <div class="row align-items-center">
-                    <div class="col">
-                        <h4 class="mb-1">
-                            Bienvenue, <?php echo sanitize($_SESSION['user_prenom'] . ' ' . $_SESSION['user_nom']); ?>
-                        </h4>
-                        <p class="mb-0 opacity-75">
-                            <i class="fas fa-user-tag"></i>
-                            <?php echo getRoleLabel($_SESSION['user_role']); ?> -
-                            Connecté le <?php echo formatDateTime(date('Y-m-d H:i:s'), 'd/m/Y à H:i'); ?>
-                        </p>
-                    </div>
-                    <?php if ($_SESSION['user_role'] === 'chef_service'): ?>
-                    <div class="col-auto">
-                        <div class="btn-toolbar justify-end">
-                            <a href="<?php echo url('modules/chef_service/dashboard_avance.php'); ?>" class="btn btn-light">
-                                <i class="fas fa-chart-line"></i> Dashboard Avancé
-                            </a>
-                        </div>
-                    </div>
-                    <?php endif; ?>
-                    <div class="col-auto">
-                        <i class="fas fa-building fa-3x opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+<?php
+// ===== Haut du tableau de bord (socle v2) =====
+require_once 'includes/taches.php';
 
-<!-- Statistiques rapides -->
-<div class="row mb-4">
-    <?php
-    // Définir les statistiques selon le rôle
-    $all_stats = [];
-    switch ($_SESSION['user_role']) {
+$prenom = trim($_SESSION['user_prenom'] ?? '') ?: ($_SESSION['user_nom'] ?? '');
+$taches = getTachesAFaire($_SESSION['user_role'], $_SESSION['user_id']);
+$priorite = ($taches && $taches[0]['nombre'] > 0) ? $taches[0] : null; // tâches triées : la première non nulle est la plus urgente
+$jours = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+$mois_fr = ['', 'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+$aujourdhui = ucfirst($jours[date('w')]) . ' ' . date('j') . ' ' . $mois_fr[(int) date('n')] . ' ' . date('Y');
+
+// Indicateurs par rôle (repris du tableau de bord d'origine)
+$all_stats = [];
+switch ($_SESSION['user_role']) {
         case 'chef_service':
             $all_stats = [
                 'total' => ['icon' => 'fas fa-folder', 'color' => 'primary', 'label' => 'Total dossiers', 'value' => $stats['total'] ?? 0],
@@ -230,104 +204,79 @@ require_once 'includes/header.php';
             $all_stats = [
                 'total' => ['icon' => 'fas fa-folder', 'color' => 'primary', 'label' => 'Total dossiers', 'value' => $stats['total'] ?? 0]
             ];
-    }
+}
+// Couleur Bootstrap d'origine → phase du socle
+$phase_couleur = ['primary' => '', 'info' => 'instruction', 'warning' => 'paiement', 'dark' => 'decision', 'success' => 'succes', 'danger' => 'danger', 'secondary' => 'preparation'];
+// Phase des raccourcis selon leur couleur d'origine
+$icone_fa6 = function ($classes) { return trim(str_replace(['fas ', 'fa-map-marked-alt', 'fa-money-check-alt', 'fa-cogs', 'fa-plus-circle', 'fa-check-circle'], ['', 'fa-map-location-dot', 'fa-money-check-dollar', 'fa-gears', 'fa-circle-plus', 'fa-circle-check'], $classes)); };
+?>
 
-    // Calculer la largeur de colonne selon le nombre de statistiques
-    $col_count = count($all_stats);
-    if ($col_count == 5) {
-        $col_class = 'col-md-2 col-6'; // Pour le billeteur et chef_service (5 statistiques)
-    } elseif ($col_count == 4) {
-        $col_class = 'col-md-3 col-6';
-    } elseif ($col_count == 3) {
-        $col_class = 'col-md-4 col-6';
-    } else {
-        $col_class = 'col-md-6 col-6';
-    }
-
-    foreach ($all_stats as $key => $config):
-    ?>
-    <div class="<?php echo $col_class; ?> mb-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <i class="<?php echo $config['icon']; ?> fa-2x text-<?php echo $config['color']; ?> mb-2"></i>
-                <h4 class="text-<?php echo $config['color']; ?>"><?php echo $config['value']; ?></h4>
-                <p class="text-muted mb-0"><?php echo $config['label']; ?></p>
-            </div>
-        </div>
+<!-- Bandeau d'accueil -->
+<div class="hero-welcome">
+    <div>
+        <h1>Bonjour, <?php echo sanitize($prenom); ?></h1>
+        <p><?php echo $aujourdhui; ?> ·
+            <?php if ($priorite): ?>
+            priorité : <strong><?php echo sanitize($priorite['titre']); ?> (<?php echo (int) $priorite['nombre']; ?>)</strong>
+            <?php else: ?>
+            aucune action en attente
+            <?php endif; ?>
+        </p>
+        <div class="d-flex flex-wrap gap-2 mt-2"><span class="hero-chip"><i class="fas fa-user-tag" aria-hidden="true"></i> <?php echo sanitize(getRoleLabel($_SESSION['user_role'])); ?></span></div>
     </div>
-    <?php endforeach; ?>
+    <div class="d-flex flex-wrap gap-2">
+        <?php if (!empty($actions_rapides[0])): ?>
+        <a class="btn btn-light" href="<?php echo $actions_rapides[0]['url']; ?>"><i class="fas <?php echo $icone_fa6($actions_rapides[0]['icon']); ?>"></i> <?php echo sanitize($actions_rapides[0]['label']); ?></a>
+        <?php endif; ?>
+        <?php if ($_SESSION['user_role'] === 'chef_service'): ?>
+        <a class="btn btn-outline-light" href="<?php echo url('modules/chef_service/dashboard_avance.php'); ?>"><i class="fas fa-chart-line"></i> Tableau de bord avancé</a>
+        <?php endif; ?>
+    </div>
 </div>
 
 <!-- Alerte huitaines urgentes -->
 <?php if (!empty($stats_huitaine) && ($stats_huitaine['urgents'] > 0 || $stats_huitaine['expires'] > 0)): ?>
-<div class="row mb-4">
-    <div class="col">
-        <div class="alert alert-<?php echo $stats_huitaine['expires'] > 0 ? 'danger' : 'warning'; ?> mb-0">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <h5 class="alert-heading mb-2">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <?php if ($stats_huitaine['expires'] > 0): ?>
-                            Huitaines expirées nécessitant une action immédiate !
-                        <?php else: ?>
-                            Huitaines urgentes
-                        <?php endif; ?>
-                    </h5>
-                    <p class="mb-0">
-                        <?php if ($stats_huitaine['expires'] > 0): ?>
-                            <strong><?php echo $stats_huitaine['expires']; ?></strong> dossier(s) en huitaine expiré(s) - Rejet automatique imminent
-                        <?php endif; ?>
-                        <?php if ($stats_huitaine['urgents'] > 0): ?>
-                            <?php if ($stats_huitaine['expires'] > 0) echo ' | '; ?>
-                            <strong><?php echo $stats_huitaine['urgents']; ?></strong> dossier(s) urgent(s) (≤ 2 jours)
-                        <?php endif; ?>
-                    </p>
-                </div>
-                <div class="col-md-4 text-end">
-                    <a href="<?php echo url('modules/huitaine/list.php?urgents=1'); ?>" class="btn btn-light">
-                        <i class="fas fa-eye"></i> Voir les huitaines urgentes
-                    </a>
-                </div>
-            </div>
-        </div>
+<div class="alert-banner phase-<?php echo $stats_huitaine['expires'] > 0 ? 'danger' : 'attention'; ?>" role="alert">
+    <i class="fas fa-triangle-exclamation alert-banner-icon" aria-hidden="true"></i>
+    <div class="alert-banner-body">
+        <?php if ($stats_huitaine['expires'] > 0): ?>
+        <strong><?php echo $stats_huitaine['expires']; ?> huitaine(s) expirée(s) :</strong> rejet automatique imminent.
+        <?php endif; ?>
+        <?php if ($stats_huitaine['urgents'] > 0): ?>
+        <strong><?php echo $stats_huitaine['urgents']; ?> dossier(s) urgent(s)</strong> : échéance dans 2 jours ou moins.
+        <?php endif; ?>
     </div>
+    <a href="<?php echo url('modules/huitaine/list.php?urgents=1'); ?>" class="btn btn-sm btn-<?php echo $stats_huitaine['expires'] > 0 ? 'danger' : 'warning'; ?>">Voir les huitaines</a>
 </div>
 <?php endif; ?>
 
-<!-- Actions rapides -->
-<?php if (!empty($actions_rapides)): ?>
-<div class="row mb-4">
+<!-- Indicateurs -->
+<div class="row row-cols-2 row-cols-md-3 row-cols-xl-<?php echo max(3, min(5, count($all_stats))); ?> g-3 mb-4">
+    <?php foreach ($all_stats as $config): ?>
     <div class="col">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-bolt"></i> Actions rapides
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <?php
-                    $action_count = count($actions_rapides);
-                    if ($action_count == 2) {
-                        $action_col_class = 'col-md-6';
-                    } elseif ($action_count == 3) {
-                        $action_col_class = 'col-md-4 col-6';
-                    } elseif ($action_count == 4) {
-                        $action_col_class = 'col-md-3 col-6';
-                    } elseif ($action_count == 5) {
-                        $action_col_class = 'col-md-2 col-6';
-                    } elseif ($action_count == 6) {
-                        $action_col_class = 'col-md-2 col-6';
-                    } else {
-                        $action_col_class = 'col-md-4';
-                    }
+        <?php echo uiKpiCard(trim(preg_replace('/^[^\p{L}\p{N}]+/u', '', $config['label'])), $config['value'], $icone_fa6($config['icon']), $phase_couleur[$config['color']] ?? ''); ?>
+    </div>
+    <?php endforeach; ?>
+</div>
 
-                    foreach ($actions_rapides as $action):
-                    ?>
-                    <div class="<?php echo $action_col_class; ?> mb-3">
-                        <a href="<?php echo $action['url']; ?>" class="action-card w-100 bg-<?php echo $action['class']; ?>">
-                            <i class="<?php echo $action['icon']; ?>"></i>
-                            <span class="action-label"><?php echo $action['label']; ?></span>
+<!-- À traiter + raccourcis -->
+<div class="row g-3 mb-4">
+    <div class="<?php echo $actions_rapides ? 'col-lg-7' : 'col-12'; ?>">
+        <div class="card h-100">
+            <div class="card-header"><h2 class="card-title-sm">À traiter</h2><span class="text-muted-sgdi small">Du plus urgent au moins urgent</span></div>
+            <?php echo uiTaskList($taches); ?>
+        </div>
+    </div>
+    <?php if ($actions_rapides): ?>
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header"><h2 class="card-title-sm">Raccourcis</h2></div>
+            <div class="card-body">
+                <div class="row row-cols-1 row-cols-sm-2 g-2">
+                    <?php foreach ($actions_rapides as $action): ?>
+                    <div class="col">
+                        <a class="shortcut phase-<?php echo $phase_couleur[$action['class']] ?: 'instruction'; ?>" href="<?php echo $action['url']; ?>">
+                            <i class="fas <?php echo $icone_fa6($action['icon']); ?>" aria-hidden="true"></i><?php echo sanitize($action['label']); ?>
                         </a>
                     </div>
                     <?php endforeach; ?>
@@ -335,8 +284,8 @@ require_once 'includes/header.php';
             </div>
         </div>
     </div>
+    <?php endif; ?>
 </div>
-<?php endif; ?>
 
 <!-- Dossiers récents/pertinents -->
 <div class="row">

@@ -53,6 +53,7 @@ function uiStatut($statut) {
         'rejete'                => ['Rejeté',                   'danger',      11, 'fa-circle-xmark'],
         'ferme'                 => ['Fermé',                    'preparation', 11, 'fa-lock'],
         'suspendu'              => ['Suspendu',                 'attention',   11, 'fa-circle-pause'],
+        'historique_autorise'   => ['Autorisé (historique)',    'succes',      11, 'fa-clock-rotate-left'],
     ];
 
     if (!isset($statuts[$statut])) {
@@ -96,7 +97,7 @@ function uiWorkflowProgress($statut, $avec_libelle = true) {
  */
 function uiKpiCard($label, $valeur, $icon, $phase = '', $meta = '', $url = null) {
     $classe_phase = $phase ? ' phase-' . $phase : '';
-    $html = '<div class="card' . $classe_phase . '"><div class="kpi-card">'
+    $html = '<div class="card h-100' . $classe_phase . '"><div class="kpi-card">'
           . '<div class="kpi-top"><span class="kpi-label">' . htmlspecialchars($label) . '</span>'
           . '<span class="kpi-icon"><i class="fas ' . htmlspecialchars($icon) . '" aria-hidden="true"></i></span></div>'
           . '<div class="kpi-value">' . htmlspecialchars((string) $valeur) . '</div>'
