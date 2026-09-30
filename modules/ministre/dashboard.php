@@ -62,257 +62,106 @@ try {
     $decisions_recentes = [];
 }
 
+require_once '../../includes/ui.php';
+require_once '../../includes/taches.php';
+$taches = getTachesAFaire('cabinet', $_SESSION['user_id']);
+
 require_once '../../includes/header.php';
+
+echo uiBandeauAccueil(
+    trim($_SESSION['user_prenom'] ?? '') ?: ($_SESSION['user_nom'] ?? ''),
+    'Cabinet du Ministre · Décision finale',
+    $taches,
+    '<a class="btn btn-light" href="#a-decider"><i class="fas fa-gavel"></i> Prendre les décisions</a>'
+);
 ?>
 
-<div class="container-fluid">
-    <!-- En-tête -->
-    <div class="row mb-4">
-        <div class="col">
-            <div class="card bg-dark text-white">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col">
-                            <h4 class="mb-1">
-                                Cabinet du Ministre
-                            </h4>
-                            <p class="mb-0 opacity-75">
-                                <i class="fas fa-gavel"></i>
-                                Ministère de l'Eau et de l'Énergie (MINEE) - Décisions finales
-                            </p>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-landmark fa-3x opacity-50"></i>
-                        </div>
-                    </div>
-                </div>
+<div class="row row-cols-2 row-cols-xl-4 g-3 mb-4">
+    <div class="col"><?php echo uiKpiCard('En attente de décision', $stats['en_attente'], 'fa-gavel', 'decision', 'Visés par le Directeur', '#a-decider'); ?></div>
+    <div class="col"><?php echo uiKpiCard('Approuvés ce mois', $stats['approuves_mois'], 'fa-circle-check', 'succes'); ?></div>
+    <div class="col"><?php echo uiKpiCard('Refusés ce mois', $stats['rejetes_mois'], 'fa-circle-xmark', 'danger'); ?></div>
+    <div class="col"><?php echo uiKpiCard('Total des décisions', $stats['total_decisions'], 'fa-book', '', 'Publiées au registre public'); ?></div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header"><h2 class="card-title-sm">À traiter</h2><span class="text-muted-sgdi small">Du plus urgent au moins urgent</span></div>
+            <?php echo uiTaskList($taches); ?>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header"><h2 class="card-title-sm">Raccourcis</h2></div>
+            <div class="card-body">
+                <?php echo uiRaccourcis([
+                    ['fa-map-location-dot', 'Carte des infrastructures', url('modules/carte/index.php'), 'succes'],
+                    ['fa-gavel', 'Mes décisions', url('modules/dossiers/list.php'), 'decision'],
+                    ['fa-circle-check', 'Dossiers autorisés', url('modules/dossiers/list.php?statut=autorise'), 'succes'],
+                    ['fa-book-open', 'Registre public', url('modules/registre_public/index.php'), 'instruction'],
+                ]); ?>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Statistiques -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card border-dark">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-1">En attente décision</h6>
-                            <h3 class="mb-0"><?php echo $stats['en_attente']; ?></h3>
-                        </div>
-                        <div class="text-dark">
-                            <i class="fas fa-clock fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card border-success">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-1">Approuvés ce mois</h6>
-                            <h3 class="mb-0 text-success"><?php echo $stats['approuves_mois']; ?></h3>
-                        </div>
-                        <div class="text-success">
-                            <i class="fas fa-check-double fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card border-danger">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-1">Refusés ce mois</h6>
-                            <h3 class="mb-0 text-danger"><?php echo $stats['rejetes_mois']; ?></h3>
-                        </div>
-                        <div class="text-danger">
-                            <i class="fas fa-ban fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card border-info">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-1">Total décisions</h6>
-                            <h3 class="mb-0 text-info"><?php echo $stats['total_decisions']; ?></h3>
-                        </div>
-                        <div class="text-info">
-                            <i class="fas fa-gavel fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="card mb-4" id="a-decider">
+    <div class="card-header"><h2 class="card-title-sm">Dossiers en attente de décision ministérielle</h2></div>
+    <?php if (empty($dossiers)): ?>
+        <?php echo uiEmptyState('Aucun dossier en attente de décision', '', 'fa-circle-check'); ?>
+    <?php else: ?>
+    <div class="px-3 pt-3">
+        <div class="alert-banner phase-decision mb-0">
+            <i class="fas fa-circle-info alert-banner-icon" aria-hidden="true"></i>
+            <div class="alert-banner-body">Ces dossiers ont reçu les trois visas requis (Chef de Service, Sous-Directeur, Directeur DPPG) et sont prêts pour la décision finale.</div>
         </div>
     </div>
-
-    <!-- Actions rapides -->
-    <div class="row mb-4">
-        <div class="col">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Actions rapides</h5>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <a href="<?php echo url('modules/carte/index.php'); ?>" class="btn btn-success btn-lg w-100 mb-2">
-                                <i class="fas fa-map-marked-alt"></i><br>
-                                Carte des infrastructures
-                            </a>
-                        </div>
-                        <div class="col-md-4">
-                            <a href="<?php echo url('modules/dossiers/list.php'); ?>" class="btn btn-dark btn-lg w-100 mb-2">
-                                <i class="fas fa-gavel"></i><br>
-                                Mes décisions
-                            </a>
-                        </div>
-                        <div class="col-md-4">
-                            <a href="<?php echo url('modules/dossiers/list.php?statut=autorise'); ?>" class="btn btn-success btn-lg w-100 mb-2">
-                                <i class="fas fa-check-circle"></i><br>
-                                Dossiers autorisés
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Dossiers en attente -->
-    <div class="card mb-4">
-        <div class="card-header bg-dark text-white">
-            <h5 class="mb-0">
-                <i class="fas fa-folder-open"></i>
-                Dossiers validés en attente de décision ministérielle
-            </h5>
-        </div>
-        <div class="card-body">
-            <?php if (empty($dossiers)): ?>
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle"></i>
-                    Aucun dossier en attente de décision actuellement.
-                </div>
-            <?php else: ?>
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <strong>Important:</strong> Ces dossiers ont reçu tous les visas requis (Chef Service, Sous-Directeur, Directeur DPPG).
-                    Ils sont prêts pour la décision ministérielle finale.
-                </div>
-
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Numéro</th>
-                                <th>Type</th>
-                                <th>Demandeur</th>
-                                <th>Localisation</th>
-                                <th>Validé le</th>
-                                <th>Créé par</th>
-                                <th width="200">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($dossiers as $dossier): ?>
-                            <tr>
-                                <td>
-                                    <strong><?php echo sanitize($dossier['numero']); ?></strong>
-                                </td>
-                                <td>
-                                    <span class="badge bg-secondary">
-                                        <?php echo sanitize(getTypeInfrastructureLabel($dossier['type_infrastructure'])); ?>
-                                    </span>
-                                </td>
-                                <td><?php echo sanitize($dossier['nom_demandeur']); ?></td>
-                                <td><?php echo sanitize($dossier['ville'] ?? 'N/A'); ?></td>
-                                <td><?php echo $dossier['date_validation_format']; ?></td>
-                                <td><?php echo sanitize($dossier['createur_prenom'] . ' ' . $dossier['createur_nom']); ?></td>
-                                <td>
-                                    <a href="decider.php?id=<?php echo $dossier['id']; ?>"
-                                       class="btn btn-sm btn-dark">
-                                        <i class="fas fa-gavel"></i> Décider
-                                    </a>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            <?php endif; ?>
-        </div>
-    </div>
-
-    <!-- Décisions récentes -->
-    <?php if (!empty($decisions_recentes)): ?>
-    <div class="card">
-        <div class="card-header bg-secondary text-white">
-            <h5 class="mb-0">
-                <i class="fas fa-history"></i>
-                Décisions récentes
-            </h5>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-sm">
-                    <thead>
-                        <tr>
-                            <th>Numéro</th>
-                            <th>Type</th>
-                            <th>Demandeur</th>
-                            <th>Décision</th>
-                            <th>Référence</th>
-                            <th>Date</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($decisions_recentes as $dec): ?>
-                        <tr>
-                            <td><?php echo sanitize($dec['numero']); ?></td>
-                            <td><?php echo sanitize(getTypeInfrastructureLabel($dec['type_infrastructure'])); ?></td>
-                            <td><?php echo sanitize($dec['nom_demandeur']); ?></td>
-                            <td>
-                                <?php if ($dec['decision'] === 'approuve'): ?>
-                                    <span class="badge bg-success">Approuvé</span>
-                                <?php else: ?>
-                                    <span class="badge bg-danger">Refusé</span>
-                                <?php endif; ?>
-                            </td>
-                            <td><?php echo sanitize($dec['reference_decision']); ?></td>
-                            <td><?php echo $dec['date_decision_format']; ?></td>
-                            <td>
-                                <a href="<?php echo url('modules/dossiers/view.php?id=' . $dec['id']); ?>"
-                                   class="btn btn-sm btn-info">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+    <div class="table-responsive">
+        <table class="table table-sgdi table-hover table-stack">
+            <thead><tr><th>N° dossier</th><th>Infrastructure</th><th>Demandeur</th><th>Localisation</th><th>Visé le</th><th>Créé par</th><th class="text-end"><span class="visually-hidden">Action</span></th></tr></thead>
+            <tbody>
+                <?php foreach ($dossiers as $d): ?>
+                <tr>
+                    <td data-label="N° dossier"><a class="cell-main mono" href="<?php echo url('modules/dossiers/view.php?id=' . (int) $d['id']); ?>"><?php echo sanitize($d['numero']); ?></a></td>
+                    <td data-label="Infrastructure"><?php echo sanitize(getTypeLabel($d['type_infrastructure'], $d['sous_type'])); ?></td>
+                    <td data-label="Demandeur"><?php echo sanitize($d['nom_demandeur']); ?></td>
+                    <td data-label="Localisation"><?php echo sanitize($d['ville'] ?: ($d['region'] ?: 'Non précisée')); ?></td>
+                    <td data-label="Visé le"><?php echo sanitize($d['date_validation_format']); ?></td>
+                    <td data-label="Créé par"><?php echo sanitize(trim($d['createur_prenom'] . ' ' . $d['createur_nom'])); ?></td>
+                    <td class="text-end cell-actions"><a class="btn btn-sm btn-primary" href="<?php echo url('modules/ministre/decider.php?id=' . (int) $d['id']); ?>"><i class="fas fa-gavel"></i> Décider</a></td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
     </div>
     <?php endif; ?>
 </div>
 
-
-<!-- Statistiques Avancées -->
-<div class="container-fluid mt-4">
-    <h2 class="h4 mb-3">
-        <i class="fas fa-chart-bar"></i> Statistiques Avancées
-    </h2>
-    <?php require_once __DIR__ . '/../../includes/dashboard_stats_avancees.php'; ?>
+<?php if (!empty($decisions_recentes)): ?>
+<div class="card mb-4">
+    <div class="card-header"><h2 class="card-title-sm">Décisions récentes</h2></div>
+    <div class="table-responsive">
+        <table class="table table-sgdi table-hover table-stack">
+            <thead><tr><th>N° dossier</th><th>Infrastructure</th><th>Demandeur</th><th>Décision</th><th>Référence</th><th>Date</th><th class="text-end"><span class="visually-hidden">Action</span></th></tr></thead>
+            <tbody>
+                <?php foreach ($decisions_recentes as $dec): $approuve = $dec['decision'] === 'approuve'; ?>
+                <tr>
+                    <td data-label="N° dossier"><a class="cell-main mono" href="<?php echo url('modules/dossiers/view.php?id=' . (int) $dec['id']); ?>"><?php echo sanitize($dec['numero']); ?></a></td>
+                    <td data-label="Infrastructure"><?php echo sanitize(getTypeLabel($dec['type_infrastructure'], $dec['sous_type'])); ?></td>
+                    <td data-label="Demandeur"><?php echo sanitize($dec['nom_demandeur']); ?></td>
+                    <td data-label="Décision"><span class="status-badge phase-<?php echo $approuve ? 'succes' : 'danger'; ?>"><?php echo $approuve ? 'Approuvé' : 'Refusé'; ?></span></td>
+                    <td data-label="Référence"><?php echo sanitize($dec['reference_decision'] ?? ''); ?></td>
+                    <td data-label="Date"><?php echo sanitize($dec['date_decision_format']); ?></td>
+                    <td class="text-end cell-actions"><a class="btn btn-sm btn-outline-secondary" href="<?php echo url('modules/dossiers/view.php?id=' . (int) $dec['id']); ?>">Ouvrir</a></td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
 </div>
+<?php endif; ?>
+
+<h2 class="h5 mb-3">Statistiques avancées</h2>
+<?php require_once __DIR__ . '/../../includes/dashboard_stats_avancees.php'; ?>
 
 <?php require_once '../../includes/footer.php'; ?>

@@ -108,6 +108,41 @@ function uiWorkflowProgress($statut, $avec_libelle = true) {
 }
 
 /**
+ * Les 11 étapes du circuit réglementaire
+ */
+function uiEtapesWorkflow() {
+    return [
+        1 => 'Création du dossier', 2 => 'Commission', 3 => 'Note de frais', 4 => 'Paiement',
+        5 => 'Analyse juridique', 6 => 'Complétude', 7 => 'Inspection', 8 => 'Validation commission',
+        9 => 'Visas', 10 => 'Décision', 11 => 'Publication',
+    ];
+}
+
+/**
+ * Frise détaillée du circuit (fiche dossier) : étapes franchies, étape en cours, étapes à venir.
+ * Un dossier rejeté marque l'étape en cours en rouge ; en huitaine, en orange.
+ */
+function uiWorkflowStepper($statut) {
+    $s = uiStatut($statut);
+    $termine = in_array($statut, ['autorise', 'historique_autorise'], true);
+    $html = '<ol class="wf-stepper phase-' . $s['phase'] . '" aria-label="Circuit du dossier : étape ' . $s['etape'] . ' sur ' . SGDI_WORKFLOW_ETAPES . '">';
+    foreach (uiEtapesWorkflow() as $n => $libelle) {
+        if ($termine || $n < $s['etape']) {
+            $etat = 'done';
+        } elseif ($n === $s['etape']) {
+            $etat = $statut === 'rejete' ? 'failed' : ($s['phase'] === 'attention' ? 'warning' : 'current');
+        } else {
+            $etat = 'todo';
+        }
+        $icone = ['done' => 'fa-check', 'failed' => 'fa-xmark', 'warning' => 'fa-hourglass-half', 'current' => '', 'todo' => ''][$etat];
+        $html .= '<li class="wf-step is-' . $etat . '"' . ($etat === 'current' || $etat === 'warning' || $etat === 'failed' ? ' aria-current="step"' : '') . '>'
+               . '<span class="wf-step-dot">' . ($icone ? '<i class="fas ' . $icone . '" aria-hidden="true"></i>' : $n) . '</span>'
+               . '<span class="wf-step-label">' . htmlspecialchars($libelle) . '</span></li>';
+    }
+    return $html . '</ol>';
+}
+
+/**
  * Carte indicateur (KPI)
  *
  * @param string $phase Phase pour la couleur de l'icône ('' = couleur principale)
@@ -161,6 +196,44 @@ function uiEmptyState($titre, $message = '', $icon = 'fa-folder-open', $html_act
          . '<h3>' . htmlspecialchars($titre) . '</h3>'
          . ($message !== '' ? '<p class="mb-3">' . htmlspecialchars($message) . '</p>' : '')
          . $html_action . '</div>';
+}
+
+/**
+ * Date du jour en toutes lettres (« Mercredi 30 septembre 2026 »)
+ */
+function uiDateDuJour() {
+    $jours = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+    $mois = ['', 'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+    return ucfirst($jours[date('w')]) . ' ' . date('j') . ' ' . $mois[(int) date('n')] . ' ' . date('Y');
+}
+
+/**
+ * Bandeau d'accueil des tableaux de bord : salutation, tâche prioritaire, rôle et boutons
+ *
+ * @param array  $taches        Liste issue de getTachesAFaire() (triée par urgence)
+ * @param string $html_boutons  Boutons (HTML déjà échappé)
+ */
+function uiBandeauAccueil($prenom, $libelle_role, array $taches = [], $html_boutons = '') {
+    $priorite = ($taches && $taches[0]['nombre'] > 0) ? $taches[0] : null;
+    return '<div class="hero-welcome"><div>'
+         . '<h1>Bonjour, ' . htmlspecialchars($prenom) . '</h1>'
+         . '<p>' . uiDateDuJour() . ' · '
+         . ($priorite ? 'priorité : <strong>' . htmlspecialchars($priorite['titre']) . ' (' . (int) $priorite['nombre'] . ')</strong>' : 'aucune action en attente')
+         . '</p><div class="d-flex flex-wrap gap-2 mt-2"><span class="hero-chip"><i class="fas fa-user-tag" aria-hidden="true"></i> ' . htmlspecialchars($libelle_role) . '</span></div></div>'
+         . ($html_boutons !== '' ? '<div class="d-flex flex-wrap gap-2">' . $html_boutons . '</div>' : '')
+         . '</div>';
+}
+
+/**
+ * Raccourci (action rapide) : [icône, libellé, url, phase pour la couleur]
+ */
+function uiRaccourcis(array $liens) {
+    $html = '<div class="row row-cols-1 row-cols-sm-2 g-2">';
+    foreach ($liens as $l) {
+        $html .= '<div class="col"><a class="shortcut phase-' . htmlspecialchars($l[3] ?? 'instruction') . '" href="' . htmlspecialchars($l[2]) . '">'
+               . '<i class="fas ' . htmlspecialchars($l[0]) . '" aria-hidden="true"></i>' . htmlspecialchars($l[1]) . '</a></div>';
+    }
+    return $html . '</div>';
 }
 
 /**

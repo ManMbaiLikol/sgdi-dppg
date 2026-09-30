@@ -62,170 +62,139 @@ require_once '../../includes/header.php';
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
-            <!-- En-tête avec navigation -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <?php
+            require_once '../../includes/ui.php';
+            $actions_possibles = getActionsPossibles($dossier, $_SESSION['user_role']);
+            // Liens des actions proposées par getActionsPossibles()
+            $liens_actions = [
+                'upload_documents' => ['modules/dossiers/upload_documents.php?id=', 'fa-upload'],
+                'constituer_commission' => ['modules/dossiers/commission.php?id=', 'fa-users'],
+                'creer_note_frais' => ['modules/notes_frais/create.php?dossier_id=', 'fa-file-invoice-dollar'],
+                'marquer_autorise' => ['modules/dossiers/marquer_autorise.php?id=', 'fa-circle-check'],
+                'gestion_operationnelle' => ['modules/dossiers/gestion_operationnelle.php?id=', 'fa-gears'],
+                'analyser_dossier' => ['modules/dossiers/analyse_daj.php?id=', 'fa-magnifying-glass'],
+            ];
+            $actions_liens = array_values(array_filter($actions_possibles, function ($a) use ($liens_actions) { return isset($liens_actions[$a['action']]); }));
+            // Action du circuit de décision attendue de l'utilisateur à ce stade (mêmes conditions que les pages cibles)
+            $action_circuit = null;
+            $inspection_validee = !empty($inspections) && !empty($inspections[0]['valide_par_chef_commission']);
+            switch ($_SESSION['user_role'] . ':' . $dossier['statut']) {
+                case 'chef_service:inspecte':
+                    $action_circuit = ['modules/dossiers/apposer_visa.php?id=', 'fa-stamp', 'Apposer mon visa (1/3)'];
+                    break;
+                case 'chef_commission:inspecte':
+                    if (!$inspection_validee && !empty($inspections)) {
+                        $action_circuit = ['modules/chef_commission/valider_inspection.php?id=', 'fa-check-double', 'Valider l\'inspection'];
+                    }
+                    break;
+                case 'sous_directeur:visa_chef_service':
+                    $action_circuit = ['modules/sous_directeur/viser.php?id=', 'fa-stamp', 'Apposer mon visa (2/3)'];
+                    break;
+                case 'directeur:visa_sous_directeur':
+                    $action_circuit = ['modules/directeur/viser.php?id=', 'fa-stamp', 'Viser et transmettre (3/3)'];
+                    break;
+                case 'cabinet:visa_directeur':
+                    $action_circuit = ['modules/ministre/decider.php?id=', 'fa-gavel', 'Prendre la décision'];
+                    break;
+            }
+            // Le bouton principal est l'action du circuit si elle existe, sinon la première action du dossier
+            $action_principale = $action_circuit ? null : ($actions_liens[0] ?? null);
+            $actions_menu = $action_circuit ? $actions_liens : array_slice($actions_liens, 1);
+            $statuts_modification_commission_bloques = ['decide', 'autorise', 'rejete', 'classe'];
+            $peut_modifier_commission = $dossier['commission_date'] && !in_array($dossier['statut'], $statuts_modification_commission_bloques) && $_SESSION['user_role'] === 'chef_service';
+            $peut_huitaine = hasAnyRole(['chef_service', 'admin', 'cadre_dppg', 'cadre_daj', 'chef_commission']) && $dossier['statut'] !== 'en_huitaine';
+            $a_menu = hasAnyRole(['chef_service', 'admin']) || $peut_huitaine || $actions_menu || $peut_modifier_commission || $dossier['coordonnees_gps'];
+            ?>
+
+            <!-- En-tête du dossier -->
+            <div class="page-header">
                 <div>
-                    <h1 class="h3 mb-1">
-                        <i class="fas fa-folder-open"></i>
-                        Dossier <?php echo htmlspecialchars($dossier['numero']); ?>
-                    </h1>
-                    <div class="d-flex align-items-center">
-                        <span class="badge badge-lg badge-<?php echo getStatutClass($dossier['statut']); ?> mr-2">
-                            <i class="fas fa-info-circle"></i>
-                            <?php echo getStatutLabel($dossier['statut']); ?>
-                        </span>
-                        <?php if ($dossier['statut'] === 'autorise'): ?>
-                        <?php
-                        $statut_op = $dossier['statut_operationnel'] ?: 'operationnel';
-                        ?>
-                        <span class="badge badge-lg badge-<?php echo getStatutOperationnelClass($statut_op); ?> mr-2">
-                            <i class="<?php echo getStatutOperationnelIcon($statut_op); ?>"></i>
-                            <?php echo getStatutOperationnelLabel($statut_op); ?>
-                        </span>
+                    <nav aria-label="Fil d'Ariane"><ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="<?php echo url('dashboard.php'); ?>">Tableau de bord</a></li>
+                        <li class="breadcrumb-item"><a href="<?php echo url('modules/dossiers/list.php'); ?>">Dossiers</a></li>
+                        <li class="breadcrumb-item active" aria-current="page"><?php echo sanitize($dossier['numero']); ?></li>
+                    </ol></nav>
+                    <h1 class="page-title"><?php echo sanitize($dossier['nom_demandeur'] ?: 'Dossier ' . $dossier['numero']); ?></h1>
+                    <p class="page-subtitle d-flex flex-wrap align-items-center gap-2">
+                        <span class="mono"><?php echo sanitize($dossier['numero']); ?></span> ·
+                        <span><?php echo sanitize(getTypeLabel($dossier['type_infrastructure'], $dossier['sous_type'])); ?></span> ·
+                        <?php echo uiStatutBadge($dossier['statut']); ?>
+                        <?php if (in_array($dossier['statut'], ['autorise', 'historique_autorise'], true)):
+                            $statut_op = $dossier['statut_operationnel'] ?: 'operationnel';
+                            $phase_op = ['operationnel' => 'succes', 'ferme_temporaire' => 'attention', 'ferme_definitif' => 'danger', 'demantele' => 'preparation'][$statut_op] ?? 'preparation'; ?>
+                        <span class="status-badge phase-<?php echo $phase_op; ?>"><?php echo sanitize(getStatutOperationnelLabel($statut_op)); ?></span>
                         <?php endif; ?>
-                        <small class="text-muted">
-                            Créé le <?php echo date('d/m/Y H:i', strtotime($dossier['date_creation'])); ?>
-                        </small>
-                    </div>
+                        <span class="small">Déposé le <?php echo date('d/m/Y à H:i', strtotime($dossier['date_creation'])); ?></span>
+                    </p>
                 </div>
-                <div class="btn-toolbar justify-end">
-                    <a href="<?php echo url('modules/dossiers/list.php'); ?>" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left"></i> Retour à la liste
-                    </a>
-                    <?php
-                    $actions_possibles = getActionsPossibles($dossier, $_SESSION['user_role']);
-                    if (!empty($actions_possibles) || $_SESSION['user_role'] === 'chef_service'):
-                    ?>
-                    <div class="btn-group-modern">
-                        <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
-                            <i class="fas fa-cog"></i> Actions
-                        </button>
-                        <div class="dropdown-menu">
-                            <?php if ($_SESSION['user_role'] === 'chef_service' || $_SESSION['user_role'] === 'admin'): ?>
-                            <a class="dropdown-item" href="<?php echo url('modules/dossiers/edit.php?id=' . $dossier_id); ?>">
-                                <i class="fas fa-edit"></i> Modifier les informations
-                            </a>
-                            <a class="dropdown-item" href="<?php echo url('modules/dossiers/localisation.php?id=' . $dossier_id); ?>">
-                                <i class="fas fa-map-marker-alt"></i> Localisation GPS
-                            </a>
-                            <?php if ($dossier['coordonnees_gps'] && in_array($dossier['type_infrastructure'], ['station_service', 'reprise_station_service'])): ?>
-                            <a class="dropdown-item" href="<?php echo url('modules/dossiers/validation_geospatiale.php?id=' . $dossier_id); ?>">
-                                <i class="fas fa-ruler-combined"></i> Validation géospatiale
-                                <?php if ($dossier['conformite_geospatiale'] === 'non_conforme'): ?>
-                                    <span class="badge badge-sm bg-danger">Non conforme</span>
-                                <?php elseif ($dossier['conformite_geospatiale'] === 'conforme'): ?>
-                                    <span class="badge badge-sm bg-success">Conforme</span>
-                                <?php endif; ?>
-                            </a>
-                            <?php endif; ?>
-                            <div class="dropdown-divider"></div>
-                            <?php endif; ?>
-
-                            <?php if (hasAnyRole(['chef_service', 'admin', 'cadre_dppg', 'cadre_daj', 'chef_commission']) && $dossier['statut'] !== 'en_huitaine'): ?>
-                            <a class="dropdown-item text-warning" href="<?php echo url('modules/huitaine/creer.php?id=' . $dossier_id); ?>">
-                                <i class="fas fa-clock"></i> Créer une huitaine
-                            </a>
-                            <div class="dropdown-divider"></div>
-                            <?php endif; ?>
-
-                            <?php foreach ($actions_possibles as $action): ?>
-                                <?php if ($action['action'] === 'upload_documents'): ?>
-                                <a class="dropdown-item text-<?php echo $action['class']; ?>" href="<?php echo url('modules/dossiers/upload_documents.php?id=' . $dossier_id); ?>">
-                                    <i class="fas fa-upload"></i> <?php echo $action['label']; ?>
-                                </a>
-                                <?php elseif ($action['action'] === 'constituer_commission'): ?>
-                                <a class="dropdown-item text-<?php echo $action['class']; ?>" href="<?php echo url('modules/dossiers/commission.php?id=' . $dossier_id); ?>">
-                                    <i class="fas fa-users"></i> <?php echo $action['label']; ?>
-                                </a>
-                                <?php elseif ($action['action'] === 'creer_note_frais'): ?>
-                                <a class="dropdown-item text-<?php echo $action['class']; ?>" href="<?php echo url('modules/notes_frais/create.php?dossier_id=' . $dossier_id); ?>">
-                                    <i class="fas fa-file-invoice-dollar"></i> <?php echo $action['label']; ?>
-                                </a>
-                                <?php elseif ($action['action'] === 'marquer_autorise'): ?>
-                                <div class="dropdown-divider"></div>
-                                <a class="dropdown-item text-<?php echo $action['class']; ?>" href="<?php echo url('modules/dossiers/marquer_autorise.php?id=' . $dossier_id); ?>">
-                                    <i class="fas fa-check-circle"></i> <?php echo $action['label']; ?>
-                                </a>
-                                <?php elseif ($action['action'] === 'gestion_operationnelle'): ?>
-                                <div class="dropdown-divider"></div>
-                                <a class="dropdown-item text-<?php echo $action['class']; ?>" href="<?php echo url('modules/dossiers/gestion_operationnelle.php?id=' . $dossier_id); ?>">
-                                    <i class="fas fa-cogs"></i> <?php echo $action['label']; ?>
-                                </a>
-                                <?php elseif ($action['action'] === 'analyser_dossier'): ?>
-                                <a class="dropdown-item text-<?php echo $action['class']; ?>" href="<?php echo url('modules/dossiers/analyse_daj.php?id=' . $dossier_id); ?>">
-                                    <i class="fas fa-search"></i> <?php echo $action['label']; ?>
-                                </a>
-                                <?php endif; ?>
-                            <?php endforeach; ?>
-
-                            <?php
-                            // Lien pour modifier la commission (si elle existe et dossier pas encore décidé)
-                            $statuts_modification_commission_bloques = ['decide', 'autorise', 'rejete', 'classe'];
-                            if ($dossier['commission_date'] && !in_array($dossier['statut'], $statuts_modification_commission_bloques) && $_SESSION['user_role'] === 'chef_service'):
-                            ?>
-                            <div class="dropdown-divider"></div>
-                            <a class="dropdown-item text-warning" href="<?php echo url('modules/dossiers/edit_commission.php?id=' . $dossier_id); ?>">
-                                <i class="fas fa-user-edit"></i> Modifier la commission
-                            </a>
-                            <?php endif; ?>
-                        </div>
-                    </div>
+                <div class="page-actions">
+                    <a href="<?php echo url('modules/dossiers/list.php'); ?>" class="btn btn-ghost"><i class="fas fa-arrow-left"></i> Liste</a>
+                    <?php if ($action_circuit): ?>
+                    <a class="btn btn-primary" href="<?php echo url($action_circuit[0] . (int) $dossier_id); ?>"><i class="fas <?php echo $action_circuit[1]; ?>"></i> <?php echo sanitize($action_circuit[2]); ?></a>
+                    <?php endif; ?>
+                    <?php if ($action_principale): list($chemin, $icone) = $liens_actions[$action_principale['action']]; ?>
+                    <a class="btn btn-primary" href="<?php echo url($chemin . (int) $dossier_id); ?>"><i class="fas <?php echo $icone; ?>"></i> <?php echo sanitize($action_principale['label']); ?></a>
                     <?php endif; ?>
 
-                    <?php if ($_SESSION['user_role'] === 'admin'): ?>
-                    <div class="btn-group-modern">
-                        <button type="button" class="btn btn-outline-danger dropdown-toggle" data-bs-toggle="dropdown">
-                            <i class="fas fa-tools"></i> Administration
-                        </button>
-                        <div class="dropdown-menu">
-                            <a class="dropdown-item text-danger" href="<?php echo url('modules/dossiers/delete.php?id=' . $dossier_id); ?>"
-                               onclick="return confirm('ATTENTION: Êtes-vous sûr de vouloir supprimer définitivement ce dossier ? Cette action est irréversible et supprimera aussi tous les documents, paiements et historiques associés.')">
-                                <i class="fas fa-trash"></i> Supprimer le dossier
-                            </a>
-                        </div>
+                    <?php if ($a_menu): ?>
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="fas fa-ellipsis"></i> Actions</button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <?php if (hasAnyRole(['chef_service', 'admin'])): ?>
+                            <li><a class="dropdown-item" href="<?php echo url('modules/dossiers/edit.php?id=' . (int) $dossier_id); ?>"><i class="fas fa-pen-to-square me-2"></i>Modifier les informations</a></li>
+                            <li><a class="dropdown-item" href="<?php echo url('modules/dossiers/localisation.php?id=' . (int) $dossier_id); ?>"><i class="fas fa-location-dot me-2"></i>Localisation GPS</a></li>
+                            <?php if ($dossier['coordonnees_gps'] && in_array($dossier['type_infrastructure'], ['station_service', 'reprise_station_service'])): ?>
+                            <li><a class="dropdown-item" href="<?php echo url('modules/dossiers/validation_geospatiale.php?id=' . (int) $dossier_id); ?>"><i class="fas fa-ruler-combined me-2"></i>Validation géospatiale
+                                <?php if ($dossier['conformite_geospatiale'] === 'non_conforme'): ?><span class="badge text-bg-danger ms-1">Non conforme</span>
+                                <?php elseif ($dossier['conformite_geospatiale'] === 'conforme'): ?><span class="badge text-bg-success ms-1">Conforme</span><?php endif; ?></a></li>
+                            <?php endif; ?>
+                            <?php endif; ?>
+                            <?php if ($dossier['coordonnees_gps']): ?>
+                            <li><a class="dropdown-item" href="<?php echo url('modules/carte/index.php?dossier=' . (int) $dossier_id); ?>"><i class="fas fa-map-location-dot me-2"></i>Voir sur la carte</a></li>
+                            <?php endif; ?>
+
+                            <?php foreach ($actions_menu as $action): list($chemin, $icone) = $liens_actions[$action['action']]; ?>
+                            <li><a class="dropdown-item" href="<?php echo url($chemin . (int) $dossier_id); ?>"><i class="fas <?php echo $icone; ?> me-2"></i><?php echo sanitize($action['label']); ?></a></li>
+                            <?php endforeach; ?>
+
+                            <?php if ($peut_modifier_commission): ?>
+                            <li><a class="dropdown-item" href="<?php echo url('modules/dossiers/edit_commission.php?id=' . (int) $dossier_id); ?>"><i class="fas fa-user-pen me-2"></i>Modifier la commission</a></li>
+                            <?php endif; ?>
+
+                            <?php if ($peut_huitaine): ?>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="<?php echo url('modules/huitaine/creer.php?id=' . (int) $dossier_id); ?>"><i class="fas fa-hourglass-half me-2"></i>Créer une huitaine</a></li>
+                            <?php endif; ?>
+
+                            <?php if ($_SESSION['user_role'] === 'admin'): ?>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="<?php echo url('modules/dossiers/delete.php?id=' . (int) $dossier_id); ?>"
+                                   onclick="return confirm('ATTENTION : êtes-vous sûr de vouloir supprimer définitivement ce dossier ? Cette action est irréversible et supprimera aussi tous les documents, paiements et historiques associés.')">
+                                <i class="fas fa-trash me-2"></i>Supprimer le dossier</a></li>
+                            <?php endif; ?>
+                        </ul>
                     </div>
                     <?php endif; ?>
                 </div>
             </div>
 
-            <!-- Alerte huitaine active -->
-            <?php if ($huitaine_active): ?>
-            <div class="alert alert-<?php echo getHuitaineBadgeClass($huitaine_active['jours_restants']); ?> mb-4">
-                <div class="row align-items-center">
-                    <div class="col-md-8">
-                        <h5 class="alert-heading mb-2">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            Huitaine de régularisation en cours
-                        </h5>
-                        <p class="mb-1">
-                            <strong>Type:</strong> <?php echo ucfirst(str_replace('_', ' ', $huitaine_active['type_irregularite'])); ?>
-                        </p>
-                        <p class="mb-0">
-                            <strong>Description:</strong> <?php echo sanitize($huitaine_active['description']); ?>
-                        </p>
-                    </div>
-                    <div class="col-md-4 text-center">
-                        <div class="display-4 mb-2 text-<?php echo getHuitaineBadgeClass($huitaine_active['jours_restants']); ?>">
-                            <?php if (!isset($huitaine_active['expire'])): ?>
-                                <?php echo $huitaine_active['jours_restants']; ?>
-                            <?php else: ?>
-                                <i class="fas fa-times-circle"></i>
-                            <?php endif; ?>
-                        </div>
-                        <p class="mb-2">
-                            <strong><?php echo formatCompteARebours($huitaine_active['jours_restants'], $huitaine_active['heures_restantes']); ?></strong>
-                        </p>
-                        <p class="mb-0">
-                            <small>Date limite: <?php echo formatDateTime($huitaine_active['date_limite']); ?></small>
-                        </p>
-                        <?php if (hasAnyRole(['chef_service', 'admin', 'cadre_dppg', 'cadre_daj', 'chef_commission'])): ?>
-                        <a href="<?php echo url('modules/huitaine/regulariser.php?id=' . $huitaine_active['id']); ?>"
-                           class="btn btn-success btn-sm mt-2">
-                            <i class="fas fa-check"></i> Régulariser
-                        </a>
-                        <?php endif; ?>
-                    </div>
+            <!-- Circuit en 11 étapes -->
+            <div class="card mb-4"><div class="card-body">
+                <?php echo uiWorkflowStepper($dossier['statut']); ?>
+            </div></div>
+
+            <!-- Huitaine active -->
+            <?php if ($huitaine_active): $expiree = isset($huitaine_active['expire']); ?>
+            <div class="alert-banner phase-<?php echo $expiree || $huitaine_active['jours_restants'] <= 2 ? 'danger' : 'attention'; ?>" role="alert">
+                <i class="fas fa-hourglass-half alert-banner-icon" aria-hidden="true"></i>
+                <div class="alert-banner-body">
+                    <strong>Huitaine de régularisation <?php echo $expiree ? 'expirée' : 'en cours'; ?> : <?php echo sanitize(formatCompteARebours($huitaine_active['jours_restants'], $huitaine_active['heures_restantes'])); ?></strong>
+                    (date limite : <?php echo formatDateTime($huitaine_active['date_limite']); ?>)<br>
+                    <?php echo sanitize(ucfirst(str_replace('_', ' ', $huitaine_active['type_irregularite']))); ?> · <?php echo sanitize($huitaine_active['description']); ?>
                 </div>
+                <?php if (hasAnyRole(['chef_service', 'admin', 'cadre_dppg', 'cadre_daj', 'chef_commission'])): ?>
+                <a href="<?php echo url('modules/huitaine/regulariser.php?id=' . (int) $huitaine_active['id']); ?>" class="btn btn-sm btn-success"><i class="fas fa-check"></i> Régulariser</a>
+                <?php endif; ?>
             </div>
             <?php endif; ?>
 
@@ -1099,42 +1068,36 @@ require_once '../../includes/header.php';
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header">
-                            <h5 class="card-title mb-0">
-                                <i class="fas fa-history"></i>
-                                Historique des actions
-                            </h5>
+                            <h2 class="card-title-sm"><i class="fas fa-clock-rotate-left me-1" aria-hidden="true"></i> Historique des actions</h2>
+                            <?php if ($historique): ?><span class="text-muted-sgdi small"><?php echo count($historique); ?> action<?php echo count($historique) > 1 ? 's' : ''; ?></span><?php endif; ?>
                         </div>
                         <div class="card-body">
                             <?php if ($historique): ?>
-                                <div class="timeline">
-                                    <?php foreach ($historique as $action): ?>
-                                        <div class="timeline-item">
-                                            <div class="timeline-marker"></div>
-                                            <div class="timeline-content">
-                                                <h6 class="timeline-title"><?php echo htmlspecialchars($action['action']); ?></h6>
-                                                <p class="timeline-text"><?php echo htmlspecialchars($action['description']); ?></p>
-                                                <div class="timeline-time">
-                                                    <small class="text-muted">
-                                                        <?php echo date('d/m/Y H:i', strtotime($action['date_action'])); ?>
-                                                        par <?php echo htmlspecialchars(($action['prenom'] ?? '') . ' ' . ($action['nom'] ?? '')); ?>
-                                                        <?php if ($action['ancien_statut'] && $action['nouveau_statut']): ?>
-                                                        <br>
-                                                        <span class="badge badge-sm badge-<?php echo getStatutClass($action['ancien_statut']); ?>">
-                                                            <?php echo getStatutLabel($action['ancien_statut']); ?>
-                                                        </span>
-                                                        →
-                                                        <span class="badge badge-sm badge-<?php echo getStatutClass($action['nouveau_statut']); ?>">
-                                                            <?php echo getStatutLabel($action['nouveau_statut']); ?>
-                                                        </span>
-                                                        <?php endif; ?>
-                                                    </small>
-                                                </div>
-                                            </div>
+                                <ol class="timeline-sgdi">
+                                    <?php foreach ($historique as $action):
+                                        $phase_action = $action['nouveau_statut'] ? uiStatut($action['nouveau_statut'])['phase'] : 'preparation'; ?>
+                                    <li class="phase-<?php echo $phase_action; ?>">
+                                        <span class="tl-dot" aria-hidden="true"></span>
+                                        <p class="tl-title"><?php echo sanitize(ucfirst(str_replace('_', ' ', $action['action']))); ?></p>
+                                        <div class="tl-meta">
+                                            <?php echo date('d/m/Y à H:i', strtotime($action['date_action'])); ?>
+                                            <?php if (trim(($action['prenom'] ?? '') . ($action['nom'] ?? '')) !== ''): ?>
+                                            · <?php echo sanitize(trim(($action['prenom'] ?? '') . ' ' . ($action['nom'] ?? ''))); ?>
+                                            <?php endif; ?>
                                         </div>
+                                        <?php if ($action['description']): ?><p class="tl-text"><?php echo sanitize($action['description']); ?></p><?php endif; ?>
+                                        <?php if ($action['ancien_statut'] && $action['nouveau_statut']): ?>
+                                        <div class="mt-1 d-flex flex-wrap align-items-center gap-1">
+                                            <?php echo uiStatutBadge($action['ancien_statut']); ?>
+                                            <i class="fas fa-arrow-right small text-muted-sgdi" aria-label="devient"></i>
+                                            <?php echo uiStatutBadge($action['nouveau_statut']); ?>
+                                        </div>
+                                        <?php endif; ?>
+                                    </li>
                                     <?php endforeach; ?>
-                                </div>
+                                </ol>
                             <?php else: ?>
-                                <p class="text-muted mb-0">Aucun historique disponible</p>
+                                <?php echo uiEmptyState('Aucun historique disponible', '', 'fa-clock-rotate-left'); ?>
                             <?php endif; ?>
                         </div>
                     </div>

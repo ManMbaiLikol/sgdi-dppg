@@ -97,6 +97,44 @@ function getTachesAFaire($role, $user_id) {
                 'fa-file-pen', 'paiement', url('modules/fiche_inspection/list_dossiers.php'));
             break;
 
+        case 'chef_commission':
+            $ajouter('Valider les rapports d\'inspection', 'Dossiers inspectés de vos commissions, en attente de votre validation',
+                tacheCompter("SELECT COUNT(*) FROM dossiers d JOIN commissions c ON c.dossier_id = d.id
+                              LEFT JOIN inspections i ON i.dossier_id = d.id
+                              WHERE c.chef_commission_id = ? AND d.statut = 'inspecte'
+                              AND (i.valide_par_chef_commission IS NULL OR i.valide_par_chef_commission = 0)", [$user_id]),
+                'fa-check-double', 'instruction', url('modules/chef_commission/list.php?statut=inspecte'));
+            $ajouter('Dossiers en cours d\'instruction', 'Analyse juridique et inspection à suivre',
+                tacheCompter("SELECT COUNT(*) FROM dossiers d JOIN commissions c ON c.dossier_id = d.id
+                              WHERE c.chef_commission_id = ? AND d.statut IN ('paye', 'analyse_daj')", [$user_id]),
+                'fa-users', 'preparation', url('modules/chef_commission/list.php'));
+            break;
+
+        case 'sous_directeur':
+            $ajouter('Apposer le visa Sous-Directeur (2/3)', 'Dossiers visés par le Chef de Service',
+                tacheCompter("SELECT COUNT(*) FROM dossiers WHERE statut = 'visa_chef_service'"),
+                'fa-stamp', 'visa', url('modules/sous_directeur/liste_a_viser.php'));
+            $ajouter('Mes commissions', 'Dossiers en instruction dont vous présidez la commission',
+                tacheCompter("SELECT COUNT(*) FROM dossiers d JOIN commissions c ON c.dossier_id = d.id
+                              WHERE c.chef_commission_id = ? AND d.statut IN ('paye', 'analyse_daj', 'inspecte')", [$user_id]),
+                'fa-users', 'instruction', url('modules/sous_directeur/mes_commissions.php'));
+            break;
+
+        case 'directeur':
+            $ajouter('Apposer le visa Directeur (3/3) et transmettre', 'Dossiers visés par le Sous-Directeur',
+                tacheCompter("SELECT COUNT(*) FROM dossiers WHERE statut = 'visa_sous_directeur'"),
+                'fa-stamp', 'visa', url('modules/directeur/dashboard.php#a-viser'));
+            $ajouter('Suivre les transmissions', 'Dossiers en attente de décision ministérielle',
+                tacheCompter("SELECT COUNT(*) FROM dossiers WHERE statut = 'visa_directeur'"),
+                'fa-paper-plane', 'decision', url('modules/directeur/dashboard.php#transmis'));
+            break;
+
+        case 'cabinet':
+            $ajouter('Prendre la décision', 'Approbation ou refus · publication automatique au registre public',
+                tacheCompter("SELECT COUNT(*) FROM dossiers WHERE statut = 'visa_directeur'"),
+                'fa-gavel', 'decision', url('modules/ministre/dashboard.php#a-decider'));
+            break;
+
         case 'admin':
             $ajouter('E-mails en échec', 'Notifications non reçues ces 7 derniers jours',
                 tacheCompter("SELECT COUNT(*) FROM email_logs WHERE statut = 'failed' AND date_envoi >= DATE_SUB(NOW(), INTERVAL 7 DAY)"),
