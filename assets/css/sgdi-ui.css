@@ -621,6 +621,64 @@ fieldset legend.form-label { font-size: .875rem; float: none; width: auto; margi
 .verdict ul { margin: .4rem 0 0; padding-left: 1.1rem; color: var(--sgdi-text); }
 .layer-group-title { font-size: .7rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--sgdi-muted); margin: .9rem 0 .4rem; }
 .layer-group-title:first-of-type { margin-top: 0; }
+
+/* Panneau de la carte : types d'infrastructures */
+.type-groupe-tete { display: flex; align-items: center; justify-content: space-between; margin-bottom: .4rem; }
+.type-groupe-tete .layer-group-title { margin: 0; }
+.type-actions { display: inline-flex; gap: .15rem; }
+.type-actions button { border: 0; background: none; padding: .1rem .35rem; border-radius: .3rem; font-size: .72rem; color: var(--sgdi-primary); }
+.type-actions button:hover { background: var(--sgdi-surface-2); }
+.type-list { display: flex; flex-direction: column; gap: .3rem; }
+.type-row {
+    display: flex; align-items: center; gap: .6rem; padding: .4rem .6rem; border-radius: .55rem; cursor: pointer; user-select: none;
+    border: 1px solid var(--sgdi-border); background: var(--sgdi-surface); font-size: .85rem;
+    transition: border-color .15s ease, background-color .15s ease, opacity .15s ease;
+}
+.type-row:hover { border-color: color-mix(in srgb, var(--layer-color) 45%, var(--sgdi-border)); }
+.type-row:has(input:checked) { border-color: color-mix(in srgb, var(--layer-color) 55%, transparent); background: color-mix(in srgb, var(--layer-color) 7%, var(--sgdi-surface)); }
+.type-row:not(:has(input:checked)) { opacity: .55; }
+.type-row:not(:has(input:checked)) .type-apercu { filter: grayscale(1); }
+.type-row input { accent-color: var(--layer-color); width: 1rem; height: 1rem; flex: none; margin: 0; }
+.type-row:has(input:focus-visible) { outline: 2px solid var(--layer-color); outline-offset: 1px; }
+.type-apercu { display: grid; place-items: center; width: 1.6rem; height: 1.6rem; flex: none; }
+.type-apercu .pin { transform: rotate(-45deg) scale(.85); }
+.type-libelle { flex: 1; min-width: 0; }
+.type-row .layer-count { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--sgdi-muted); }
+.type-row:has(input:checked) .layer-count { color: var(--sgdi-text); }
+.filtre-libelle { font-size: .72rem; font-weight: 600; color: var(--sgdi-muted); margin-bottom: .25rem; }
+
+/* Outils de la carte : vérification d'emplacement et mesure */
+.carte-outil { border-color: color-mix(in srgb, var(--sgdi-primary) 45%, var(--sgdi-border)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--sgdi-primary) 12%, transparent), var(--sgdi-shadow); }
+.etapes-outil { margin: 0 0 .75rem; padding-left: 1.1rem; font-size: .8rem; color: var(--sgdi-muted); }
+.etapes-outil li + li { margin-top: .15rem; }
+.mesure-total { display: flex; align-items: baseline; justify-content: space-between; padding: .5rem .7rem; margin-bottom: .5rem; border-radius: .5rem; background: var(--sgdi-surface-2); }
+.mesure-total strong { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.liste-distances { list-style: none; margin: .5rem 0 0; padding: 0; font-size: .8rem; }
+.liste-distances li { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: .15rem .5rem; padding: .4rem 0; border-top: 1px solid var(--sgdi-border); }
+.liste-distances li > strong, .liste-distances li > .small { text-align: right; white-space: nowrap; }
+.liste-distances .ld-nom { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.liste-distances .status-badge { font-size: .65rem; }
+/* Boutons segmentés du panneau : libellés courts sur une ligne */
+.map-panel .btn-group-sm > .btn { font-size: .75rem; padding-left: .3rem; padding-right: .3rem; white-space: nowrap; }
+.map-bandeau {
+    display: flex; align-items: center; gap: .6rem; max-width: 24rem; padding: .45rem .5rem .45rem .8rem; border-radius: .6rem;
+    background: var(--sgdi-surface); color: var(--sgdi-text); font-size: .8rem; box-shadow: 0 2px 10px rgba(15, 23, 42, .2);
+    border: 1px solid color-mix(in srgb, var(--sgdi-primary) 35%, var(--sgdi-border));
+}
+.map-bandeau > i { color: var(--sgdi-primary); }
+.map-bandeau span { flex: 1; }
+.zone-projet { fill: var(--sgdi-phase-danger); fill-opacity: .07; stroke: var(--sgdi-phase-danger); stroke-width: 2; stroke-dasharray: 8 5; }
+.trait-alerte { stroke: var(--sgdi-phase-danger); stroke-width: 2; }
+.trait-info { stroke: var(--sgdi-muted); stroke-width: 1.5; stroke-dasharray: 4 5; }
+.cible-alerte { stroke: var(--sgdi-phase-danger); stroke-width: 2.5; fill: var(--sgdi-phase-danger); fill-opacity: .15; }
+.cible-info { stroke: var(--sgdi-muted); stroke-width: 2; fill: none; }
+.leaflet-tooltip.etiquette-alerte { color: var(--sgdi-phase-danger); }
+.point-mesure { stroke: #fff; stroke-width: 2; fill: var(--sgdi-indigo); fill-opacity: 1; }
+.leaflet-tooltip.etiquette-distance {
+    padding: .1rem .4rem; border: 0; border-radius: 999px; font-size: .72rem; font-weight: 600; font-variant-numeric: tabular-nums;
+    background: var(--sgdi-surface); color: var(--sgdi-text); box-shadow: 0 1px 4px rgba(15, 23, 42, .25);
+}
+.leaflet-tooltip.etiquette-distance::before { display: none; }
 .spin { animation: sgdi-spin 1s linear infinite; }
 @keyframes sgdi-spin { to { transform: rotate(360deg); } }
 

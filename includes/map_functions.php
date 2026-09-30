@@ -336,7 +336,7 @@ function getAllInfrastructuresForMap($filters = []) {
     $sql = "SELECT d.id, d.numero, d.type_infrastructure, d.sous_type, d.nom_demandeur,
                    d.ville, d.region, d.quartier, d.arrondissement, d.departement, d.lieu_dit,
                    d.coordonnees_gps, d.statut, d.date_creation,
-                   d.operateur_proprietaire, d.entreprise_beneficiaire, d.source_gps, d.est_historique
+                   d.operateur_proprietaire, d.entreprise_beneficiaire, d.source_gps, d.est_historique, d.zone_type
                    {$ancien['select']}
             FROM dossiers d{$ancien['join']}
             WHERE d.coordonnees_gps IS NOT NULL

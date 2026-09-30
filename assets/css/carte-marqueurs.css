@@ -31,6 +31,8 @@
 .pin-point_consommateur { --c: var(--mk-conso); }
 .pin-depot_gpl { --c: var(--mk-gpl); }
 .pin-centre_emplisseur { --c: var(--mk-emplisseur); }
+/* Emplacement projeté (outil de vérification) */
+.pin-projet { --c: var(--mk-alerte); }
 /* Position approximative : épingle claire à contour pointillé */
 .pin.is-approx { background: color-mix(in srgb, var(--c) 16%, #fff); border: 1.5px dashed var(--c); box-shadow: 0 2px 6px rgba(15, 23, 42, .15); }
 .pin.is-approx i { color: var(--c); }

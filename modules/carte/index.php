@@ -13,8 +13,8 @@ $extra_head = '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/li
             . '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">'
             . '<link rel="stylesheet" href="' . asset('css/carte-marqueurs.css') . '">';
 
-$actions = '<button class="btn btn-outline-secondary" type="button" id="btn-verifier"><i class="fas fa-location-crosshairs"></i> Vérifier un emplacement</button>'
-         . '<button class="btn btn-outline-secondary" type="button" id="btn-mesurer"><i class="fas fa-ruler"></i> Mesurer</button>'
+$actions = '<button class="btn btn-outline-secondary" type="button" id="btn-verifier" aria-pressed="false"><i class="fas fa-location-crosshairs"></i> Vérifier un emplacement</button>'
+         . '<button class="btn btn-outline-secondary" type="button" id="btn-mesurer" aria-pressed="false"><i class="fas fa-ruler"></i> Mesurer une distance</button>'
          . '<div class="btn-group">'
          . '<button class="btn btn-primary" type="button" id="btn-actualiser"><i class="fas fa-rotate"></i> Actualiser</button>'
          . ($peut_synchroniser
@@ -22,6 +22,19 @@ $actions = '<button class="btn btn-outline-secondary" type="button" id="btn-veri
             . '<ul class="dropdown-menu dropdown-menu-end"><li><button class="dropdown-item" type="button" id="btn-sync-osm"><i class="fas fa-globe-africa me-2"></i>Synchroniser OpenStreetMap maintenant</button></li></ul>'
             : '')
          . '</div>';
+
+// Types d'infrastructures du SGDI : code => [libellé, variable de couleur, pictogramme]
+$types_sgdi = [
+    'station_service' => ['Stations-service', 'station', 'fa-gas-pump'],
+    'point_consommateur' => ['Points consommateurs', 'conso', 'fa-industry'],
+    'depot_gpl' => ['Dépôts GPL', 'gpl', 'fa-fire-flame-simple'],
+    'centre_emplisseur' => ['Centres emplisseurs', 'emplisseur', 'fa-fill-drip'],
+];
+$types_osm = [
+    'station' => ['Stations-service', 'osm', ''],
+    'gpl' => ['Points de vente GPL', 'gpl', ''],
+    'depot' => ['Dépôts pétroliers', 'emplisseur', ''],
+];
 
 require_once '../../includes/header.php';
 
@@ -35,68 +48,145 @@ echo uiPageHeader(
 
 <div class="map-layout">
     <div class="map-panel">
+
+        <!-- Outil actif : vérification d'un emplacement ou mesure -->
+        <div class="card carte-outil" id="carte-outil" hidden><div class="card-body">
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                <h2 class="card-title-sm mb-0" id="outil-titre"></h2>
+                <button type="button" class="btn-close" id="outil-fermer" aria-label="Fermer l'outil"></button>
+            </div>
+
+            <div id="outil-verifier" hidden>
+                <ol class="etapes-outil">
+                    <li>Choisissez le type de zone du projet.</li>
+                    <li>Cliquez sur la carte à l'emplacement projeté, ou saisissez ses coordonnées.</li>
+                    <li>Faites glisser le repère rouge pour ajuster : le résultat se met à jour.</li>
+                </ol>
+                <div class="btn-group btn-group-sm w-100 mb-2" role="group" aria-label="Type de zone">
+                    <input type="radio" class="btn-check" name="v-zone" id="v-zone-u" value="urbaine" checked>
+                    <label class="btn btn-outline-primary" for="v-zone-u">Urbaine · 500 m</label>
+                    <input type="radio" class="btn-check" name="v-zone" id="v-zone-r" value="rurale">
+                    <label class="btn btn-outline-primary" for="v-zone-r">Rurale · 400 m</label>
+                </div>
+                <form class="d-flex gap-2 mb-2" id="form-coord">
+                    <input class="form-control form-control-sm" id="v-lat" inputmode="decimal" placeholder="Latitude (ex. 3.8667)" aria-label="Latitude">
+                    <input class="form-control form-control-sm" id="v-lon" inputmode="decimal" placeholder="Longitude (ex. 11.5167)" aria-label="Longitude">
+                    <button class="btn btn-sm btn-primary" type="submit" aria-label="Vérifier ces coordonnées"><i class="fas fa-check"></i></button>
+                </form>
+                <div id="v-resultat" aria-live="polite"></div>
+            </div>
+
+            <div id="outil-mesurer" hidden>
+                <ol class="etapes-outil">
+                    <li>Cliquez sur un premier point : sur la carte ou directement sur une station.</li>
+                    <li>Cliquez sur un second point : la distance s'affiche sur le segment.</li>
+                    <li>Continuez pour mesurer un trajet en plusieurs segments.</li>
+                </ol>
+                <div class="mesure-total"><span class="text-muted-sgdi small">Distance totale</span><strong id="m-total">—</strong></div>
+                <div id="m-points" class="small text-muted-sgdi mb-2"></div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="m-annuler" disabled><i class="fas fa-rotate-left"></i> Dernier point</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="m-effacer" disabled><i class="fas fa-eraser"></i> Effacer</button>
+                </div>
+            </div>
+        </div></div>
+
+        <!-- Recherche et filtres -->
+        <div class="card"><div class="card-body d-flex flex-column gap-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="card-title-sm mb-0">Rechercher</h2>
+                <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" id="f-reinit" hidden>
+                    <i class="fas fa-filter-circle-xmark"></i> Réinitialiser <span class="badge rounded-pill text-bg-primary" id="nb-filtres"></span>
+                </button>
+            </div>
+            <div class="app-search" style="max-width: none">
+                <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                <input id="f-recherche" class="form-control" type="search" placeholder="N°, demandeur, marque, ville, quartier…" aria-label="Rechercher sur la carte" aria-describedby="aide-recherche">
+            </div>
+            <div class="form-text mt-0" id="aide-recherche">Entrée : zoomer sur les résultats.</div>
+            <select id="f-region" class="form-select form-select-sm" aria-label="Région"><option value="">Toutes les régions</option></select>
+            <select id="f-marque" class="form-select form-select-sm" aria-label="Marque ou opérateur"><option value="">Toutes les marques</option></select>
+            <select id="f-phase" class="form-select form-select-sm" aria-label="Statut du dossier">
+                <option value="">Tous les statuts</option>
+                <?php foreach (uiPhases() as $code => $p): ?>
+                <option value="<?php echo $code; ?>"><?php echo sanitize($p['label']); ?></option>
+                <?php endforeach; ?>
+            </select>
+            <div>
+                <div class="filtre-libelle">Origine du dossier</div>
+                <div class="btn-group btn-group-sm w-100" role="group" aria-label="Origine du dossier">
+                    <?php foreach (['' => 'Tous', 'historique' => 'Historiques', 'circuit' => 'Circuit SGDI'] as $v => $l): ?>
+                    <input type="radio" class="btn-check" name="f-origine" id="f-origine-<?php echo $v ?: 'tous'; ?>" value="<?php echo $v; ?>" <?php echo $v === '' ? 'checked' : ''; ?>>
+                    <label class="btn btn-outline-secondary" for="f-origine-<?php echo $v ?: 'tous'; ?>"><?php echo $l; ?></label>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <div>
+                <div class="filtre-libelle">Position GPS</div>
+                <div class="btn-group btn-group-sm w-100" role="group" aria-label="Précision de la position GPS">
+                    <?php foreach (['' => 'Toutes', 'precise' => 'Précises', 'approx' => 'Approx.'] as $v => $l): ?>
+                    <input type="radio" class="btn-check" name="f-precision" id="f-precision-<?php echo $v ?: 'toutes'; ?>" value="<?php echo $v; ?>" <?php echo $v === '' ? 'checked' : ''; ?>>
+                    <label class="btn btn-outline-secondary" for="f-precision-<?php echo $v ?: 'toutes'; ?>"><?php echo $l; ?></label>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div></div>
+
+        <!-- Types d'infrastructures -->
         <div class="card"><div class="card-body">
-            <h2 class="card-title-sm mb-2">Couches</h2>
+            <h2 class="card-title-sm mb-2">Types d'infrastructures</h2>
 
-            <div class="layer-group-title">Dossiers du SGDI</div>
-            <?php foreach (['station_service' => 'Stations-service', 'point_consommateur' => 'Points consommateurs', 'depot_gpl' => 'Dépôts GPL', 'centre_emplisseur' => 'Centres emplisseurs'] as $code => $libelle): ?>
-            <label class="layer-toggle" style="--layer-color: var(--layer-<?php echo ['station_service' => 'station', 'point_consommateur' => 'conso', 'depot_gpl' => 'gpl', 'centre_emplisseur' => 'emplisseur'][$code]; ?>)">
-                <input type="checkbox" data-couche="sgdi:<?php echo $code; ?>" checked>
-                <span class="layer-dot"<?php echo in_array($code, ['depot_gpl', 'centre_emplisseur'], true) ? ' style="border-radius: 3px"' : ''; ?>></span><?php echo $libelle; ?>
-                <span class="layer-count" data-compteur="sgdi:<?php echo $code; ?>">…</span>
-            </label>
-            <?php endforeach; ?>
+            <div class="type-groupe-tete">
+                <span class="layer-group-title">Dossiers du SGDI</span>
+                <span class="type-actions"><button type="button" data-tout="sgdi">Tout</button><button type="button" data-aucun="sgdi">Aucun</button></span>
+            </div>
+            <div class="type-list">
+                <?php foreach ($types_sgdi as $code => $t): ?>
+                <label class="type-row" style="--layer-color: var(--layer-<?php echo $t[1]; ?>)">
+                    <input type="checkbox" data-couche="sgdi:<?php echo $code; ?>" checked>
+                    <span class="type-apercu"><span class="pin pin-<?php echo $code; ?>"><i class="fas <?php echo $t[2]; ?>"></i></span></span>
+                    <span class="type-libelle"><?php echo $t[0]; ?></span>
+                    <span class="layer-count" data-compteur="sgdi:<?php echo $code; ?>">…</span>
+                </label>
+                <?php endforeach; ?>
+            </div>
 
-            <div class="layer-group-title">Référence OpenStreetMap</div>
-            <label class="layer-toggle" style="--layer-color: var(--layer-osm)"><input type="checkbox" data-couche="osm:station" checked><span class="layer-dot"></span>Stations-service<span class="layer-count" data-compteur="osm:station">…</span></label>
-            <label class="layer-toggle" style="--layer-color: var(--layer-gpl)"><input type="checkbox" data-couche="osm:gpl" checked><span class="layer-dot"></span>Points de vente GPL<span class="layer-count" data-compteur="osm:gpl">…</span></label>
-            <label class="layer-toggle" style="--layer-color: var(--layer-emplisseur)"><input type="checkbox" data-couche="osm:depot" checked><span class="layer-dot" style="border-radius: 3px"></span>Dépôts pétroliers<span class="layer-count" data-compteur="osm:depot">…</span></label>
+            <div class="type-groupe-tete mt-3">
+                <span class="layer-group-title">Référence OpenStreetMap</span>
+                <span class="type-actions"><button type="button" data-tout="osm">Tout</button><button type="button" data-aucun="osm">Aucun</button></span>
+            </div>
+            <div class="type-list">
+                <?php foreach ($types_osm as $code => $t): ?>
+                <label class="type-row" style="--layer-color: var(--layer-<?php echo $t[1]; ?>)">
+                    <input type="checkbox" data-couche="osm:<?php echo $code; ?>" checked>
+                    <span class="type-apercu"><span class="mk-osm mk-<?php echo $code; ?>"></span></span>
+                    <span class="type-libelle"><?php echo $t[0]; ?></span>
+                    <span class="layer-count" data-compteur="osm:<?php echo $code; ?>">…</span>
+                </label>
+                <?php endforeach; ?>
+            </div>
             <div class="form-check form-switch mt-2">
                 <input class="form-check-input" type="checkbox" role="switch" id="osm-absents">
-                <label class="form-check-label small" for="osm-absents">Seulement les stations sans dossier géolocalisé à proximité <span class="badge rounded-pill text-bg-danger" id="nb-absents">…</span></label>
+                <label class="form-check-label small" for="osm-absents">Seulement les stations OSM absentes du SGDI <span class="badge rounded-pill text-bg-danger" id="nb-absents">…</span></label>
             </div>
             <p class="small text-muted-sgdi mt-2 mb-0" id="couverture"></p>
+        </div></div>
 
-            <div class="layer-group-title">Contraintes</div>
-            <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" role="switch" id="l-poi">
-                <label class="form-check-label" for="l-poi">Points d'intérêt <span class="text-muted-sgdi small" id="nb-poi"></span></label>
-            </div>
+        <!-- Couches complémentaires -->
+        <div class="card"><div class="card-body">
+            <h2 class="card-title-sm mb-2">Affichage</h2>
             <div class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" role="switch" id="l-zones">
-                <label class="form-check-label" for="l-zones">Zones de distance minimale</label>
+                <label class="form-check-label" for="l-zones">Zones de protection des stations <span class="text-muted-sgdi small">(500 m, 400 m en zone rurale)</span></label>
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="l-poi">
+                <label class="form-check-label" for="l-poi">Points d'intérêt protégés <span class="text-muted-sgdi small" id="nb-poi"></span></label>
             </div>
             <div class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" role="switch" id="l-densite">
                 <label class="form-check-label" for="l-densite">Carte de densité</label>
             </div>
-        </div></div>
-
-        <div class="card"><div class="card-body d-flex flex-column gap-2">
-            <h2 class="card-title-sm">Filtres</h2>
-            <div class="app-search" style="max-width: none">
-                <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
-                <input id="f-recherche" class="form-control" type="search" placeholder="N°, demandeur, opérateur, ville…" aria-label="Rechercher sur la carte">
-            </div>
-            <select id="f-region" class="form-select" aria-label="Région"><option value="">Toutes les régions</option></select>
-            <select id="f-phase" class="form-select" aria-label="Phase du dossier">
-                <option value="">Tous les statuts (SGDI)</option>
-                <?php foreach (uiPhases() as $code => $p): ?>
-                <option value="<?php echo $code; ?>"><?php echo sanitize($p['label']); ?></option>
-                <?php endforeach; ?>
-            </select>
-            <select id="f-operateur" class="form-select" aria-label="Opérateur ou marque"><option value="">Tous les opérateurs</option></select>
-        </div></div>
-
-        <div class="card" id="carte-verif" hidden><div class="card-body">
-            <h2 class="card-title-sm mb-2">Vérification d'un emplacement</h2>
-            <p class="small text-muted-sgdi mb-2">Cliquez sur la carte ou saisissez des coordonnées.</p>
-            <form class="d-flex gap-2 mb-2" id="form-coord">
-                <input class="form-control form-control-sm" id="v-lat" inputmode="decimal" placeholder="Latitude (ex. 3.8667)" aria-label="Latitude">
-                <input class="form-control form-control-sm" id="v-lon" inputmode="decimal" placeholder="Longitude (ex. 11.5167)" aria-label="Longitude">
-                <button class="btn btn-sm btn-primary" type="submit" aria-label="Vérifier ces coordonnées"><i class="fas fa-check"></i></button>
-            </form>
-            <div id="v-resultat" aria-live="polite"></div>
         </div></div>
 
         <div class="card"><div class="card-body">
@@ -127,26 +217,37 @@ echo uiPageHeader(
     var STATUTS = <?php echo json_encode(array_map(function ($s) { return [$s[0], $s[1]]; }, uiTableStatuts()), JSON_UNESCAPED_UNICODE); ?>;
     var TYPES = { station_service: 'Station-service', point_consommateur: 'Point consommateur', depot_gpl: 'Dépôt GPL', centre_emplisseur: 'Centre emplisseur' };
     var CAT_OSM = { station: 'Station-service', gpl: 'Point de vente GPL', depot: 'Dépôt pétrolier' };
-    var DISTANCE_URBAINE = 500, DISTANCE_RURALE = 400; // distance minimale entre stations (contraintes_distance_functions.php)
-    var RAYON_FUSION = 30;                             // station OSM à moins de 30 m d'une station historique : même station, un seul marqueur
+    var DISTANCE = { urbaine: 500, rurale: 400 };      // distance minimale entre stations (contraintes_distance_functions.php)
+    // Stations prises en compte pour les distances (comme verifierDistanceStations côté serveur)
+    var STATUTS_EXISTANTS = ['autorise', 'historique_autorise'];
+    var STATUTS_INSTRUCTION = ['paye', 'en_huitaine', 'analyse_daj', 'inspecte', 'valide', 'validation_commission',
+                               'visa_chef_service', 'visa_sous_directeur', 'visa_directeur', 'decide'];
+    var RAYON_FUSION = 30;                             // station OSM à moins de 30 m d'une station existante : même station, un seul marqueur
     var RAYON_CORRESPONDANCE = 200;                    // une station OSM à moins de 200 m d'un dossier SGDI est considérée comme connue
+    var CLE_PREFERENCES = 'sgdi-carte-couches';
+
+    // Index des colonnes du format compact (donnees.php)
+    var I = { id: 0, lat: 1, lon: 2, type: 3, nature: 4, nom: 5, operateur: 6, ville: 7, region: 8, statut: 9, numero: 10,
+              approx: 11, existante: 12, ancien: 13, quartier: 14, marque: 15, historique: 16, rurale: 17 };
 
     function $(id) { return document.getElementById(id); }
     function esc(t) { var e = document.createElement('span'); e.textContent = t == null ? '' : String(t); return e.innerHTML; }
     function nf(n) { return n.toLocaleString('fr-FR'); }
+    function fd(m) { return m < 1000 ? Math.round(m) + ' m' : (m / 1000).toFixed(2).replace('.', ',') + ' km'; }
+    function sansAccents(t) { return String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
 
     var carte = L.map('map', { zoomSnap: .5, minZoom: 5, maxZoom: 19 }).setView([7.37, 12.35], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">contributeurs OpenStreetMap</a>'
     }).addTo(carte);
-    L.control.scale({ imperial: false }).addTo(carte);
+    L.control.scale({ imperial: false, maxWidth: 160 }).addTo(carte);
 
     var grappe = L.markerClusterGroup({
         showCoverageOnHover: false, maxClusterRadius: 45, chunkedLoading: true, spiderfyOnMaxZoom: true,
         iconCreateFunction: sgdiIconeGrappe // un marqueur de localité compte pour tous les dossiers qu'il regroupe
     }).addTo(carte);
     var couchePoi = L.layerGroup(), coucheZones = L.layerGroup(), coucheDensite = null;
-    var D = { sgdi: [], osm: [], poi: [] }, regions = {}, limitesPays = null;
+    var D = { sgdi: [], osm: [], poi: [] }, regions = {}, limitesPays = null, derniersVisibles = [];
 
     /* ---------- Contours des régions ---------- */
     fetch(URL_REGIONS).then(function (r) { return r.json(); }).then(function (liste) {
@@ -169,19 +270,19 @@ echo uiPageHeader(
 
     /* ---------- Marqueurs ---------- */
     function marqueurSgdi(p) {
-        var s = STATUTS[p[9]] || [p[9], 'preparation'];
-        var m = L.marker([p[1], p[2]], { icon: sgdiIcone(p[3], p[11]), riseOnHover: true });
+        var s = STATUTS[p[I.statut]] || [p[I.statut], 'preparation'];
+        var m = L.marker([p[I.lat], p[I.lon]], { icon: sgdiIcone(p[I.type], p[I.approx]), riseOnHover: true });
         m.bindPopup(function () {
-            return '<h3>' + esc(p[5] || 'Demandeur non renseigné') + '</h3>' +
-                '<div>' + esc(TYPES[p[3]] || p[3]) + (p[4] ? ' · ' + esc(p[4].charAt(0).toUpperCase() + p[4].slice(1)) : '') + '</div>' +
-                (p[6] ? '<div>Opérateur : <strong>' + esc(p[6]) + '</strong></div>' : '') +
-                (p[13] ? '<div class="small">Anciennement : ' + esc(p[13]) + '</div>' : '') +
-                '<div class="text-muted-sgdi">' + esc([p[14], p[7], p[8]].filter(Boolean).join(', ')) + '</div>' +
+            return '<h3>' + esc(p[I.nom] || 'Demandeur non renseigné') + '</h3>' +
+                '<div>' + esc(TYPES[p[I.type]] || p[I.type]) + (p[I.nature] ? ' · ' + esc(p[I.nature].charAt(0).toUpperCase() + p[I.nature].slice(1)) : '') + '</div>' +
+                (p[I.operateur] ? '<div>Opérateur : <strong>' + esc(p[I.operateur]) + '</strong></div>' : '') +
+                (p[I.ancien] ? '<div class="small">Anciennement : ' + esc(p[I.ancien]) + '</div>' : '') +
+                '<div class="text-muted-sgdi">' + esc([p[I.quartier], p[I.ville], p[I.region]].filter(Boolean).join(', ')) + '</div>' +
                 '<div class="my-2"><span class="status-badge phase-' + s[1] + '">' + esc(s[0]) + '</span></div>' +
-                (p[11] ? '<div class="verdict phase-attention mb-2">Position approximative : centre de la localité, à préciser sur le terrain.</div>' : '') +
+                (p[I.approx] ? '<div class="verdict phase-attention mb-2">Position approximative : centre de la localité, à préciser sur le terrain.</div>' : '') +
                 (m._fusion ? '<div class="small mb-2"><i class="fas fa-link"></i> Même station dans OpenStreetMap : <strong>' + esc(m._fusion[3] || 'sans nom') + '</strong> (' + esc(m._fusion[4]) + ')</div>' : '') +
-                '<div class="d-flex justify-content-between align-items-center gap-2"><span class="small text-muted-sgdi">' + esc(p[10]) + '</span>' +
-                '<a class="btn btn-sm btn-primary" href="' + URL_DOSSIER + p[0] + '">Ouvrir le dossier</a></div>';
+                '<div class="d-flex justify-content-between align-items-center gap-2"><span class="small text-muted-sgdi">' + esc(p[I.numero]) + '</span>' +
+                '<a class="btn btn-sm btn-primary" href="' + URL_DOSSIER + p[I.id] + '">Ouvrir le dossier</a></div>';
         });
         m._sgdi = p;
         return m;
@@ -193,8 +294,8 @@ echo uiPageHeader(
         var groupes = {}, res = [];
         liste.forEach(function (m) {
             var p = m._sgdi;
-            if (!p || !p[11]) { res.push(m); return; }
-            var k = p[1] + ',' + p[2];
+            if (!p || !p[I.approx]) { res.push(m); return; }
+            var k = p[I.lat] + ',' + p[I.lon];
             (groupes[k] = groupes[k] || []).push(m);
         });
         groupesApprox = [];
@@ -209,18 +310,18 @@ echo uiPageHeader(
     }
     function marqueurGroupe(g) {
         var p0 = g[0]._sgdi, n = g.length;
-        var m = L.marker([p0[1], p0[2]], { icon: sgdiIconeGroupe(n) });
+        var m = L.marker([p0[I.lat], p0[I.lon]], { icon: sgdiIconeGroupe(n) });
         m.bindPopup(function () {
-            return '<h3>' + n + ' dossiers · ' + esc(p0[7] || 'localité') + '</h3>' +
+            return '<h3>' + n + ' dossiers · ' + esc(p0[I.ville] || 'localité') + '</h3>' +
                 '<div class="verdict phase-attention mb-2">Positions approximatives : centre de la localité, à préciser sur le terrain.</div>' +
                 '<ul class="liste-groupe">' + g.map(function (x) {
-                    var p = x._sgdi, st = STATUTS[p[9]] || [p[9], 'preparation'];
-                    return '<li><a href="' + URL_DOSSIER + p[0] + '"><strong>' + esc(p[5] || 'Demandeur non renseigné') + '</strong></a>' +
-                        '<span class="small text-muted-sgdi">' + esc(p[10]) + (p[6] ? ' · ' + esc(p[6]) : '') + ' · ' + esc(st[0]) + '</span></li>';
+                    var p = x._sgdi, st = STATUTS[p[I.statut]] || [p[I.statut], 'preparation'];
+                    return '<li><a href="' + URL_DOSSIER + p[I.id] + '"><strong>' + esc(p[I.nom] || 'Demandeur non renseigné') + '</strong></a>' +
+                        '<span class="small text-muted-sgdi">' + esc(p[I.numero]) + (p[I.operateur] ? ' · ' + esc(p[I.operateur]) : '') + ' · ' + esc(st[0]) + '</span></li>';
                 }).join('') + '</ul>';
         }, { maxWidth: 340 });
         m._poids = n;
-        m._membres = g.map(function (x) { return x._sgdi[0]; });
+        m._membres = g.map(function (x) { return x._sgdi[I.id]; });
         return m;
     }
     function marqueurOsm(p, absent) {
@@ -251,20 +352,20 @@ echo uiPageHeader(
                 D.poi = json.poi;
                 D.osmMaj = json.osm.maj;
                 // Stations OSM sans dossier SGDI proche
-                var stationsSgdi = json.sgdi.filter(function (p) { return p[3] === 'station_service' && !p[11]; });
-                // Stations historiques calées sur OpenStreetMap : la station OSM et le dossier ne forment qu'un point
-                var historiques = D.sgdi.filter(function (m) { var p = m._sgdi; return p[3] === 'station_service' && !p[11] && p[12]; });
+                var stationsSgdi = json.sgdi.filter(function (p) { return p[I.type] === 'station_service' && !p[I.approx]; });
+                // Stations existantes calées sur OpenStreetMap : la station OSM et le dossier ne forment qu'un point
+                var existantes = D.sgdi.filter(function (m) { var p = m._sgdi; return p[I.type] === 'station_service' && !p[I.approx] && p[I.existante]; });
                 var absents = 0, fusions = 0;
                 D.osm = json.osm.points.map(function (p) {
                     var absent = false;
                     if (p[2] === 'station') {
-                        var h = historiques.filter(function (x) {
+                        var h = existantes.filter(function (x) {
                             var s = x._sgdi;
-                            return !x._fusion && Math.abs(s[1] - p[0]) < .0005 && Math.abs(s[2] - p[1]) < .0005 && carte.distance([s[1], s[2]], [p[0], p[1]]) < RAYON_FUSION;
+                            return !x._fusion && Math.abs(s[I.lat] - p[0]) < .0005 && Math.abs(s[I.lon] - p[1]) < .0005 && carte.distance([s[I.lat], s[I.lon]], [p[0], p[1]]) < RAYON_FUSION;
                         })[0];
                         if (h) { h._fusion = p; fusions++; return null; }
                         absent = !stationsSgdi.some(function (s) {
-                            return Math.abs(s[1] - p[0]) < .003 && Math.abs(s[2] - p[1]) < .003 && carte.distance([s[1], s[2]], [p[0], p[1]]) < RAYON_CORRESPONDANCE;
+                            return Math.abs(s[I.lat] - p[0]) < .003 && Math.abs(s[I.lon] - p[1]) < .003 && carte.distance([s[I.lat], s[I.lon]], [p[0], p[1]]) < RAYON_CORRESPONDANCE;
                         });
                         if (absent) absents++;
                     }
@@ -276,10 +377,11 @@ echo uiPageHeader(
                 $('nb-absents').textContent = nf(absents);
                 afficherCouverture(json.couverture);
                 $('nb-poi').textContent = '(' + nf(D.poi.length) + ')';
-                remplirOperateurs(json);
+                remplirMarques();
                 dessinerPoi();
                 dernierChargement = new Date();
                 filtrer();
+                if (verif.point) verifier(verif.point, true);
                 if (DOSSIER_CIBLE) { ouvrirDossier(DOSSIER_CIBLE); DOSSIER_CIBLE = 0; }
             })
             .catch(function () {
@@ -292,46 +394,59 @@ echo uiPageHeader(
         if (!cv || !cv.stations) { $('couverture').textContent = ''; return; }
         var taux = Math.round(cv.geolocalisees / cv.stations * 100);
         $('couverture').innerHTML = 'Couverture GPS du SGDI : <strong>' + nf(cv.geolocalisees) + ' / ' + nf(cv.stations) + ' stations (' + taux + ' %)</strong>.' +
-            (D.fusions ? ' ' + nf(D.fusions) + ' stations OpenStreetMap fusionnées avec leur dossier historique.' : '') +
+            (D.fusions ? ' ' + nf(D.fusions) + ' stations OpenStreetMap fusionnées avec leur dossier.' : '') +
             (taux < 80 ? ' Tant que les dossiers ne sont pas géolocalisés, la comparaison avec OpenStreetMap n\x27est pas significative.' : '') +
             (URL_GPS ? ' <a href="' + URL_GPS + '">Compléter les coordonnées</a>' : '');
     }
 
-    function remplirOperateurs(json) {
-        var n = {};
-        json.sgdi.forEach(function (p) { if (p[6]) n[p[6]] = (n[p[6]] || 0) + 1; });
-        json.osm.points.forEach(function (p) { if (p[4]) n[p[4]] = (n[p[4]] || 0) + 1; });
-        var sel = $('f-operateur'), actuel = sel.value;
-        sel.innerHTML = '<option value="">Tous les opérateurs</option>' + Object.keys(n).sort(function (a, b) { return n[b] - n[a]; })
-            .slice(0, 80).map(function (o) { return '<option value="' + esc(o) + '">' + esc(o) + ' (' + n[o] + ')</option>'; }).join('');
+    // Marques normalisées (mêmes libellés pour les dossiers et OpenStreetMap), les plus fréquentes d'abord
+    function remplirMarques() {
+        var n = {}, AUTRE = 'Autre / indépendant';
+        D.sgdi.forEach(function (m) { var k = m._sgdi[I.marque]; if (k) n[k] = (n[k] || 0) + 1; });
+        D.osm.forEach(function (m) { var k = m._osm[4]; if (k) n[k] = (n[k] || 0) + 1; });
+        var sel = $('f-marque'), actuel = sel.value;
+        var cles = Object.keys(n).filter(function (k) { return k !== AUTRE; }).sort(function (a, b) { return n[b] - n[a]; });
+        if (n[AUTRE]) cles.push(AUTRE);
+        sel.innerHTML = '<option value="">Toutes les marques</option>' + cles.map(function (o) { return '<option value="' + esc(o) + '">' + esc(o) + ' (' + nf(n[o]) + ')</option>'; }).join('');
         sel.value = actuel;
     }
 
     /* ---------- Filtres ---------- */
+    function valeurRadio(nom) { var r = document.querySelector('input[name="' + nom + '"]:checked'); return r ? r.value : ''; }
     function couchesActives() {
         var c = {};
         document.querySelectorAll('[data-couche]').forEach(function (i) { c[i.getAttribute('data-couche')] = i.checked; });
         return c;
     }
+    function criteres() {
+        return { region: $('f-region').value, marque: $('f-marque').value, phase: $('f-phase').value,
+                 origine: valeurRadio('f-origine'), precision: valeurRadio('f-precision'),
+                 q: sansAccents($('f-recherche').value.trim()), absents: $('osm-absents').checked };
+    }
     function filtrer(zoomRegion) {
-        var c = couchesActives(), region = $('f-region').value, phase = $('f-phase').value,
-            operateur = $('f-operateur').value, q = $('f-recherche').value.trim().toLowerCase(), absentsSeuls = $('osm-absents').checked;
+        var c = couchesActives(), f = criteres();
 
         function okSgdi(p, ignorerRegion) {
-            return (ignorerRegion || !region || p[8] === region) && (!phase || (STATUTS[p[9]] || [])[1] === phase) &&
-                (!operateur || p[6] === operateur) && (!q || (p[10] + ' ' + p[5] + ' ' + p[6] + ' ' + p[7]).toLowerCase().indexOf(q) !== -1);
+            return (ignorerRegion || !f.region || p[I.region] === f.region) &&
+                (!f.phase || (STATUTS[p[I.statut]] || [])[1] === f.phase) &&
+                (!f.marque || p[I.marque] === f.marque) &&
+                (!f.origine || (f.origine === 'historique') === !!p[I.historique]) &&
+                (!f.precision || (f.precision === 'approx') === !!p[I.approx]) &&
+                (!f.q || sansAccents([p[I.numero], p[I.nom], p[I.operateur], p[I.ville], p[I.quartier], p[I.ancien], p[I.marque]].join(' ')).indexOf(f.q) !== -1);
         }
+        // Statut et origine ne concernent que les dossiers ; OpenStreetMap n'a que des positions précises
         function okOsm(p, absent, ignorerRegion) {
-            return !phase && (!absentsSeuls || absent) && (ignorerRegion || !region || p[6] === region) &&
-                (!operateur || p[4] === operateur) && (!q || (p[3] + ' ' + p[4] + ' ' + p[5]).toLowerCase().indexOf(q) !== -1);
+            return !f.phase && !f.origine && f.precision !== 'approx' && (!f.absents || absent) &&
+                (ignorerRegion || !f.region || p[6] === f.region) && (!f.marque || p[4] === f.marque) &&
+                (!f.q || sansAccents([p[3], p[4], p[5]].join(' ')).indexOf(f.q) !== -1);
         }
 
         var visibles = [], compteurs = {}, parRegion = {};
         D.sgdi.forEach(function (m) {
-            var p = m._sgdi, cle = 'sgdi:' + p[3];
+            var p = m._sgdi, cle = 'sgdi:' + p[I.type];
             if (okSgdi(p, false)) compteurs[cle] = (compteurs[cle] || 0) + 1;
             if (!c[cle]) return;
-            if (okSgdi(p, true)) parRegion[p[8]] = (parRegion[p[8]] || 0) + 1;
+            if (okSgdi(p, true)) parRegion[p[I.region]] = (parRegion[p[I.region]] || 0) + 1;
             if (okSgdi(p, false)) visibles.push(m);
         });
         D.osm.forEach(function (m) {
@@ -341,15 +456,21 @@ echo uiPageHeader(
             if (okOsm(p, m._absent, true)) parRegion[p[6]] = (parRegion[p[6]] || 0) + 1;
             if (okOsm(p, m._absent, false)) visibles.push(m);
         });
+        derniersVisibles = visibles;
 
         grappe.clearLayers();
         grappe.addLayers(regrouperApprox(visibles));
         document.querySelectorAll('[data-compteur]').forEach(function (el) { el.textContent = nf(compteurs[el.getAttribute('data-compteur')] || 0); });
 
+        // Filtres actifs : bouton de réinitialisation
+        var actifs = ['region', 'marque', 'phase', 'origine', 'precision', 'q'].filter(function (k) { return f[k]; }).length + (f.absents ? 1 : 0);
+        $('f-reinit').hidden = !actifs;
+        $('nb-filtres').textContent = actifs;
+
         var noms = Object.keys(parRegion).filter(Boolean).sort(function (a, b) { return parRegion[b] - parRegion[a]; });
         var max = Math.max.apply(null, noms.map(function (n) { return parRegion[n]; }).concat([1]));
         $('par-region').innerHTML = noms.length ? noms.map(function (n) {
-            return '<li data-region="' + esc(n) + '"' + (n === region ? ' style="font-weight:700"' : '') + ' title="Zoomer sur la région ' + esc(n) + '"><span>' + esc(n) + '</span>' +
+            return '<li data-region="' + esc(n) + '"' + (n === f.region ? ' style="font-weight:700"' : '') + ' title="Zoomer sur la région ' + esc(n) + '"><span>' + esc(n) + '</span>' +
                 '<span class="bar" style="width:' + (parRegion[n] / max * 100).toFixed(1) + '%"></span><span class="val">' + nf(parRegion[n]) + '</span></li>';
         }).join('') : '<li class="text-muted-sgdi">Aucun point</li>';
 
@@ -359,7 +480,7 @@ echo uiPageHeader(
                 { radius: 22, blur: 18, minOpacity: .25, gradient: { .3: '#667eea', .6: '#f39c12', 1: '#e74c3c' } }).addTo(carte);
         }
         if (zoomRegion) {
-            var b = region && regions[region] ? regions[region].getBounds() : limitesPays;
+            var b = f.region && regions[f.region] ? regions[f.region].getBounds() : limitesPays;
             if (b) carte.flyToBounds(b, { padding: [20, 20], duration: .6 });
         }
 
@@ -367,9 +488,52 @@ echo uiPageHeader(
         var osm = D.osmMaj ? new Date(D.osmMaj).toLocaleDateString('fr-FR') : 'inconnue';
         $('carte-meta').textContent = nf(visibles.length) + ' points affichés · dossiers SGDI actualisés à ' + h +
             ' (automatiquement toutes les 5 min) · référence OpenStreetMap du ' + osm;
+        enregistrerPreferences();
     }
 
-    /* ---------- Points d'intérêt et zones de contrainte ---------- */
+    function zoomerSurResultats() {
+        if (!derniersVisibles.length) return;
+        var b = L.latLngBounds(derniersVisibles.map(function (m) { return m.getLatLng(); }));
+        carte.flyToBounds(b, { padding: [40, 40], maxZoom: 16, duration: .6 });
+    }
+
+    function reinitialiserFiltres() {
+        $('f-recherche').value = ''; $('f-region').value = ''; $('f-marque').value = ''; $('f-phase').value = '';
+        $('f-origine-tous').checked = true; $('f-precision-toutes').checked = true; $('osm-absents').checked = false;
+        filtrer(true);
+    }
+
+    // Couches cochées mémorisées pour ce navigateur (confort seulement : la carte fonctionne sans)
+    function enregistrerPreferences() {
+        try { localStorage.setItem(CLE_PREFERENCES, JSON.stringify(couchesActives())); } catch (e) { /* stockage indisponible */ }
+    }
+    function restaurerPreferences() {
+        try {
+            var c = JSON.parse(localStorage.getItem(CLE_PREFERENCES) || 'null');
+            if (c) document.querySelectorAll('[data-couche]').forEach(function (i) { var k = i.getAttribute('data-couche'); if (k in c) i.checked = !!c[k]; });
+        } catch (e) { /* préférences ignorées */ }
+    }
+
+    /* ---------- Stations prises en compte pour les distances ---------- */
+    // Dossiers de stations existantes ou en instruction avancée, à position précise, et stations OSM absentes du SGDI
+    function stationsReference() {
+        var liste = [];
+        D.sgdi.forEach(function (m) {
+            var p = m._sgdi;
+            if (p[I.type] !== 'station_service' || p[I.approx]) return;
+            var existante = STATUTS_EXISTANTS.indexOf(p[I.statut]) !== -1, instruction = STATUTS_INSTRUCTION.indexOf(p[I.statut]) !== -1;
+            if (!existante && !instruction) return;
+            liste.push({ nom: p[I.nom] || 'Station', detail: p[I.numero], id: p[I.id], ll: m.getLatLng(), rurale: !!p[I.rurale],
+                         etat: existante ? 'Station existante' : 'Dossier en instruction', phase: existante ? 'succes' : 'instruction' });
+        });
+        D.osm.forEach(function (m) {
+            if (m._osm[2] !== 'station' || !m._absent) return;
+            liste.push({ nom: m._osm[3] || 'Station sans nom', detail: m._osm[4], ll: m.getLatLng(), etat: 'OpenStreetMap, absente du SGDI', phase: 'attention' });
+        });
+        return liste;
+    }
+
+    /* ---------- Points d'intérêt et zones de protection ---------- */
     function dessinerPoi() {
         couchePoi.clearLayers(); coucheZones.clearLayers();
         D.poi.forEach(function (p) {
@@ -378,52 +542,142 @@ echo uiPageHeader(
                 .addTo(couchePoi);
             L.circle([p[0], p[1]], { radius: p[4], className: 'zone-contrainte', interactive: false }).addTo(coucheZones);
         });
-        D.sgdi.forEach(function (m) {
-            if (m._sgdi[3] === 'station_service' && !m._sgdi[11]) L.circle(m.getLatLng(), { radius: DISTANCE_URBAINE, className: 'zone-contrainte', interactive: false }).addTo(coucheZones);
+        // Rayon en mètres réels (L.circle) : 500 m, ou 400 m pour une station en zone rurale
+        stationsReference().forEach(function (s) {
+            if (!s.id) return;
+            L.circle(s.ll, { radius: s.rurale ? DISTANCE.rurale : DISTANCE.urbaine, className: 'zone-contrainte', interactive: false }).addTo(coucheZones);
         });
     }
     $('l-poi').addEventListener('change', function () { this.checked ? couchePoi.addTo(carte) : carte.removeLayer(couchePoi); });
     $('l-zones').addEventListener('change', function () { this.checked ? coucheZones.addTo(carte) : carte.removeLayer(coucheZones); });
 
-    /* ---------- Vérifier un emplacement ---------- */
-    var mode = null, traceVerif = [], mesure = { points: [], calques: [] };
+    /* ---------- Outils : vérifier un emplacement, mesurer une distance ---------- */
+    var mode = null;
+    var Bandeau = L.Control.extend({
+        options: { position: 'topright' },
+        onAdd: function () {
+            var d = L.DomUtil.create('div', 'map-bandeau');
+            L.DomEvent.disableClickPropagation(d);
+            d.innerHTML = '<i class="fas fa-hand-pointer"></i><span id="bandeau-texte"></span><button type="button" class="btn btn-sm btn-primary" id="bandeau-fin">Terminer</button>';
+            d.querySelector('#bandeau-fin').addEventListener('click', function () { changerMode(null); });
+            return d;
+        }
+    });
+    var bandeau = new Bandeau();
+    function texteBandeau() {
+        if (mode === 'verifier') return verif.point ? 'Déplacez le repère ou cliquez ailleurs pour vérifier un autre emplacement.' : 'Cliquez sur la carte à l\x27emplacement projeté.';
+        if (mode === 'mesurer') return mesure.etapes.length ? 'Total : ' + fd(mesure.total) + ' · cliquez pour ajouter un point.' : 'Cliquez sur un premier point (carte ou station).';
+        return '';
+    }
+    function majBandeau() { var t = $('bandeau-texte'); if (t) t.textContent = texteBandeau(); }
+
     function changerMode(m) {
-        mode = mode === m ? null : m;
+        mode = (m && mode !== m) ? m : null;
         $('btn-verifier').classList.toggle('active', mode === 'verifier');
+        $('btn-verifier').setAttribute('aria-pressed', mode === 'verifier');
         $('btn-mesurer').classList.toggle('active', mode === 'mesurer');
+        $('btn-mesurer').setAttribute('aria-pressed', mode === 'mesurer');
         document.querySelector('.map-layout').classList.toggle('map-mode-clic', !!mode);
-        if (mode === 'verifier') $('carte-verif').hidden = false;
+        $('carte-outil').hidden = !mode;
+        $('outil-verifier').hidden = mode !== 'verifier';
+        $('outil-mesurer').hidden = mode !== 'mesurer';
+        $('outil-titre').textContent = mode === 'verifier' ? 'Vérifier un emplacement' : 'Mesurer une distance';
+        if (mode !== 'verifier') effacerVerif();
         if (mode !== 'mesurer') effacerMesure();
+        if (mode) { bandeau.addTo(carte); majBandeau(); carte.closePopup(); } else { bandeau.remove(); }
+        if (mode && window.innerWidth < 992) $('carte-outil').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
     $('btn-verifier').addEventListener('click', function () { changerMode('verifier'); });
     $('btn-mesurer').addEventListener('click', function () { changerMode('mesurer'); });
+    $('outil-fermer').addEventListener('click', function () { changerMode(null); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && mode) changerMode(null); });
 
-    function verifier(latlng) {
-        traceVerif.forEach(function (z) { carte.removeLayer(z); });
-        traceVerif = [L.circle(latlng, { radius: DISTANCE_URBAINE, className: 'zone-urbaine', interactive: false }).addTo(carte),
-                      L.circle(latlng, { radius: DISTANCE_RURALE, className: 'zone-rurale', interactive: false }).addTo(carte),
-                      L.marker(latlng).addTo(carte)];
-        // Stations : dossiers SGDI + stations OSM absentes du SGDI
-        var stations = D.sgdi.filter(function (m) { return m._sgdi[3] === 'station_service' && !m._sgdi[11]; }).map(function (m) { return { nom: m._sgdi[5] + ' (' + m._sgdi[10] + ')', ll: m.getLatLng() }; })
-            .concat(D.osm.filter(function (m) { return m._absent; }).map(function (m) { return { nom: (m._osm[3] || 'Station') + ' (OpenStreetMap)', ll: m.getLatLng() }; }));
-        var proches = stations.map(function (s) { return { nom: s.nom, d: carte.distance(latlng, s.ll) }; })
-            .filter(function (x) { return x.d < DISTANCE_URBAINE; }).sort(function (a, b) { return a.d - b.d; });
-        var poi = D.poi.map(function (p) { return { nom: p[2] + ' (' + p[3] + ')', d: carte.distance(latlng, [p[0], p[1]]), min: p[4], minRural: p[5] }; })
+    // Un clic pendant un outil sert de point : sur le fond de carte, ou sur une station (sa position exacte)
+    carte.on('click', function (e) { if (mode) pointOutil(e.latlng, null); });
+    grappe.on('click', function (e) {
+        if (!mode) return;
+        carte.closePopup();
+        var p = e.layer._sgdi, o = e.layer._osm;
+        pointOutil(e.layer.getLatLng(), p ? (p[I.nom] || p[I.numero]) : o ? (o[3] || 'Station OSM') : null);
+    });
+    function pointOutil(latlng, nom) { if (mode === 'verifier') verifier(latlng); else if (mode === 'mesurer') mesurer(latlng, nom); }
+
+    /* Vérifier un emplacement */
+    var verif = { point: null, calques: [] };
+    function zoneChoisie() { return valeurRadio('v-zone') || 'urbaine'; }
+    function effacerVerif() {
+        verif.calques.forEach(function (c) { carte.removeLayer(c); });
+        verif = { point: null, calques: [] };
+        $('v-resultat').innerHTML = '';
+    }
+    function verifier(latlng, sansZoom) {
+        effacerVerif();
+        verif.point = latlng;
+        var zone = zoneChoisie(), rayon = DISTANCE[zone];
+
+        // Zone de protection du projet : cercle en mètres réels
+        var cercle = L.circle(latlng, { radius: rayon, className: 'zone-projet', interactive: false }).addTo(carte);
+        var repere = L.marker(latlng, {
+            draggable: true, autoPan: true, zIndexOffset: 1000, title: 'Emplacement projeté (déplaçable)',
+            icon: L.divIcon({ className: '', iconSize: [22, 22], iconAnchor: [11, 26], html: '<span class="pin pin-projet"><i class="fas fa-crosshairs"></i></span>' })
+        }).addTo(carte);
+        repere.on('dragend', function () { verifier(repere.getLatLng(), true); });
+        verif.calques.push(cercle, repere);
+
+        var mesures = stationsReference().map(function (s) { s.d = carte.distance(latlng, s.ll); return s; })
+            .filter(function (s) { return s.d > 1; }) // le point lui-même (clic sur une station)
+            .sort(function (a, b) { return a.d - b.d; });
+        var proches = mesures.filter(function (s) { return s.d < rayon; });
+        var plusProche = mesures[0];
+        var poi = D.poi.map(function (p) { var min = zone === 'rurale' ? p[5] : p[4]; return { nom: p[2], cat: p[3], d: carte.distance(latlng, [p[0], p[1]]), min: min }; })
             .filter(function (x) { return x.d < x.min; }).sort(function (a, b) { return a.d - b.d; });
 
-        var nonConformeRural = proches.some(function (x) { return x.d < DISTANCE_RURALE; }) || poi.some(function (x) { return x.d < x.minRural; });
-        var nonConformeUrbain = proches.length > 0 || poi.length > 0;
-        var phase = !nonConformeUrbain ? 'succes' : nonConformeRural ? 'danger' : 'attention';
-        var titre = !nonConformeUrbain ? 'Emplacement conforme : aucune station à moins de 500 m ni point d\'intérêt dans sa zone de protection.'
-            : nonConformeRural ? 'Non conforme, en zone urbaine comme en zone rurale.'
-            : 'Non conforme en zone urbaine (500 m), conforme en zone rurale (400 m).';
-        var liste = proches.slice(0, 5).map(function (x) { return '<li>' + esc(x.nom) + ' : ' + Math.round(x.d) + ' m (manque ' + (DISTANCE_URBAINE - Math.round(x.d)) + ' m)</li>'; })
-            .concat(poi.slice(0, 5).map(function (x) { return '<li>' + esc(x.nom) + ' : ' + Math.round(x.d) + ' m (minimum ' + x.min + ' m)</li>'; }));
-        $('v-resultat').innerHTML = '<div class="verdict phase-' + phase + '"><strong>' + esc(titre) + '</strong>' + (liste.length ? '<ul>' + liste.join('') + '</ul>' : '') + '</div>' +
-            '<p class="small text-muted-sgdi mt-2 mb-0">Point vérifié : ' + latlng.lat.toFixed(5) + ', ' + latlng.lng.toFixed(5) + '</p>';
+        // Traits vers les stations trop proches, et vers la plus proche si elle est hors zone ;
+        // la distance est affichée sur la station elle-même pour que les étiquettes ne se chevauchent pas
+        proches.slice(0, 8).forEach(function (s) { verif.calques.push.apply(verif.calques, repereDistance(latlng, s, 'alerte')); });
+        if (plusProche && plusProche.d >= rayon && plusProche.d < 5000) verif.calques.push.apply(verif.calques, repereDistance(latlng, plusProche, 'info'));
+
+        // Stations de la zone connues seulement au centre de leur localité : non mesurables
+        var approx = D.sgdi.filter(function (m) { var p = m._sgdi; return p[I.type] === 'station_service' && p[I.approx] && carte.distance(latlng, m.getLatLng()) < 5000; }).length;
+
+        var conforme = !proches.length && !poi.length;
+        var titre = conforme ? 'Emplacement conforme en zone ' + zone + ' : aucune station à moins de ' + rayon + ' m ni point d\x27intérêt dans sa zone de protection.'
+            : 'Emplacement non conforme en zone ' + zone + ' (' + rayon + ' m minimum).';
+        var lignes = proches.slice(0, 8).map(function (s) {
+            return '<li><span class="ld-nom">' + (s.id ? '<a href="' + URL_DOSSIER + s.id + '">' + esc(s.nom) + '</a>' : esc(s.nom)) + '</span>' +
+                '<strong>' + fd(s.d) + '</strong>' +
+                '<span><span class="status-badge phase-' + s.phase + '">' + esc(s.etat) + '</span></span>' +
+                '<span class="small text-muted-sgdi">manque ' + fd(rayon - s.d) + '</span></li>';
+        }).concat(poi.slice(0, 5).map(function (x) {
+            return '<li><span class="ld-nom">' + esc(x.nom) + '</span><strong>' + fd(x.d) + '</strong>' +
+                '<span><span class="status-badge phase-danger">' + esc(x.cat) + '</span></span>' +
+                '<span class="small text-muted-sgdi">minimum ' + x.min + ' m</span></li>';
+        }));
+        $('v-resultat').innerHTML =
+            '<div class="verdict phase-' + (conforme ? 'succes' : 'danger') + '"><strong>' + esc(titre) + '</strong></div>' +
+            (lignes.length ? '<ul class="liste-distances">' + lignes.join('') + '</ul>' : '') +
+            (plusProche ? '<p class="small mb-1 mt-2">Station la plus proche : <strong>' + esc(plusProche.nom) + '</strong> à <strong>' + fd(plusProche.d) + '</strong>' +
+                (plusProche.d >= rayon ? ' (marge de ' + fd(plusProche.d - rayon) + ')' : '') + '.</p>' : '') +
+            (approx ? '<p class="small text-muted-sgdi mb-1"><i class="fas fa-triangle-exclamation"></i> ' + approx + ' station(s) à moins de 5 km n\x27ont qu\x27une position approximative (centre de la localité) et ne peuvent pas être prises en compte.</p>' : '') +
+            '<p class="small text-muted-sgdi mb-0">Point vérifié : ' + latlng.lat.toFixed(6) + ', ' + latlng.lng.toFixed(6) + '</p>';
         $('v-lat').value = latlng.lat.toFixed(6); $('v-lon').value = latlng.lng.toFixed(6);
-        carte.flyToBounds(traceVerif[0].getBounds(), { padding: [40, 40], maxZoom: 16, duration: .6 });
+        majBandeau();
+        if (!sansZoom) carte.flyToBounds(cercle.getBounds(), { padding: [60, 60], maxZoom: 17, duration: .6 });
     }
+    function repereDistance(depart, s, niveau) {
+        return [
+            L.polyline([depart, s.ll], { className: 'trait-' + niveau, interactive: false }).addTo(carte),
+            L.circleMarker(s.ll, { radius: 9, className: 'cible-' + niveau, interactive: false })
+                .bindTooltip(fd(s.d), { permanent: true, direction: 'right', offset: [8, 0], className: 'etiquette-distance etiquette-' + niveau }).addTo(carte)
+        ];
+    }
+    function trait(a, b, texte, classe) {
+        return L.polyline([a, b], { className: classe, interactive: false })
+            .bindTooltip(texte, { permanent: true, direction: 'center', className: 'etiquette-distance' }).addTo(carte);
+    }
+    document.querySelectorAll('input[name="v-zone"]').forEach(function (r) {
+        r.addEventListener('change', function () { if (verif.point) verifier(verif.point, true); });
+    });
     $('form-coord').addEventListener('submit', function (e) {
         e.preventDefault();
         var lat = parseFloat($('v-lat').value.replace(',', '.')), lon = parseFloat($('v-lon').value.replace(',', '.'));
@@ -434,25 +688,46 @@ echo uiPageHeader(
         verifier(L.latLng(lat, lon));
     });
 
-    /* ---------- Mesurer une distance ---------- */
-    function effacerMesure() { mesure.calques.forEach(function (c) { carte.removeLayer(c); }); mesure = { points: [], calques: [] }; }
-    function mesurer(latlng) {
-        mesure.points.push(latlng);
-        mesure.calques.push(L.circleMarker(latlng, { radius: 5, color: '#667eea', fillOpacity: 1 }).addTo(carte));
-        if (mesure.points.length > 1) {
-            var total = 0;
-            for (var i = 1; i < mesure.points.length; i++) total += carte.distance(mesure.points[i - 1], mesure.points[i]);
-            mesure.calques.push(L.polyline(mesure.points.slice(-2), { className: 'trace-mesure' }).addTo(carte));
-            L.popup({ closeButton: false, autoClose: false }).setLatLng(latlng)
-                .setContent('<strong>' + (total < 1000 ? Math.round(total) + ' m' : (total / 1000).toFixed(2).replace('.', ',') + ' km') + '</strong><div class="small text-muted-sgdi">Cliquez à nouveau sur « Mesurer » pour effacer</div>')
-                .openOn(carte);
-        }
+    /* Mesurer une distance */
+    var mesure = { etapes: [], total: 0 };
+    function effacerMesure() {
+        mesure.etapes.forEach(function (e) { e.calques.forEach(function (c) { carte.removeLayer(c); }); });
+        mesure = { etapes: [], total: 0 };
+        majMesure();
     }
-    carte.on('click', function (e) { if (mode === 'verifier') verifier(e.latlng); else if (mode === 'mesurer') mesurer(e.latlng); });
+    function mesurer(latlng, nom) {
+        var calques = [L.circleMarker(latlng, { radius: 6, className: 'point-mesure' }).addTo(carte)];
+        var prec = mesure.etapes[mesure.etapes.length - 1], d = 0;
+        if (prec) {
+            d = carte.distance(prec.ll, latlng);
+            calques.push(trait(prec.ll, latlng, fd(d), 'trace-mesure'));
+        }
+        mesure.etapes.push({ ll: latlng, nom: nom, d: d, calques: calques });
+        mesure.total += d;
+        majMesure();
+    }
+    function majMesure() {
+        var n = mesure.etapes.length;
+        $('m-total').textContent = n > 1 ? fd(mesure.total) : '—';
+        $('m-points').innerHTML = mesure.etapes.map(function (e, i) {
+            return (i + 1) + '. ' + esc(e.nom || (e.ll.lat.toFixed(5) + ', ' + e.ll.lng.toFixed(5))) + (i ? ' <strong>+' + fd(e.d) + '</strong>' : '');
+        }).join('<br>');
+        $('m-annuler').disabled = !n;
+        $('m-effacer').disabled = !n;
+        majBandeau();
+    }
+    $('m-annuler').addEventListener('click', function () {
+        var e = mesure.etapes.pop();
+        if (!e) return;
+        e.calques.forEach(function (c) { carte.removeLayer(c); });
+        mesure.total -= e.d;
+        majMesure();
+    });
+    $('m-effacer').addEventListener('click', effacerMesure);
 
     /* ---------- Ouvrir un dossier depuis la liste (?dossier=ID) ---------- */
     function ouvrirDossier(id) {
-        var m = D.sgdi.filter(function (x) { return x._sgdi[0] === id; })[0];
+        var m = D.sgdi.filter(function (x) { return x._sgdi[I.id] === id; })[0];
         if (!m) { $('carte-meta').textContent = 'Ce dossier n\'a pas de coordonnées GPS exploitables.'; return; }
         if (!grappe.hasLayer(m)) m = groupesApprox.filter(function (g) { return g._membres.indexOf(id) !== -1; })[0] || m;
         grappe.zoomToShowLayer(m, function () { m.openPopup(); });
@@ -460,14 +735,27 @@ echo uiPageHeader(
 
     /* ---------- Événements ---------- */
     document.querySelectorAll('[data-couche]').forEach(function (i) { i.addEventListener('change', function () { filtrer(); }); });
-    ['osm-absents', 'l-densite', 'f-phase', 'f-operateur'].forEach(function (id) { $(id).addEventListener('change', function () { filtrer(); }); });
+    document.querySelectorAll('[data-tout], [data-aucun]').forEach(function (b) {
+        b.addEventListener('click', function () {
+            var groupe = b.getAttribute('data-tout') || b.getAttribute('data-aucun'), etat = b.hasAttribute('data-tout');
+            document.querySelectorAll('[data-couche^="' + groupe + ':"]').forEach(function (i) { i.checked = etat; });
+            if (!etat && groupe === 'osm') $('osm-absents').checked = false;
+            filtrer();
+        });
+    });
+    ['l-densite', 'f-phase', 'f-marque'].forEach(function (id) { $(id).addEventListener('change', function () { filtrer(); }); });
+    document.querySelectorAll('input[name="f-origine"], input[name="f-precision"]').forEach(function (r) { r.addEventListener('change', function () { filtrer(); }); });
     $('osm-absents').addEventListener('change', function () {
         if (this.checked) document.querySelector('[data-couche="osm:station"]').checked = true;
         filtrer();
     });
     $('f-region').addEventListener('change', function () { filtrer(true); });
+    $('f-reinit').addEventListener('click', reinitialiserFiltres);
     var minuterie;
     $('f-recherche').addEventListener('input', function () { clearTimeout(minuterie); minuterie = setTimeout(filtrer, 250); });
+    $('f-recherche').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); clearTimeout(minuterie); filtrer(); zoomerSurResultats(); }
+    });
     $('par-region').addEventListener('click', function (e) {
         var li = e.target.closest('li[data-region]'); if (!li) return;
         var r = li.getAttribute('data-region');
@@ -494,6 +782,7 @@ echo uiPageHeader(
     // Rafraîchissement automatique toutes les 5 minutes, seulement si l'onglet est visible
     setInterval(function () { if (!document.hidden) charger(false); }, 5 * 60 * 1000);
 
+    restaurerPreferences();
     charger(false);
 })();
 </script>

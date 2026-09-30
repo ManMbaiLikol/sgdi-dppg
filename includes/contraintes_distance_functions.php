@@ -53,21 +53,30 @@ function verifierDistanceStations($latitude, $longitude, $dossier_id_exclus = nu
 
     $violations = [];
 
-    // Récupérer toutes les stations-service autorisées ou décidées avec coordonnées
+    // Stations existantes (autorisées, y compris historiques) ou en cours d'instruction avancée, avec une
+    // position précise : le centre d'une localité (position approximative) ne permet pas de mesurer une distance
     $sql = "SELECT id, numero, nom_demandeur, ville, coordonnees_gps, statut, type_infrastructure, sous_type
             FROM dossiers
-            WHERE type_infrastructure IN ('station_service', 'reprise_station_service')
+            WHERE type_infrastructure = 'station_service'
             AND coordonnees_gps IS NOT NULL
             AND coordonnees_gps != ''
-            AND statut IN ('autorise', 'decide', 'valide', 'inspecte', 'paye')";
+            AND statut IN ('autorise', 'historique_autorise', 'paye', 'en_huitaine', 'analyse_daj', 'inspecte', 'valide',
+                           'validation_commission', 'visa_chef_service', 'visa_sous_directeur', 'visa_directeur', 'decide')
+            AND (source_gps IS NULL OR source_gps <> 'Centre de la localité (approximatif)')";
+    $params = [];
 
     if ($dossier_id_exclus) {
+        // Le dossier lui-même, et pour une reprise la station reprise (même emplacement)
         $sql .= " AND id != ?";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([$dossier_id_exclus]);
-    } else {
-        $stmt = $pdo->query($sql);
+        $params[] = $dossier_id_exclus;
+        require_once __DIR__ . '/reprise_functions.php';
+        if (repriseDisponible()) {
+            $sql .= " AND id NOT IN (SELECT dossier_repris_id FROM (SELECT dossier_repris_id FROM dossiers WHERE id = ? AND dossier_repris_id IS NOT NULL) r)";
+            $params[] = $dossier_id_exclus;
+        }
     }
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
 
     $stations = $stmt->fetchAll();
 

@@ -7,7 +7,7 @@
  *
  * Format compact pour limiter le volume :
  *   sgdi : [id, lat, lon, type, nature, demandeur, opérateur, ville, région, statut, numéro, approximatif (0|1),
- *          station existante (0|1), ancienne dénomination (reprise), quartier]
+ *          station existante (0|1), ancienne dénomination (reprise), quartier, marque, historique (0|1), zone rurale (0|1)]
  *   poi  : [lat, lon, nom, catégorie, distance min (m), distance min rurale (m), couleur]
  *   osm  : voir includes/osm_sync.php
  */
@@ -68,6 +68,10 @@ foreach (getAllInfrastructuresForMap([]) as $i) {
         (!empty($i['est_historique']) || !empty($i['est_reprise_station'])) ? 1 : 0,
         (string) ($i['ancien_operateur'] ?: $i['ancien_nom']),
         (string) $i['quartier'],
+        // Marque normalisée comme pour OpenStreetMap : un seul filtre « marque » pour les deux sources
+        osmMarque(['operator' => (string) $i['operateur_proprietaire'], 'name' => (string) $i['nom_demandeur']]),
+        !empty($i['est_historique']) ? 1 : 0,
+        ($i['zone_type'] ?? '') === 'rurale' ? 1 : 0,
     ];
 }
 
