@@ -120,7 +120,7 @@ echo uiPageHeader(
     var URL_REGIONS = <?php echo json_encode(asset('data/cameroun_regions.json')); ?>;
     var URL_DOSSIER = <?php echo json_encode(url('modules/dossiers/view.php?id=')); ?>;
     var CSRF = <?php echo json_encode(generateCSRFToken()); ?>;
-    var URL_GPS = <?php echo json_encode(hasAnyRole(['admin', 'chef_service']) ? url('modules/admin_gps/index.php') : ''); ?>;
+    var URL_GPS = <?php echo json_encode(hasAnyRole(['admin', 'chef_service']) ? url('modules/admin_gps/rapprochement.php') : ''); ?>;
     var DOSSIER_CIBLE = <?php echo (int) ($_GET['dossier'] ?? 0); ?>;
     var STATUTS = <?php echo json_encode(array_map(function ($s) { return [$s[0], $s[1]]; }, uiTableStatuts()), JSON_UNESCAPED_UNICODE); ?>;
     var TYPES = { station_service: 'Station-service', point_consommateur: 'Point consommateur', depot_gpl: 'Dépôt GPL', centre_emplisseur: 'Centre emplisseur' };

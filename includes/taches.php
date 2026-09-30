@@ -145,7 +145,7 @@ function getTachesAFaire($role, $user_id) {
                 'fa-user-clock', 'preparation', url('modules/users/list.php'));
             $ajouter('Infrastructures sans coordonnées GPS', 'Positions à compléter pour la carte',
                 tacheCompter("SELECT COUNT(*) FROM dossiers WHERE coordonnees_gps IS NULL OR coordonnees_gps = ''"),
-                'fa-location-crosshairs', 'paiement', url('modules/admin_gps/index.php'));
+                'fa-location-crosshairs', 'paiement', url('modules/admin_gps/rapprochement.php'));
             break;
     }
 

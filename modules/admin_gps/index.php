@@ -204,8 +204,8 @@ require_once '../../includes/header.php';
             <p class="text-muted mb-0">Interface d'administration pour gérer les coordonnées géographiques</p>
         </div>
         <div>
-            <a href="map_editor.php" class="btn btn-primary">
-                <i class="fas fa-map"></i> Éditeur de Carte Global
+            <a href="<?php echo url('modules/admin_gps/rapprochement.php'); ?>" class="btn btn-primary">
+                <i class="fas fa-wand-magic-sparkles"></i> Rapprochement avec OpenStreetMap
             </a>
         </div>
     </div>

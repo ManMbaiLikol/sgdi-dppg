@@ -7,12 +7,16 @@
  * Sans cache (juste après un déploiement), le jeu de départ versionné
  * assets/data/osm_points_seed.json est utilisé.
  *
- * Format d'un point : [lat, lon, catégorie (station|gpl|depot), nom, marque, ville, région, gpl (0|1)]
+ * Format d'un point : [lat, lon, catégorie (station|gpl|depot), nom, marque, ville, région, gpl (0|1),
+ *                      texte brut marque/opérateur/nom (rapprochement des dossiers historiques)]
+ * Lieux habités : cache/osm_lieux.json (jeu de départ assets/data/osm_lieux_seed.json), [nom, lat, lon, type, région]
  */
 
 define('OSM_FICHIER_CACHE', __DIR__ . '/../cache/osm_points.json');
 define('OSM_FICHIER_SEED', __DIR__ . '/../assets/data/osm_points_seed.json');
 define('OSM_FICHIER_REGIONS', __DIR__ . '/../assets/data/cameroun_regions.json');
+define('OSM_FICHIER_LIEUX', __DIR__ . '/../cache/osm_lieux.json');
+define('OSM_FICHIER_LIEUX_SEED', __DIR__ . '/../assets/data/osm_lieux_seed.json');
 define('OSM_DUREE_VALIDITE', 24 * 3600); // resynchroniser au plus une fois par jour
 
 /**
@@ -51,7 +55,7 @@ function osmRegionDuPoint($lat, $lon) {
 function osmMarque(array $t) {
     $texte = strtolower(($t['brand'] ?? '') . ' ' . ($t['operator'] ?? '') . ' ' . ($t['name'] ?? ''));
     $marques = [
-        'total' => 'TotalEnergies', 'tradex' => 'Tradex', 'mrs' => 'MRS', 'neptune' => 'Neptune', 'oilibya' => 'OLA Energy',
+        'total' => 'TotalEnergies', 'totalenergies' => 'TotalEnergies', 'tradex' => 'Tradex', 'mrs' => 'MRS', 'neptune' => 'Neptune', 'oilibya' => 'OLA Energy',
         'ola' => 'OLA Energy', 'bocom' => 'Bocom', 'corlay' => 'Corlay', 'green oil' => 'Green Oil', 'camoco' => 'Camoco',
         'petrolex' => 'Petrolex', 'glocal' => 'Glocal', 'blessing' => 'Blessing', 'gulfin' => 'Gulfin', 'camgaz' => 'Camgaz',
         'scdp' => 'SCDP', 'afrigaz' => 'Afrigaz', 'sctm' => 'SCTM', 'mobil' => 'Mobil', 'shell' => 'Shell', 'vivo' => 'Vivo Energy',
@@ -96,20 +100,26 @@ function osmClasserElements(array $elements) {
         if ($region === '') continue;
 
         $gpl = $cat === 'gpl' || ($t['fuel:lpg'] ?? '') === 'yes' || preg_match('/lpg|gpl/', $contenu . ' ' . strtolower($t['name'] ?? ''));
-        $points[] = [round($lat, 5), round($lon, 5), $cat, trim($t['name'] ?? ''), osmMarque($t), trim($t['addr:city'] ?? ''), $region, $gpl ? 1 : 0];
+        $points[] = [round($lat, 5), round($lon, 5), $cat, trim($t['name'] ?? ''), osmMarque($t), trim($t['addr:city'] ?? ''), $region, $gpl ? 1 : 0,
+                     trim(($t['brand'] ?? '') . ' ' . ($t['operator'] ?? '') . ' ' . ($t['name'] ?? ''))];
     }
     return $points;
 }
 
 /**
- * Interroge Overpass. Renvoie la réponse décodée ou lève une exception.
+ * Interroge Overpass pour les points de distribution. Renvoie la réponse décodée ou lève une exception.
  */
 function osmTelecharger() {
-    $requete = '[out:json][timeout:120];area["ISO3166-1"="CM"][admin_level=2]->.cm;('
+    return osmRequete('[out:json][timeout:120];area["ISO3166-1"="CM"][admin_level=2]->.cm;('
              . 'nwr["amenity"="fuel"](area.cm);nwr["shop"="gas"](area.cm);'
              . 'nwr["industrial"~"oil|fuel|gas|depot"](area.cm);nwr["man_made"="storage_tank"](area.cm);'
-             . 'nwr["landuse"="industrial"]["name"~"SCDP|[Dd][ée]p[oô]t|GPL|[Pp][ée]trol|Tradex|[Gg]az",i](area.cm););out center tags;';
+             . 'nwr["landuse"="industrial"]["name"~"SCDP|[Dd][ée]p[oô]t|GPL|[Pp][ée]trol|Tradex|[Gg]az",i](area.cm););out center tags;');
+}
 
+/**
+ * Exécute une requête Overpass QL
+ */
+function osmRequete($requete) {
     $ch = curl_init('https://overpass-api.de/api/interpreter');
     curl_setopt_array($ch, [
         CURLOPT_POST => true,
@@ -156,7 +166,51 @@ function osmSynchroniser($fichier = OSM_FICHIER_CACHE) {
 
     $stats = [];
     foreach ($points as $p) $stats[$p[2]] = ($stats[$p[2]] ?? 0) + 1;
+
+    // Lieux habités (utiles au rapprochement des dossiers historiques) : un échec ne bloque pas les stations
+    try {
+        $stats['lieux'] = osmSynchroniserLieux();
+    } catch (Exception $e) {
+        error_log('Synchronisation des lieux OSM : ' . $e->getMessage());
+    }
     return $stats;
+}
+
+/**
+ * Télécharge les lieux habités (ville, bourg, village, quartier…) et les enregistre dans le cache.
+ * Renvoie le nombre de lieux.
+ */
+function osmSynchroniserLieux($fichier = OSM_FICHIER_LIEUX) {
+    $brut = osmRequete('[out:json][timeout:120];area["ISO3166-1"="CM"][admin_level=2]->.cm;'
+        . 'node["place"~"^(city|town|village|suburb|neighbourhood|quarter|hamlet)$"]["name"](area.cm);out;');
+    $lieux = [];
+    foreach ($brut['elements'] as $e) {
+        $region = osmRegionDuPoint($e['lat'], $e['lon']);
+        if ($region === '') continue;
+        $lieux[] = [trim($e['tags']['name']), round($e['lat'], 5), round($e['lon'], 5), $e['tags']['place'], $region];
+    }
+    if (count($lieux) < 1000) {
+        throw new RuntimeException('Réponse Overpass incomplète (' . count($lieux) . ' lieux)');
+    }
+    $dossier = dirname($fichier);
+    if (!is_dir($dossier)) @mkdir($dossier, 0775, true);
+    $tmp = $fichier . '.' . getmypid() . '.tmp';
+    if (file_put_contents($tmp, json_encode(['lieux' => $lieux], JSON_UNESCAPED_UNICODE)) === false || !rename($tmp, $fichier)) {
+        @unlink($tmp);
+        throw new RuntimeException("Écriture impossible dans $fichier");
+    }
+    return count($lieux);
+}
+
+/**
+ * Lieux habités : le cache s'il existe, sinon le jeu de départ
+ */
+function osmLieux() {
+    foreach ([OSM_FICHIER_LIEUX, OSM_FICHIER_LIEUX_SEED] as $f) {
+        $d = is_file($f) ? json_decode((string) file_get_contents($f), true) : null;
+        if (!empty($d['lieux'])) return $d['lieux'];
+    }
+    return [];
 }
 
 /**
