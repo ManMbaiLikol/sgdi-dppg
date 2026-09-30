@@ -44,6 +44,7 @@ $stats = [
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <link rel="stylesheet" href="<?php echo asset('css/carte-marqueurs.css'); ?>">
     <link href="../../assets/css/registre_public.css" rel="stylesheet">
     <!-- Mobile Responsive pour cartes -->
     <link rel="stylesheet" href="../../assets/css/map-mobile-responsive.css">
@@ -316,64 +317,15 @@ $stats = [
         const infrastructures = <?php echo json_encode($infrastructures); ?>;
         console.log('Nombre d\'infrastructures:', infrastructures.length);
 
-        // Fonction pour obtenir la couleur du marqueur
-        function getMarkerColor(type) {
-            const colors = {
-                'station_service': '#3b82f6',
-                'point_consommateur': '#10b981',
-                'depot_gpl': '#f59e0b',
-                'centre_emplisseur': '#ef4444'
-            };
-            return colors[type] || '#6b7280';
-        }
-
-        // Fonction pour obtenir l'icône selon le type
-        function getIconForType(type) {
-            const icons = {
-                'station_service': 'fa-gas-pump',      // Pompe à essence
-                'point_consommateur': 'fa-industry',   // Usine/Industrie
-                'depot_gpl': 'fa-warehouse',           // Entrepôt
-                'centre_emplisseur': 'fa-fill-drip'    // Remplissage
-            };
-            return icons[type] || 'fa-map-marker';
-        }
-
-        // Fonction pour créer une icône personnalisée type Google Maps
-        function createCustomIcon(type) {
-            const color = getMarkerColor(type);
-            const iconClass = getIconForType(type);
-
-            return L.divIcon({
-                className: 'custom-map-marker',
-                html: `
-                    <div style="position: relative; width: 35px; height: 45px;">
-                        <!-- Pin style Google Maps -->
-                        <svg width="35" height="45" viewBox="0 0 35 45" xmlns="http://www.w3.org/2000/svg">
-                            <!-- Ombre -->
-                            <ellipse cx="17.5" cy="42" rx="8" ry="3" fill="rgba(0,0,0,0.2)"/>
-                            <!-- Pin -->
-                            <path d="M17.5 0C10.5 0 5 5.5 5 12.5c0 8.75 12.5 27.5 12.5 27.5S30 21.25 30 12.5C30 5.5 24.5 0 17.5 0z"
-                                  fill="${color}" stroke="white" stroke-width="1.5"/>
-                            <!-- Cercle intérieur -->
-                            <circle cx="17.5" cy="12.5" r="6" fill="white"/>
-                        </svg>
-                        <!-- Icône FontAwesome -->
-                        <i class="fas ${iconClass}" style="position: absolute; top: 7px; left: 50%; transform: translateX(-50%); font-size: 11px; color: ${color};"></i>
-                    </div>
-                `,
-                iconSize: [35, 45],
-                iconAnchor: [17.5, 42],  // Point d'ancrage à la pointe du pin
-                popupAnchor: [0, -42]     // Position du popup au-dessus du pin
-            });
-        }
-
         // Ajouter les marqueurs avec cercles de contrainte de 500m
         console.log('Début ajout des marqueurs...');
         let markersAdded = 0;
         sgdiRegrouperApprox(infrastructures, markerCluster).forEach(infra => {
             if (infra.latitude && infra.longitude) {
+                const esc = sgdiEsc;
                 const marker = L.marker([infra.latitude, infra.longitude], {
-                    icon: createCustomIcon(infra.type_infrastructure)
+                    icon: sgdiIcone(infra.type_infrastructure, infra.approximatif),
+                    riseOnHover: true
                 });
                 markersAdded++;
 
@@ -391,11 +343,11 @@ $stats = [
                         ? `Point Conso ${entrepriseBenef}`
                         : 'Point Consommateur';
 
-                    popupContent += `<h6 class="mb-2"><strong>${titre}</strong></h6>`;
+                    popupContent += `<h6 class="mb-2"><strong>${esc(titre)}</strong></h6>`;
 
                     // Ligne 2 : Nom du demandeur (opérateur)
                     if (infra.nom_demandeur && infra.nom_demandeur.trim() !== '') {
-                        popupContent += `<p class="mb-1"><small><i class="fas fa-user"></i> ${infra.nom_demandeur}</small></p>`;
+                        popupContent += `<p class="mb-1"><small><i class="fas fa-user"></i> ${esc(infra.nom_demandeur)}</small></p>`;
                     }
 
                     // Ligne 3 : Lieu-dit, Quartier
@@ -412,7 +364,7 @@ $stats = [
                     }
 
                     if (lieuQuartier) {
-                        popupContent += `<p class="mb-1"><small><i class="fas fa-map-pin"></i> ${lieuQuartier}</small></p>`;
+                        popupContent += `<p class="mb-1"><small><i class="fas fa-map-pin"></i> ${esc(lieuQuartier)}</small></p>`;
                     }
 
                     // Ligne 4 : Ville, Région
@@ -429,7 +381,7 @@ $stats = [
                     }
 
                     if (villeRegion) {
-                        popupContent += `<p class="mb-0"><small><i class="fas fa-map-marker-alt"></i> ${villeRegion}</small></p>`;
+                        popupContent += `<p class="mb-0"><small><i class="fas fa-map-marker-alt"></i> ${esc(villeRegion)}</small></p>`;
                     }
 
                 } else {
@@ -439,7 +391,8 @@ $stats = [
                         ? `${infra.nom_demandeur} ${infra.lieu_dit}`
                         : infra.nom_demandeur;
 
-                    popupContent += `<h6 class="mb-2"><strong>${nomComplet}</strong></h6>`;
+                    popupContent += `<h6 class="mb-2"><strong>${esc(nomComplet)}</strong></h6>`;
+                    if (infra.ancien_nom) popupContent += `<p class="mb-1"><small class="text-muted">Anciennement : ${esc(infra.ancien_operateur || infra.ancien_nom)}</small></p>`;
 
                     // Ligne 2 : Quartier, Ville
                     const hasQuartier = infra.quartier && infra.quartier.trim() !== '';
@@ -455,12 +408,12 @@ $stats = [
                     }
 
                     if (localisation) {
-                        popupContent += `<p class="mb-1"><small><i class="fas fa-map-marker-alt"></i> ${localisation}</small></p>`;
+                        popupContent += `<p class="mb-1"><small><i class="fas fa-map-marker-alt"></i> ${esc(localisation)}</small></p>`;
                     }
 
                     // Ligne 3 : Région
                     if (infra.region && infra.region.trim() !== '') {
-                        popupContent += `<p class="mb-0"><small><i class="fas fa-map"></i> ${infra.region}</small></p>`;
+                        popupContent += `<p class="mb-0"><small><i class="fas fa-map"></i> ${esc(infra.region)}</small></p>`;
                     }
                 }
 

@@ -3,6 +3,7 @@
 require_once '../../config/database.php';
 require_once '../../includes/functions.php';
 require_once '../../modules/dossiers/functions.php';
+require_once '../../includes/reprise_functions.php';
 
 $page_title = 'Registre Public des Infrastructures Pétrolières';
 
@@ -25,7 +26,9 @@ $par_page = $has_filters ? 20 : 10;
 
 // Construction de la requête
 $where_clause = "WHERE 1=1";
-$from_clause = "FROM dossiers d LEFT JOIN decisions decs ON d.id = decs.dossier_id";
+// Station reprise : une seule ligne, sous la nouvelle dénomination, avec l'ancienne en mention
+$ancien = repriseJointureAncien('d');
+$from_clause = "FROM dossiers d LEFT JOIN decisions decs ON d.id = decs.dossier_id" . $ancien['join'];
 
 $params = [];
 
@@ -39,11 +42,15 @@ if ($statut && $statut !== 'tous') {
 }
 
 if ($search && $search !== '') {
-    $where_clause .= " AND (d.numero LIKE :search
-              OR d.nom_demandeur LIKE :search
-              OR d.operateur_proprietaire LIKE :search
-              OR d.ville LIKE :search)";
-    $params['search'] = "%$search%";
+    // Un paramètre nommé par occurrence : les requêtes préparées natives n'acceptent pas la répétition
+    $champs = ['d.numero', 'd.nom_demandeur', 'd.operateur_proprietaire', 'd.ville'];
+    if ($ancien['join']) $champs[] = 'anc.nom_demandeur'; // recherche aussi par l'ancienne dénomination
+    $conditions = [];
+    foreach ($champs as $n => $champ) {
+        $conditions[] = "$champ LIKE :search$n";
+        $params['search' . $n] = "%$search%";
+    }
+    $where_clause .= ' AND (' . implode(' OR ', $conditions) . ')';
 }
 
 if ($type_infrastructure && $type_infrastructure !== '') {
@@ -90,6 +97,7 @@ $sql = "SELECT d.*,
         decs.decision,
         COALESCE(decs.date_decision, d.date_creation) as date_decision,
         COALESCE(decs.reference_decision, d.numero) as reference_decision
+        {$ancien['select']}
         $from_clause
         $where_clause
         ORDER BY COALESCE(decs.date_decision, d.date_creation) DESC, d.numero DESC
@@ -333,6 +341,9 @@ $stats = $pdo->query($stats_sql)->fetch();
                                         <?php endif; ?>
                                     </h5>
                                     <h4 class="mb-2"><?php echo htmlspecialchars($dossier['nom_demandeur']); ?></h4>
+                                    <?php if (!empty($dossier['ancien_nom'])): ?>
+                                    <p class="mb-1 small text-muted"><i class="fas fa-right-left"></i> Anciennement : <?php echo htmlspecialchars($dossier['ancien_operateur'] ?: $dossier['ancien_nom']); ?></p>
+                                    <?php endif; ?>
                                     <p class="mb-1">
                                         <i class="fas fa-map-marker-alt text-danger"></i>
                                         <strong><?php echo htmlspecialchars($dossier['ville'] ?? '-'); ?>,

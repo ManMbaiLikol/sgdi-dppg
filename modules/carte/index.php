@@ -10,7 +10,8 @@ requireLogin();
 $page_title = 'Carte des infrastructures';
 $peut_synchroniser = hasAnyRole(['admin', 'chef_service']);
 $extra_head = '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">'
-            . '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">';
+            . '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">'
+            . '<link rel="stylesheet" href="' . asset('css/carte-marqueurs.css') . '">';
 
 $actions = '<button class="btn btn-outline-secondary" type="button" id="btn-verifier"><i class="fas fa-location-crosshairs"></i> Vérifier un emplacement</button>'
          . '<button class="btn btn-outline-secondary" type="button" id="btn-mesurer"><i class="fas fa-ruler"></i> Mesurer</button>'
@@ -113,6 +114,7 @@ echo uiPageHeader(
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+<script src="<?php echo asset('js/carte-groupes.js'); ?>"></script>
 <script>
 (function () {
     'use strict';
@@ -141,11 +143,7 @@ echo uiPageHeader(
 
     var grappe = L.markerClusterGroup({
         showCoverageOnHover: false, maxClusterRadius: 45, chunkedLoading: true, spiderfyOnMaxZoom: true,
-        iconCreateFunction: function (c) {
-            // Un marqueur de localité compte pour tous les dossiers qu'il regroupe
-            var n = c.getAllChildMarkers().reduce(function (t, m) { return t + (m._poids || 1); }, 0), s = n < 10 ? 30 : n < 100 ? 38 : n < 500 ? 46 : 54;
-            return L.divIcon({ html: '<div class="mk-cluster" style="width:' + s + 'px;height:' + s + 'px">' + n + '</div>', className: '', iconSize: [s, s] });
-        }
+        iconCreateFunction: sgdiIconeGrappe // un marqueur de localité compte pour tous les dossiers qu'il regroupe
     }).addTo(carte);
     var couchePoi = L.layerGroup(), coucheZones = L.layerGroup(), coucheDensite = null;
     var D = { sgdi: [], osm: [], poi: [] }, regions = {}, limitesPays = null;
@@ -172,12 +170,13 @@ echo uiPageHeader(
     /* ---------- Marqueurs ---------- */
     function marqueurSgdi(p) {
         var s = STATUTS[p[9]] || [p[9], 'preparation'];
-        var m = L.marker([p[1], p[2]], { icon: L.divIcon({ className: '', html: '<span class="mk mk-' + p[3] + (p[11] ? ' is-approx' : '') + '"></span>', iconSize: [16, 16], iconAnchor: [8, 8] }) });
+        var m = L.marker([p[1], p[2]], { icon: sgdiIcone(p[3], p[11]), riseOnHover: true });
         m.bindPopup(function () {
             return '<h3>' + esc(p[5] || 'Demandeur non renseigné') + '</h3>' +
                 '<div>' + esc(TYPES[p[3]] || p[3]) + (p[4] ? ' · ' + esc(p[4].charAt(0).toUpperCase() + p[4].slice(1)) : '') + '</div>' +
                 (p[6] ? '<div>Opérateur : <strong>' + esc(p[6]) + '</strong></div>' : '') +
-                '<div class="text-muted-sgdi">' + esc([p[7], p[8]].filter(Boolean).join(', ')) + '</div>' +
+                (p[13] ? '<div class="small">Anciennement : ' + esc(p[13]) + '</div>' : '') +
+                '<div class="text-muted-sgdi">' + esc([p[14], p[7], p[8]].filter(Boolean).join(', ')) + '</div>' +
                 '<div class="my-2"><span class="status-badge phase-' + s[1] + '">' + esc(s[0]) + '</span></div>' +
                 (p[11] ? '<div class="verdict phase-attention mb-2">Position approximative : centre de la localité, à préciser sur le terrain.</div>' : '') +
                 (m._fusion ? '<div class="small mb-2"><i class="fas fa-link"></i> Même station dans OpenStreetMap : <strong>' + esc(m._fusion[3] || 'sans nom') + '</strong> (' + esc(m._fusion[4]) + ')</div>' : '') +
@@ -210,7 +209,7 @@ echo uiPageHeader(
     }
     function marqueurGroupe(g) {
         var p0 = g[0]._sgdi, n = g.length;
-        var m = L.marker([p0[1], p0[2]], { icon: L.divIcon({ className: '', html: '<span class="mk-groupe" title="' + n + ' dossiers, position approximative">' + n + '</span>', iconSize: [28, 28], iconAnchor: [14, 14] }) });
+        var m = L.marker([p0[1], p0[2]], { icon: sgdiIconeGroupe(n) });
         m.bindPopup(function () {
             return '<h3>' + n + ' dossiers · ' + esc(p0[7] || 'localité') + '</h3>' +
                 '<div class="verdict phase-attention mb-2">Positions approximatives : centre de la localité, à préciser sur le terrain.</div>' +
@@ -225,7 +224,7 @@ echo uiPageHeader(
         return m;
     }
     function marqueurOsm(p, absent) {
-        var m = L.marker([p[0], p[1]], { icon: L.divIcon({ className: '', html: '<span class="mk mk-osm mk-' + p[2] + (absent ? ' is-absent' : '') + '"></span>', iconSize: [16, 16], iconAnchor: [8, 8] }) });
+        var m = L.marker([p[0], p[1]], { icon: L.divIcon({ className: '', html: '<span class="mk-osm mk-' + p[2] + (absent ? ' is-absent' : '') + '"></span>', iconSize: [11, 11], iconAnchor: [5.5, 5.5] }) });
         m.bindPopup(function () {
             return '<h3>' + esc(p[3] || (CAT_OSM[p[2]] + ' sans nom')) + '</h3>' +
                 '<div>' + esc(CAT_OSM[p[2]]) + (p[7] && p[2] === 'station' ? ' · GPL disponible' : '') + '</div>' +
@@ -374,7 +373,7 @@ echo uiPageHeader(
     function dessinerPoi() {
         couchePoi.clearLayers(); coucheZones.clearLayers();
         D.poi.forEach(function (p) {
-            L.marker([p[0], p[1]], { icon: L.divIcon({ className: '', html: '<span class="mk mk-poi" style="--poi-couleur:' + esc(p[6]) + '"></span>', iconSize: [14, 14], iconAnchor: [7, 7] }) })
+            L.marker([p[0], p[1]], { icon: L.divIcon({ className: '', html: '<span class="mk-poi" style="--poi-couleur:' + esc(p[6]) + '"></span>', iconSize: [10, 10], iconAnchor: [5, 5] }) })
                 .bindPopup('<h3>' + esc(p[2]) + '</h3><div>' + esc(p[3]) + '</div><div class="small mt-1">Distance minimale : <strong>' + p[4] + ' m</strong> (' + p[5] + ' m en zone rurale)</div>')
                 .addTo(couchePoi);
             L.circle([p[0], p[1]], { radius: p[4], className: 'zone-contrainte', interactive: false }).addTo(coucheZones);

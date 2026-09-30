@@ -5,6 +5,7 @@ require_once 'functions.php';
 require_once '../daj/functions.php';
 require_once '../../includes/huitaine_functions.php';
 require_once '../fiche_inspection/functions.php';
+require_once '../../includes/reprise_functions.php';
 
 requireLogin();
 
@@ -54,6 +55,11 @@ if ($dossier['statut'] === 'en_huitaine' && $dossier['huitaine_active_id']) {
         $huitaine_active['expire'] = true;
     }
 }
+
+// Reprise : station reprise par ce dossier, ou dossiers de reprise visant cette station
+$reprise = repriseLiens($dossier);
+$reprise_modifiable = repriseDisponible() && $dossier['sous_type'] === 'reprise'
+    && hasAnyRole(['chef_service', 'admin']) && !in_array($dossier['statut'], ['autorise', 'rejete', 'repris'], true);
 
 $page_title = 'Détail du dossier ' . $dossier['numero'];
 require_once '../../includes/header.php';
@@ -357,6 +363,95 @@ require_once '../../includes/header.php';
                             </div>
                         </div>
                     </div>
+
+                    <?php if (repriseDisponible() && ($dossier['sous_type'] === 'reprise' || $reprise['reprises'])): ?>
+                    <!-- Reprise de station -->
+                    <div class="card mb-4" id="reprise">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0"><i class="fas fa-right-left"></i> Reprise de station</h5>
+                        </div>
+                        <div class="card-body">
+                            <?php if ($dossier['sous_type'] === 'reprise'): ?>
+                                <?php if ($reprise['station']): $st = $reprise['station']; ?>
+                                <p class="mb-2">Ce dossier reprend la station
+                                    <a href="<?php echo url('modules/dossiers/view.php?id=' . (int) $st['id']); ?>"><strong><?php echo sanitize($st['nom_demandeur']); ?></strong> (<?php echo sanitize($st['numero']); ?>)</a>
+                                    <?php echo $st['ville'] ? '· ' . sanitize($st['ville']) : ''; ?>
+                                    <?php echo uiStatutBadge($st['statut']); ?>
+                                </p>
+                                <p class="small text-muted-sgdi mb-0">
+                                    <?php echo $st['statut'] === 'repris'
+                                        ? 'Reprise approuvée : la station continue au registre et sur les cartes sous la dénomination de ce dossier.'
+                                        : 'À l\'approbation ministérielle, la station continuera au registre et sur les cartes sous la dénomination de ce dossier, au même emplacement.'; ?>
+                                </p>
+                                <?php if ($reprise_modifiable): ?>
+                                <form method="post" action="<?php echo url('modules/dossiers/lier_reprise.php'); ?>" class="mt-2" onsubmit="return confirm('Retirer le lien avec cette station ?');">
+                                    <?php echo csrfField(); ?>
+                                    <input type="hidden" name="dossier_id" value="<?php echo (int) $dossier_id; ?>">
+                                    <button type="submit" name="action" value="delier" class="btn btn-sm btn-outline-secondary"><i class="fas fa-link-slash"></i> Retirer le lien</button>
+                                </form>
+                                <?php endif; ?>
+                                <?php else: ?>
+                                <div class="alert-banner phase-attention mb-2">
+                                    <i class="fas fa-triangle-exclamation alert-banner-icon" aria-hidden="true"></i>
+                                    <div class="alert-banner-body">La station reprise n'est pas renseignée : à l'approbation, l'ancienne station resterait affichée à côté de la nouvelle.</div>
+                                </div>
+                                <?php if ($reprise_modifiable): ?>
+                                <form method="post" action="<?php echo url('modules/dossiers/lier_reprise.php'); ?>" id="form-lier-reprise">
+                                    <?php echo csrfField(); ?>
+                                    <input type="hidden" name="dossier_id" value="<?php echo (int) $dossier_id; ?>">
+                                    <input type="hidden" name="action" value="lier">
+                                    <input type="hidden" name="station_id" id="station_id">
+                                    <label for="recherche_station" class="form-label">Rechercher la station reprise</label>
+                                    <input type="search" class="form-control" id="recherche_station" placeholder="Nom, numéro, opérateur, ville ou quartier" autocomplete="off">
+                                    <div class="list-group mt-1" id="resultats-station"></div>
+                                </form>
+                                <script>
+                                (function () {
+                                    var champ = document.getElementById('recherche_station'), res = document.getElementById('resultats-station'), minuterie, liste = [];
+                                    var esc = function (s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; };
+                                    champ.addEventListener('input', function () {
+                                        clearTimeout(minuterie);
+                                        var q = champ.value.trim();
+                                        if (q.length < 2) { res.innerHTML = ''; return; }
+                                        minuterie = setTimeout(function () {
+                                            fetch('<?php echo url('modules/dossiers/stations_reprise.php'); ?>?type=<?php echo urlencode($dossier['type_infrastructure']); ?>&q=' + encodeURIComponent(q), { credentials: 'same-origin' })
+                                                .then(function (r) { return r.json(); })
+                                                .then(function (json) {
+                                                    liste = (json.stations || []).filter(function (s) { return s.id !== <?php echo (int) $dossier_id; ?>; });
+                                                    res.innerHTML = liste.length ? liste.map(function (s, i) {
+                                                        return '<button type="button" class="list-group-item list-group-item-action" data-i="' + i + '"><strong>' + esc(s.nom) + '</strong> <span class="small text-muted-sgdi">' + esc(s.numero) + '</span><br><span class="small">' +
+                                                            esc([s.quartier, s.ville, s.region].filter(Boolean).join(', ')) + (s.operateur ? ' · ' + esc(s.operateur) : '') + '</span></button>';
+                                                    }).join('') : '<div class="list-group-item small text-muted-sgdi">Aucune infrastructure en activité ne correspond.</div>';
+                                                });
+                                        }, 250);
+                                    });
+                                    res.addEventListener('click', function (e) {
+                                        var b = e.target.closest('[data-i]');
+                                        if (!b) return;
+                                        var s = liste[+b.getAttribute('data-i')];
+                                        if (confirm('Lier ce dossier à la station « ' + s.nom + ' » (' + s.numero + ') ?')) {
+                                            document.getElementById('station_id').value = s.id;
+                                            document.getElementById('form-lier-reprise').submit();
+                                        }
+                                    });
+                                })();
+                                </script>
+                                <?php endif; ?>
+                                <?php endif; ?>
+                            <?php endif; ?>
+
+                            <?php if ($reprise['reprises']): ?>
+                            <p class="mb-1<?php echo $dossier['sous_type'] === 'reprise' ? ' mt-3' : ''; ?>">Dossiers de reprise de cette station :</p>
+                            <ul class="mb-0">
+                                <?php foreach ($reprise['reprises'] as $r): ?>
+                                <li><a href="<?php echo url('modules/dossiers/view.php?id=' . (int) $r['id']); ?>"><?php echo sanitize($r['numero']); ?></a>
+                                    · <?php echo sanitize($r['operateur_proprietaire'] ?: $r['nom_demandeur']); ?> <?php echo uiStatutBadge($r['statut']); ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
 
                     <!-- Localisation -->
                     <div class="card mb-4">

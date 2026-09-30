@@ -1,0 +1,77 @@
+/*
+ * Marqueurs des cartes SGDI (carte interne, carte publique, registre public)
+ * Épingles fines à pictogramme pour les dossiers, anneaux discrets pour la référence OpenStreetMap.
+ */
+/* Mêmes teintes que la légende des couches (sgdi-ui.css, --layer-*) */
+:root {
+    --mk-station: #1f74e0; --mk-conso: #11998e; --mk-gpl: #f39c12; --mk-emplisseur: #764ba2;
+    --mk-osm: #64748b; --mk-alerte: #e74c3c; --mk-grappe: #5a67d8;
+}
+[data-bs-theme="dark"] {
+    --mk-station: #5b9cf5; --mk-conso: #2cc7b8; --mk-gpl: #f5b041; --mk-emplisseur: #a58be0;
+    --mk-osm: #a3b1c4; --mk-alerte: #f06a5d; --mk-grappe: #7f8af0;
+}
+
+/* Épingle (goutte inclinée) : pointe en bas, pictogramme blanc au centre */
+.pin {
+    --c: var(--mk-station);
+    display: grid; place-items: center; width: 22px; height: 22px;
+    border-radius: 50% 50% 50% 2px; transform: rotate(-45deg);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--c) 72%, #fff) 0%, var(--c) 60%);
+    border: 1.5px solid #fff;
+    box-shadow: 0 1px 1px rgba(15, 23, 42, .18), 0 3px 8px rgba(15, 23, 42, .22);
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+.pin i { transform: rotate(45deg); color: #fff; font-size: 9.5px; line-height: 1; }
+.leaflet-marker-icon:hover .pin, .leaflet-marker-icon:focus .pin {
+    transform: rotate(-45deg) scale(1.15);
+    box-shadow: 0 1px 1px rgba(15, 23, 42, .2), 0 6px 14px rgba(15, 23, 42, .28);
+}
+.pin-station_service { --c: var(--mk-station); }
+.pin-point_consommateur { --c: var(--mk-conso); }
+.pin-depot_gpl { --c: var(--mk-gpl); }
+.pin-centre_emplisseur { --c: var(--mk-emplisseur); }
+/* Position approximative : épingle claire à contour pointillé */
+.pin.is-approx { background: color-mix(in srgb, var(--c) 16%, #fff); border: 1.5px dashed var(--c); box-shadow: 0 2px 6px rgba(15, 23, 42, .15); }
+.pin.is-approx i { color: var(--c); }
+
+/* Référence OpenStreetMap : petit anneau fin, en retrait des dossiers */
+.mk-osm {
+    --c: var(--mk-osm);
+    display: block; width: 11px; height: 11px; border-radius: 50%;
+    background: #fff; border: 2px solid var(--c);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, .25);
+}
+.mk-osm.mk-station { --c: var(--mk-osm); }
+.mk-osm.mk-gpl { --c: var(--mk-gpl); }
+.mk-osm.mk-depot { --c: var(--mk-emplisseur); border-radius: 3px; }
+.mk-osm.is-absent { --c: var(--mk-alerte); box-shadow: 0 0 0 3px color-mix(in srgb, var(--mk-alerte) 22%, transparent), 0 1px 3px rgba(15, 23, 42, .25); }
+
+/* Point d'intérêt soumis à distance minimale : petit losange */
+.mk-poi {
+    display: block; width: 10px; height: 10px; border-radius: 2px; transform: rotate(45deg);
+    background: var(--poi-couleur, #e74c3c); border: 1.5px solid #fff; box-shadow: 0 1px 3px rgba(15, 23, 42, .3);
+}
+
+/* Plusieurs dossiers au centre de la même localité */
+.mk-groupe {
+    display: inline-flex; align-items: center; gap: 3px; height: 22px; padding: 0 8px 0 6px; border-radius: 11px;
+    background: #fff; color: var(--mk-station); border: 1.5px dashed var(--mk-station);
+    font: 600 11px/1 system-ui, -apple-system, "Segoe UI", sans-serif; white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, .18); transform: translate(-50%, -50%);
+}
+.mk-groupe i { font-size: 9px; }
+
+/* Grappes : pastille pleine, liseré blanc et halo léger */
+.mk-cluster {
+    display: grid; place-items: center; border-radius: 50%;
+    background: var(--mk-grappe); color: #fff; border: 2px solid #fff;
+    font: 600 11px/1 system-ui, -apple-system, "Segoe UI", sans-serif; font-variant-numeric: tabular-nums;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--mk-grappe) 22%, transparent), 0 2px 6px rgba(15, 23, 42, .25);
+    transition: box-shadow .15s ease;
+}
+.mk-cluster:hover { box-shadow: 0 0 0 6px color-mix(in srgb, var(--mk-grappe) 28%, transparent), 0 3px 8px rgba(15, 23, 42, .3); }
+
+/* Liste des dossiers d'un marqueur de localité */
+.liste-groupe { list-style: none; margin: 0; padding: 0; max-height: 240px; overflow-y: auto; }
+.liste-groupe li { display: flex; flex-direction: column; padding: .3rem 0; border-top: 1px solid rgba(0, 0, 0, .08); }

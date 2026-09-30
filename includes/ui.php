@@ -78,6 +78,7 @@ function uiTableStatuts() {
         'ferme'                 => ['Fermé',                    'preparation', 11, 'fa-lock'],
         'suspendu'              => ['Suspendu',                 'attention',   11, 'fa-circle-pause'],
         'historique_autorise'   => ['Autorisé (historique)',    'succes',      11, 'fa-clock-rotate-left'],
+        'repris'                => ['Repris par un autre marketer', 'preparation', 11, 'fa-right-left'],
     ];
     return $statuts;
 }

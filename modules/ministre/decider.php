@@ -2,6 +2,7 @@
 // Page de décision ministérielle finale
 require_once '../../includes/auth.php';
 require_once '../../modules/dossiers/functions.php';
+require_once '../../includes/reprise_functions.php';
 
 requireRole('cabinet');
 
@@ -72,6 +73,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // Logger l'action
                 logAction($pdo, $dossier_id, 'decision_ministerielle', $description, $_SESSION['user_id'], $dossier['statut'], $nouveau_statut);
+
+                // Reprise approuvée : la station existante continue sous ce dossier (nouvelle dénomination)
+                if ($decision === 'approuve') repriseAppliquerApprobation($dossier, $reference, $_SESSION['user_id']);
 
                 // Note: infrastructures_geolocalisees est une vue basée sur la table dossiers
                 // Elle se met à jour automatiquement quand le statut devient 'autorise'

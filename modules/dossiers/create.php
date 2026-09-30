@@ -2,6 +2,7 @@
 // Création de dossier - SGDI MVP
 require_once '../../includes/auth.php';
 require_once 'functions.php';
+require_once '../../includes/reprise_functions.php';
 
 // Seul le Chef de Service SDTD peut créer les dossiers
 requireRole('chef_service');
@@ -9,6 +10,7 @@ requireRole('chef_service');
 $page_title = 'Créer un nouveau dossier';
 $errors = [];
 $success = false;
+$station_reprise = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
@@ -34,6 +36,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Le remodelage n'est applicable qu'aux stations-services
         if ($sous_type === 'remodelage' && $type !== 'station_service') {
             $errors[] = 'Le remodelage n\'est applicable qu\'aux stations-services';
+        }
+
+        // Reprise : la station reprise doit être une station existante en activité, du même type
+        if ($sous_type === 'reprise' && !empty($_POST['dossier_repris_id']) && repriseDisponible()) {
+            $station_reprise = repriseStationValide($_POST['dossier_repris_id'], $type);
+            if (!$station_reprise) {
+                $errors[] = 'La station reprise choisie n\'est pas une infrastructure en activité de ce type';
+            }
         }
 
         if ($type === 'station_service' && empty($_POST['operateur_proprietaire'])) {
@@ -86,6 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $dossier_id = createDossier($data);
 
             if ($dossier_id) {
+                if ($station_reprise) repriseLier($dossier_id, $station_reprise['id'], $_SESSION['user_id']);
                 redirect(url('modules/dossiers/view.php?id=' . $dossier_id),
                         'Dossier créé avec succès', 'success');
             } else {
@@ -159,6 +170,22 @@ echo uiPageHeader(
                         </div>
                         <div class="form-text" id="aide-remodelage">Le remodelage ne concerne que les stations-service.</div>
                     </fieldset>
+                    <?php if (repriseDisponible()): ?>
+                    <div id="bloc-reprise" class="mt-4" hidden>
+                        <label for="recherche_station" class="form-label">Station reprise</label>
+                        <input type="hidden" name="dossier_repris_id" id="dossier_repris_id" value="<?php echo $station_reprise ? (int) $station_reprise['id'] : ''; ?>">
+                        <div id="station-choisie" class="alert-banner phase-succes mb-2"<?php echo $station_reprise ? '' : ' hidden'; ?>>
+                            <i class="fas fa-gas-pump alert-banner-icon" aria-hidden="true"></i>
+                            <div class="alert-banner-body" id="station-choisie-texte"><?php if ($station_reprise): ?><strong><?php echo sanitize($station_reprise['nom_demandeur']); ?></strong> · <?php echo sanitize($station_reprise['numero']); ?> · <?php echo sanitize($station_reprise['ville']); ?><?php endif; ?></div>
+                            <button type="button" class="btn btn-sm btn-ghost ms-auto" id="station-changer">Changer</button>
+                        </div>
+                        <div id="station-recherche"<?php echo $station_reprise ? ' hidden' : ''; ?>>
+                            <input type="search" class="form-control" id="recherche_station" placeholder="Nom, numéro, opérateur, ville ou quartier de la station existante" autocomplete="off" aria-describedby="aide-reprise">
+                            <div class="list-group mt-1" id="resultats-station" role="listbox"></div>
+                        </div>
+                        <div class="form-text" id="aide-reprise">La station garde son emplacement : sa localisation et ses coordonnées GPS sont reprises dans ce dossier. À l'approbation, elle continue au registre et sur les cartes sous la nouvelle dénomination.</div>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </section>
 
@@ -339,6 +366,64 @@ echo uiPageHeader(
     }
     radiosType.forEach(function (r) { r.addEventListener('change', majType); });
     majType();
+
+    // Reprise : choix de la station existante, dont la localisation est reprise
+    var blocReprise = document.getElementById('bloc-reprise');
+    if (blocReprise) {
+        var champId = document.getElementById('dossier_repris_id'), recherche = document.getElementById('recherche_station'),
+            resultats = document.getElementById('resultats-station'), minuterie, stations = [];
+        var esc = function (s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; };
+        var afficherChoix = function (s) {
+            document.getElementById('station-choisie').hidden = !s;
+            document.getElementById('station-recherche').hidden = !!s;
+            if (s) document.getElementById('station-choisie-texte').innerHTML = '<strong>' + esc(s.nom) + '</strong> · ' + esc(s.numero) + ' · ' + esc(s.ville || '') +
+                (s.operateur ? '<br><span class="small">Opérateur actuel : ' + esc(s.operateur) + '</span>' : '');
+        };
+        var majReprise = function () {
+            var r = form.querySelector('input[name="sous_type"]:checked');
+            blocReprise.hidden = !(r && r.value === 'reprise');
+        };
+        form.querySelectorAll('input[name="sous_type"]').forEach(function (r) { r.addEventListener('change', majReprise); });
+        radiosType.forEach(function (r) { r.addEventListener('change', function () { champId.value = ''; afficherChoix(null); }); });
+        majReprise();
+
+        var remplir = function (id, val) {
+            var el = document.getElementById(id);
+            if (!el || !val || el.value.trim()) return;
+            if (el.tagName === 'SELECT' && !Array.prototype.some.call(el.options, function (o) { return o.value === val; })) el.add(new Option(val, val));
+            el.value = val;
+            el.dispatchEvent(new Event('input'));
+        };
+        var choisir = function (s) {
+            champId.value = s.id;
+            afficherChoix(s);
+            ['region', 'departement', 'arrondissement', 'ville', 'quartier', 'lieu_dit'].forEach(function (c) { remplir(c, s[c]); });
+            remplir('coordonnees_gps', s.gps);
+            resultats.innerHTML = '';
+        };
+        document.getElementById('station-changer').addEventListener('click', function () { champId.value = ''; afficherChoix(null); recherche.focus(); });
+        recherche.addEventListener('input', function () {
+            clearTimeout(minuterie);
+            var q = recherche.value.trim(), type = typeChoisi() || 'station_service';
+            if (q.length < 2) { resultats.innerHTML = ''; return; }
+            minuterie = setTimeout(function () {
+                fetch('stations_reprise.php?type=' + encodeURIComponent(type) + '&q=' + encodeURIComponent(q), { credentials: 'same-origin' })
+                    .then(function (r) { return r.json(); })
+                    .then(function (json) {
+                        stations = json.stations || [];
+                        resultats.innerHTML = stations.length ? stations.map(function (s, i) {
+                            return '<button type="button" class="list-group-item list-group-item-action" role="option" data-i="' + i + '">' +
+                                '<strong>' + esc(s.nom) + '</strong> <span class="small text-muted-sgdi">' + esc(s.numero) + (s.historique ? ' · historique' : '') + '</span>' +
+                                '<br><span class="small">' + esc([s.quartier, s.ville, s.region].filter(Boolean).join(', ')) + (s.operateur ? ' · ' + esc(s.operateur) : '') + '</span></button>';
+                        }).join('') : '<div class="list-group-item small text-muted-sgdi">Aucune infrastructure en activité ne correspond.</div>';
+                    });
+            }, 250);
+        });
+        resultats.addEventListener('click', function (e) {
+            var b = e.target.closest('[data-i]');
+            if (b) choisir(stations[+b.getAttribute('data-i')]);
+        });
+    }
 
     // Format GPS « latitude, longitude » dans les limites du Cameroun
     var gps = document.getElementById('coordonnees_gps');

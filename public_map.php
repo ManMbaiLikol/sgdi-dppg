@@ -50,6 +50,7 @@ $stats = [
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <link rel="stylesheet" href="<?php echo asset('css/carte-marqueurs.css'); ?>">
 
     <style>
         body {
@@ -328,37 +329,20 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 const markers = L.markerClusterGroup({ iconCreateFunction: sgdiIconeGrappe });
 const infrastructures = <?php echo json_encode($infrastructures); ?>;
 
-const iconColors = {
-    'station_service': '#ff6b6b',
-    'point_consommateur': '#4ecdc4',
-    'depot_gpl': '#f7b731',
-    'centre_emplisseur': '#5f27cd'
-};
-
 sgdiRegrouperApprox(infrastructures, markers).forEach(function(infra) {
-    const color = iconColors[infra.type_infrastructure] || '#6c757d';
-
-    const icon = L.divIcon({
-        html: `<div style="background: ${color}; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-size: 16px;">
-                <i class="fas fa-check"></i>
-               </div>`,
-        className: 'custom-marker',
-        iconSize: [32, 32]
-    });
-
-    const marker = L.marker([infra.latitude, infra.longitude], { icon: icon });
+    const esc = sgdiEsc;
+    const marker = L.marker([infra.latitude, infra.longitude], { icon: sgdiIcone(infra.type_infrastructure, infra.approximatif), riseOnHover: true });
 
     // Tooltip au survol (info rapide)
     const tooltipContent = `
-        <strong>${infra.nom_demandeur}</strong><br>
-        <small>${infra.numero}</small><br>
-        <small><i class="fas fa-map-marker-alt"></i> ${infra.ville}</small>
+        <strong>${esc(infra.nom_demandeur)}</strong><br>
+        <small>${esc(infra.numero)}</small><br>
+        <small><i class="fas fa-map-marker-alt"></i> ${esc(infra.ville)}</small>
     `;
 
     marker.bindTooltip(tooltipContent, {
         permanent: false,
-        direction: 'top',
-        offset: [0, -20]
+        direction: 'top'
     });
 
     // Popup détaillé au clic
@@ -366,13 +350,15 @@ sgdiRegrouperApprox(infrastructures, markers).forEach(function(infra) {
         'paye': 'En traitement (payée)',
         'inspecte': 'En traitement (inspectée)',
         'valide': 'En traitement (validée)',
-        'autorise': 'Autorisée'
+        'autorise': 'Autorisée',
+        'historique_autorise': 'Autorisée (historique)'
     };
     const statusColors = {
         'paye': 'info',
         'inspecte': 'warning',
         'valide': 'primary',
-        'autorise': 'success'
+        'autorise': 'success',
+        'historique_autorise': 'success'
     };
     const statusLabel = statusLabels[infra.statut] || infra.statut;
     const statusColor = statusColors[infra.statut] || 'secondary';
@@ -385,11 +371,11 @@ sgdiRegrouperApprox(infrastructures, markers).forEach(function(infra) {
             <table class="table table-sm table-borderless mb-2">
                 <tr>
                     <td class="text-muted" style="width: 40%;"><i class="fas fa-file-alt"></i> Dossier:</td>
-                    <td><strong>${infra.numero}</strong></td>
+                    <td><strong>${esc(infra.numero)}</strong></td>
                 </tr>
                 <tr>
                     <td class="text-muted"><i class="fas fa-building"></i> Entreprise:</td>
-                    <td><strong>${infra.nom_demandeur}</strong></td>
+                    <td><strong>${esc(infra.nom_demandeur)}</strong>${infra.ancien_nom ? `<br><small class="text-muted">Anciennement : ${esc(infra.ancien_operateur || infra.ancien_nom)}</small>` : ''}</td>
                 </tr>
                 <tr>
                     <td class="text-muted"><i class="fas fa-industry"></i> Type:</td>
@@ -397,7 +383,7 @@ sgdiRegrouperApprox(infrastructures, markers).forEach(function(infra) {
                 </tr>
                 <tr>
                     <td class="text-muted"><i class="fas fa-map-marker-alt"></i> Localisation:</td>
-                    <td>${infra.ville}<br><small class="text-muted">${infra.region || ''}</small></td>
+                    <td>${esc([infra.quartier, infra.ville].filter(Boolean).join(', '))}<br><small class="text-muted">${esc(infra.region || '')}</small></td>
                 </tr>
                 <tr>
                     <td class="text-muted"><i class="fas fa-crosshairs"></i> Coordonnées:</td>

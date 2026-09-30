@@ -70,7 +70,8 @@ function getStatutLabel($statut) {
         'rejete' => 'Rejeté',
         'ferme' => 'Fermé',
         'suspendu' => 'Suspendu',
-        'historique_autorise' => 'Autorisé (historique)'
+        'historique_autorise' => 'Autorisé (historique)',
+        'repris' => 'Repris par un autre marketer'
     ];
 
     return $labels[$statut] ?? $statut;
@@ -97,7 +98,8 @@ function getStatutClass($statut) {
         'rejete' => 'danger',
         'ferme' => 'secondary',
         'suspendu' => 'warning',
-        'historique_autorise' => 'success'
+        'historique_autorise' => 'success',
+        'repris' => 'secondary'
     ];
 
     return $classes[$statut] ?? 'secondary';

@@ -2,6 +2,7 @@
 // Prendre décision ministérielle - SGDI MVP
 require_once '../../includes/auth.php';
 require_once 'functions.php';
+require_once '../../includes/reprise_functions.php';
 
 requireRole('cabinet');
 
@@ -113,6 +114,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $commentaire . ($observations ? ' - ' . $observations : '')
         ]);
 
+        // Reprise approuvée : la station existante continue sous ce dossier (nouvelle dénomination)
+        $reprise_appliquee = $decision === 'approuve' && repriseAppliquerApprobation($dossier, $numero_arrete, $_SESSION['user_id']);
+
         // Publier au registre public si approuvé
         if ($decision === 'approuve') {
             $sql = "INSERT INTO registre_public (
@@ -147,6 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'La décision ministérielle a été enregistrée avec succès.';
         if ($decision === 'approuve') {
             $message .= ' Le dossier a été automatiquement publié au registre public.';
+            if ($reprise_appliquee) $message .= ' La station reprise y figure désormais sous sa nouvelle dénomination.';
         }
 
         redirect(url('modules/dossiers/decision_ministre.php'), $message, 'success');

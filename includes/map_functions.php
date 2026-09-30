@@ -328,37 +328,44 @@ function isRestrictedZone($latitude, $longitude) {
 function getAllInfrastructuresForMap($filters = []) {
     global $pdo;
 
-    $sql = "SELECT id, numero, type_infrastructure, sous_type, nom_demandeur,
-                   ville, region, quartier, arrondissement, departement, lieu_dit,
-                   coordonnees_gps, statut, date_creation,
-                   operateur_proprietaire, entreprise_beneficiaire, source_gps, est_historique
-            FROM dossiers
-            WHERE coordonnees_gps IS NOT NULL
-            AND coordonnees_gps != ''";
+    // Station reprise : dénomination précédente (« anciennement … »)
+    require_once __DIR__ . '/reprise_functions.php';
+    $ancien = repriseJointureAncien('d');
+
+    // Une station reprise (statut « repris ») continue sous le dossier de reprise : pas de second point
+    $sql = "SELECT d.id, d.numero, d.type_infrastructure, d.sous_type, d.nom_demandeur,
+                   d.ville, d.region, d.quartier, d.arrondissement, d.departement, d.lieu_dit,
+                   d.coordonnees_gps, d.statut, d.date_creation,
+                   d.operateur_proprietaire, d.entreprise_beneficiaire, d.source_gps, d.est_historique
+                   {$ancien['select']}
+            FROM dossiers d{$ancien['join']}
+            WHERE d.coordonnees_gps IS NOT NULL
+            AND d.coordonnees_gps != ''
+            AND d.statut <> 'repris'";
 
     $params = [];
 
     if (!empty($filters['type_infrastructure'])) {
-        $sql .= " AND type_infrastructure = ?";
+        $sql .= " AND d.type_infrastructure = ?";
         $params[] = $filters['type_infrastructure'];
     }
 
     // Support pour un seul statut ou plusieurs statuts
     if (!empty($filters['statut'])) {
-        $sql .= " AND statut = ?";
+        $sql .= " AND d.statut = ?";
         $params[] = $filters['statut'];
     } elseif (!empty($filters['statuts']) && is_array($filters['statuts'])) {
         $placeholders = implode(',', array_fill(0, count($filters['statuts']), '?'));
-        $sql .= " AND statut IN ($placeholders)";
+        $sql .= " AND d.statut IN ($placeholders)";
         $params = array_merge($params, $filters['statuts']);
     }
 
     if (!empty($filters['region'])) {
-        $sql .= " AND region = ?";
+        $sql .= " AND d.region = ?";
         $params[] = $filters['region'];
     }
 
-    $sql .= " ORDER BY date_creation DESC";
+    $sql .= " ORDER BY d.date_creation DESC";
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
