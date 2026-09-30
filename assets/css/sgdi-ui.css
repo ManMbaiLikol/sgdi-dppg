@@ -436,6 +436,37 @@ a.kpi-link:hover .card { border-color: var(--bs-primary-border-subtle); box-shad
 .shortcut i { color: var(--phase-fg, var(--sgdi-primary)); width: 1.1rem; text-align: center; flex-shrink: 0; }
 
 /* ============================================================
+   7 bis. FORMULAIRES
+   ============================================================ */
+.form-step {
+    display: inline-grid; place-items: center; width: 1.6rem; height: 1.6rem; margin-right: .4rem;
+    border-radius: 50%; font-size: .8rem; font-weight: 700; color: #fff; background: var(--sgdi-gradient);
+}
+.req { color: var(--sgdi-phase-danger-text); font-weight: 700; }
+fieldset legend.form-label { font-size: .875rem; float: none; width: auto; margin-bottom: .5rem; }
+/* Tuiles de choix (boutons radio .btn-check) */
+.choice-tile {
+    display: flex; align-items: center; gap: .85rem; height: 100%; cursor: pointer;
+    padding: .85rem 1rem; border-radius: .75rem;
+    border: 2px solid var(--sgdi-border); background: var(--sgdi-surface); transition: border-color .15s, background .15s;
+}
+.choice-tile > i { font-size: 1.35rem; width: 1.6rem; text-align: center; color: var(--sgdi-muted); }
+.choice-tile:hover { border-color: var(--bs-primary-border-subtle); }
+.btn-check:checked + .choice-tile { border-color: var(--sgdi-primary); background: var(--sgdi-primary-subtle); }
+.btn-check:checked + .choice-tile > i { color: var(--sgdi-primary); }
+.btn-check:focus-visible + .choice-tile { outline: 2px solid var(--sgdi-primary); outline-offset: 2px; }
+.was-validated .btn-check:invalid + .choice-tile { border-color: var(--sgdi-phase-danger); }
+/* Barre d'actions du formulaire, visible pendant le défilement */
+.form-actions {
+    position: sticky; bottom: 0; z-index: 5;
+    display: flex; justify-content: space-between; gap: .75rem; flex-wrap: wrap;
+    padding: .9rem 1.25rem; margin-bottom: 1rem; border-radius: .75rem;
+    background: color-mix(in srgb, var(--sgdi-surface) 92%, transparent); backdrop-filter: blur(6px);
+    border: 1px solid var(--sgdi-border); box-shadow: var(--sgdi-shadow-lg);
+}
+@media (min-width: 1200px) { .form-aside { position: sticky; top: 5rem; } }
+
+/* ============================================================
    8. FILTRES
    ============================================================ */
 .filter-chips { display: flex; gap: .5rem; overflow-x: auto; padding-bottom: .25rem; scrollbar-width: thin; }

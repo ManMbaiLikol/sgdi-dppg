@@ -205,7 +205,9 @@
             const label = document.querySelector(`label[for="${field.id}"]`) ||
                          field.closest('label');
 
-            if (label && !label.classList.contains('required')) {
+            // Ajouter l'astérisque seulement s'il n'est pas déjà affiché, et jamais sur les boutons de choix
+            const dejaMarque = label && (label.textContent.includes('*') || label.querySelector('.req'));
+            if (label && !dejaMarque && !field.classList.contains('btn-check') && !label.classList.contains('required')) {
                 label.classList.add('required');
             }
 
